@@ -8,36 +8,54 @@ export const useAuthStore = create((set, get) => ({
   isLoggedIn: false, // alias for isAuthenticated
   user: null,
   token: null,
+  refreshToken: null,
   isLoading: false,      // ← 로그인 요청 중 로딩 상태
   error: null,           // ← 로그인 실패 에러 메시지
 
   // 로그인
-  login: (userData, token) => {
-    localStorage.setItem('token', token)
+  login: (userData, token, refreshToken) => {
+    localStorage.setItem('accessToken', token)
+    localStorage.setItem('refreshToken', refreshToken)
     set({
       isAuthenticated: true,
       isLoggedIn: true,
       user: userData,
       token,
+      refreshToken,
       error: null,
     })
   },
 
+  // 토큰 갱신
+  updateTokens: (token, refreshToken) => {
+    localStorage.setItem('accessToken', token)
+    localStorage.setItem('refreshToken', refreshToken)
+    set({ token, refreshToken })
+  },
+
   // 로그아웃
   logout: () => {
-    localStorage.removeItem('token')
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
     set({
       isAuthenticated: false,
       isLoggedIn: false,
       user: null,
       token: null,
+      refreshToken: null,
       error: null,
     })
   },
 
   // 새로고침 시 토큰으로 로그인 상태 복구
-  restore: (userData, token) => {
-    set({ isAuthenticated: true, isLoggedIn: true, user: userData, token })
+  restore: (userData, token, refreshToken) => {
+    set({ 
+      isAuthenticated: true, 
+      isLoggedIn: true, 
+      user: userData, 
+      token, 
+      refreshToken 
+    })
   },
 
   // 로딩 상태 변경
