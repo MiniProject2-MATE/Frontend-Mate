@@ -3,7 +3,7 @@ import { useAuthStore } from '../../store/authStore.js'
 
 export default function Header() {
   const navigate = useNavigate()
-  const { isAuthenticated, user, logout } = useAuthStore()
+  const { isLoggedIn, user, logout } = useAuthStore()
 
   const handleLogout = () => {
     logout()
@@ -16,14 +16,15 @@ export default function Header() {
 
       <div style={s.links}>
         <Link to="/" style={s.link}>Explore</Link>
-        {isAuthenticated && <Link to="/posts/new" style={s.link}>Post</Link>}
-        <Link to="/community" style={s.link}>Community</Link>
+        {isLoggedIn && <Link to="/posts/new" style={s.link}>Post</Link>}
+        {/* 설계서에 게시판 관련 경로가 /posts/:id/board이므로, 임시로 메인으로 연결하거나 주석 처리 가능 */}
+        <Link to="/" style={s.link}>Community</Link>
       </div>
 
       <div style={s.right}>
-        {isAuthenticated ? (
+        {isLoggedIn ? (
           <>
-            <span style={s.welcome}>{user?.nickname}</span>
+            <span style={s.welcome}>{user?.nickname || '사용자'}</span>
             <Link to="/mypage" style={s.btnGhost}>마이페이지</Link>
             <button onClick={handleLogout} style={s.btnGhost}>로그아웃</button>
           </>

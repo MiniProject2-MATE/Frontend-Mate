@@ -5,6 +5,7 @@ import { create } from 'zustand'
 export const useAuthStore = create((set, get) => ({
   // 상태
   isAuthenticated: false,
+  isLoggedIn: false, // alias for isAuthenticated
   user: null,
   token: null,
   isLoading: false,      // ← 로그인 요청 중 로딩 상태
@@ -15,6 +16,7 @@ export const useAuthStore = create((set, get) => ({
     localStorage.setItem('token', token)
     set({
       isAuthenticated: true,
+      isLoggedIn: true,
       user: userData,
       token,
       error: null,
@@ -26,6 +28,7 @@ export const useAuthStore = create((set, get) => ({
     localStorage.removeItem('token')
     set({
       isAuthenticated: false,
+      isLoggedIn: false,
       user: null,
       token: null,
       error: null,
@@ -34,7 +37,7 @@ export const useAuthStore = create((set, get) => ({
 
   // 새로고침 시 토큰으로 로그인 상태 복구
   restore: (userData, token) => {
-    set({ isAuthenticated: true, user: userData, token })
+    set({ isAuthenticated: true, isLoggedIn: true, user: userData, token })
   },
 
   // 로딩 상태 변경
