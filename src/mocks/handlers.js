@@ -122,4 +122,59 @@ export const handlers = [
       }
     });
   }),
+
+ // 6. 아이디(이메일) 찾기 API 모킹 추가
+  http.post('*/api/auth/find-email', async ({ request }) => {
+    const { phoneNumber } = await request.json();
+
+    // 입력받은 번호가 특정 번호일 때 성공하는 시나리오 (테스트용)
+    if (phoneNumber === '01012345678') {
+      return HttpResponse.json({
+        success: true,
+        data: {
+          email: 'ji****@gmail.com'
+        }
+      });
+    }
+
+    // 번호가 다를 경우 404 에러 응답
+    return new HttpResponse(
+      JSON.stringify({
+        success: false,
+        error: {
+          code: 'AUTH_002',
+          message: '해당 번호로 가입된 정보를 찾을 수 없습니다.'
+        }
+      }),
+      { status: 404 }
+    );
+  }),
+
+ // 8. 비밀번호 찾기 (임시 비밀번호 발급) API 모킹 추가
+  http.post('*/api/auth/find-password', async ({ request }) => {
+    const { email, phoneNumber } = await request.json();
+
+    // 특정 데이터로 입력했을 때만 성공하는 시나리오
+    if (email === 'test@test.com' && phoneNumber === '01012345678') {
+      return HttpResponse.json({
+        success: true,
+        message: '임시 비밀번호가 발급되었습니다.',
+        data: {
+          temporaryPassword: 'mate7788!@#$'
+        }
+      });
+    }
+
+    // 정보가 일치하지 않을 경우 400 에러 응답
+    return new HttpResponse(
+      JSON.stringify({
+        success: false,
+        error: {
+          code: 'AUTH_003',
+          message: '입력하신 이메일과 전화번호 정보가 일치하지 않습니다.'
+        }
+      }),
+      { status: 400 }
+    );
+  }),
 ];
