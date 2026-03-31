@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
-import { Container, Box, Typography, Paper, Divider, Link } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
-import FormInput from '@/component/common/FormInput';
-import Button from '@/component/common/Button';
+import { 
+  Container, Box, Typography, TextField, Button, Paper, 
+  Link, Divider, Stack, Grid 
+} from '@mui/material';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import axios from 'axios';
+
+// 공통 컴포넌트 (프로젝트 구조에 맞춰 경로를 확인하세요)
+import Breadcrumb from '../component/common/Breadcrumb';
 
 const FindPasswordPage = () => {
+  const navigate = useNavigate();
+  
+  // 상태 관리
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -13,149 +21,211 @@ const FindPasswordPage = () => {
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
 
+  // 유효성 검사 함수
   const validateEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
   const validatePhone = (value) => /^[0-9]{10,11}$/.test(value.replace(/-/g, ''));
 
-  const handleSubmit = async () => {
-    setError(''); setEmailError(''); setPhoneError(''); setResult(false);
+  // 비밀번호 찾기 제출 핸들러
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(''); 
+    setEmailError(''); 
+    setPhoneError(''); 
+    setResult(false);
+    
+    // 1. 프론트엔드 유효성 체크
     let isValid = true;
-    if (!email) { setEmailError('이메일을 입력해주세요.'); isValid = false; }
-    else if (!validateEmail(email)) { setEmailError('올바른 이메일 형식이 아닙니다.'); isValid = false; }
-    if (!phoneNumber) { setPhoneError('전화번호를 입력해주세요.'); isValid = false; }
-    else if (!validatePhone(phoneNumber)) { setPhoneError('올바른 전화번호 형식이 아닙니다.'); isValid = false; }
+    if (!email) { 
+      setEmailError('이메일을 입력해주세요.'); 
+      isValid = false; 
+    } else if (!validateEmail(email)) { 
+      setEmailError('올바른 이메일 형식이 아닙니다.'); 
+      isValid = false; 
+    }
+    
+    if (!phoneNumber) { 
+      setPhoneError('전화번호를 입력해주세요.'); 
+      isValid = false; 
+    } else if (!validatePhone(phoneNumber)) { 
+      setPhoneError('올바른 전화번호 형식이 아닙니다.'); 
+      isValid = false; 
+    }
+    
     if (!isValid) return;
+
     setIsLoading(true);
+
     try {
-      // TODO: 백엔드 연동 시 주석 해제
-      // const response = await authApi.findPassword({ email, phoneNumber: phoneNumber.replace(/-/g, '') });
-      // setResult(response.data.message);
-      setResult(true);
+      // 2. MSW(handlers.js)에 정의한 API 호출 (axios 사용)
+      const response = await axios.post('/api/auth/find-password', { 
+        email, 
+        phoneNumber: phoneNumber.replace(/-/g, '') 
+      });
+      
+      // 3. 응답 성공 시 결과 화면으로 전환
+      if (response.data.success) {
+        setResult(true); 
+      }
     } catch (err) {
-      setError(err.response?.status === 400
-        ? '입력하신 정보가 일치하지 않습니다.'
-        : '오류가 발생했습니다. 다시 시도해주세요.');
+      // 4. 에러 발생 시 처리 (정보 불일치 등)
+      const msg = err.response?.data?.error?.message || '입력하신 정보가 일치하지 않습니다.';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ── 성공 화면 ──────────────────────────────────────
-  if (result) {
-    return (
-      <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#EEF2F8', py: 8, px: 2 }}>
-        <Container maxWidth="sm">
-          <Paper elevation={0} sx={{ p: { xs: 4, sm: 6 }, borderRadius: 6, boxShadow: '0 8px 40px rgba(108,99,255,0.1)', textAlign: 'center' }}>
-
-            <Typography sx={{ fontSize: 48, mb: 2 }}>🔑</Typography>
-            <Typography variant="h6" sx={{ fontWeight: 900, color: 'text.primary', mb: 1 }}>
-              임시 비밀번호 발급 완료
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-              회원님의 임시 비밀번호는
-            </Typography>
-
-            {/* 임시 비밀번호 박스 */}
-            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, bgcolor: '#EDE9FF', mb: 3 }}>
-              <Typography variant="h5" sx={{ fontWeight: 900, color: 'primary.main', letterSpacing: 2 }}>
-                mate7788!@#$
-              </Typography>
-            </Paper>
-
-            {/* 경고 박스 */}
-            <Box sx={{ background: '#FEF3C7', borderRadius: 2, p: 2, mb: 3, textAlign: 'left' }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: '#92400E', mb: 0.5 }}>
-                ⚠️ 보안을 위해 메모해 두시고,
-              </Typography>
-              <Typography variant="caption" sx={{ color: '#92400E', lineHeight: 1.6 }}>
-                로그인 후 즉시 마이페이지에서 비밀번호를 변경해 주세요.
-              </Typography>
-            </Box>
-
-            {/* 로그인하러 가기 버튼 */}
-            <Button
-              fullWidth variant="contained"
-              component={RouterLink} to="/login"
-              style={{ width: '100%', height: 52, fontSize: '1rem', fontWeight: 800 }}
-            >
-              로그인하러 가기
-            </Button>
-
-          </Paper>
-        </Container>
-      </Box>
-    );
-  }
-
-  // ── 기본 입력 화면 ──────────────────────────────────
   return (
-    <Box sx={{ minHeight: 'calc(100vh - 60px)', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: '#EEF2F8', py: 8, px: 2 }}>
-      <Container maxWidth="xs">
-        <Paper elevation={0} sx={{ p: { xs: 4, sm: 6 }, borderRadius: 6, boxShadow: '0 8px 40px rgba(108,99,255,0.1)', textAlign: 'center' }}>
+    <Box sx={{ 
+      minHeight: 'calc(100vh - 60px)', 
+      display: 'flex', 
+      flexDirection: 'column',
+      alignItems: 'center', 
+      justifyContent: 'center',
+      bgcolor: '#F9FAFB', 
+      py: 8, px: 2 
+    }}>
+      <Container maxWidth="sm">
+        {/* 상단 경로 안내 */}
+        <Box sx={{ mb: 3, alignSelf: 'flex-start', width: '100%' }}>
+          <Breadcrumb items={[{ label: '🏠', path: '/' }, { label: '로그인', path: '/login' }, { label: '비밀번호 찾기' }]} />
+        </Box>
 
-          {/* 로고 + 타이틀 */}
-          <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main', letterSpacing: '-0.05em', mb: 1 }}>mate</Typography>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', mb: 0.5 }}>비밀번호 찾기</Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 4 }}>비밀번호를 잊으셨나요?</Typography>
+        <Paper elevation={0} sx={{ 
+          p: { xs: 4, sm: 8 }, 
+          borderRadius: 8, 
+          border: '1px solid #EEEEEE',
+          boxShadow: '0 32px 64px rgba(0,0,0,0.03)', 
+          textAlign: 'center', 
+          bgcolor: '#ffffff'
+        }}>
+          {/* 헤더 섹션 */}
+          <Typography variant="h4" sx={{ fontWeight: 900, color: 'primary.main', mb: 1, letterSpacing: '-0.05em' }}>
+            mate
+          </Typography>
+          <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, color: 'text.primary' }}>
+            비밀번호 찾기
+          </Typography>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 6, fontWeight: 500 }}>
+            가입 시 등록한 이메일과 휴대폰 번호를 입력해 주세요.
+          </Typography>
 
-          {/* 이메일 입력 */}
-          <Box sx={{ textAlign: 'left', mb: 2 }}>
-            <FormInput
-              label="이메일(아이디)"
-              placeholder="user@mate.com"
-              value={email}
-              onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
-              status={emailError ? 'error' : undefined}
-              message={emailError}
-              required
-            />
-          </Box>
+          {!result ? (
+            /* [1. 입력 폼 화면] */
+            <Box component="form" onSubmit={handleSubmit} sx={{ textAlign: 'left' }}>
+              <Stack spacing={3} sx={{ mb: 6 }}>
+                {/* 이메일 입력 */}
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>이메일(아이디)</Typography>
+                  <TextField
+                    fullWidth placeholder="user@mate.com"
+                    value={email} onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
+                    error={!!emailError} helperText={emailError}
+                    sx={inputStyle}
+                  />
+                </Box>
+                {/* 전화번호 입력 */}
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>휴대폰 번호</Typography>
+                  <TextField
+                    fullWidth placeholder="01012345678"
+                    value={phoneNumber} onChange={(e) => { setPhoneNumber(e.target.value); setPhoneError(''); }}
+                    error={!!phoneError} helperText={phoneError || '하이픈(-) 없이 숫자만 입력해 주세요.'}
+                    sx={inputStyle}
+                  />
+                </Box>
+              </Stack>
 
-          {/* 전화번호 입력 */}
-          <Box sx={{ textAlign: 'left', mb: 2 }}>
-            <FormInput
-              label="휴대폰 번호"
-              placeholder="01012345678"
-              value={phoneNumber}
-              onChange={(e) => { setPhoneNumber(e.target.value); setPhoneError(''); }}
-              status={phoneError ? 'error' : undefined}
-              message={phoneError || '하이픈(-) 없이 숫자만 입력해 주세요.'}
-              required
-            />
-          </Box>
+              <Button
+                fullWidth variant="contained" type="submit" disabled={isLoading}
+                sx={{ 
+                  height: 60, fontSize: '1.1rem', fontWeight: 900, borderRadius: 4,
+                  boxShadow: '0 12px 24px rgba(108,99,255,0.2)', mb: 4 
+                }}
+              >
+                {isLoading ? '처리 중...' : '임시 비밀번호 발급받기'}
+              </Button>
+            </Box>
+          ) : (
+            /* [2. 성공 결과 화면] */
+            <Box sx={{ textAlign: 'center' }}>
+              <Box sx={{ 
+                p: 5, bgcolor: '#F5F6FF', borderRadius: 6, border: '1px solid #E0E7FF', mb: 4 
+              }}>
+                <Typography sx={{ fontSize: 40, mb: 1 }}>🔑</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: '#6366F1', mb: 2 }}>
+                  임시 비밀번호가 발급되었습니다
+                </Typography>
+                <Typography variant="h4" sx={{ fontWeight: 900, color: '#111827', letterSpacing: 2, mb: 3 }}>
+                  mate7788!@#$
+                </Typography>
+                <Box sx={{ bgcolor: '#FEF3C7', p: 2, borderRadius: 3 }}>
+                  <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 800, display: 'block', mb: 0.5 }}>
+                    ⚠️ 보안 주의사항
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 500, lineHeight: 1.5 }}>
+                    로그인 후 마이페이지에서 반드시 비밀번호를 변경해 주세요.
+                  </Typography>
+                </Box>
+              </Box>
 
-          {/* 버튼 */}
-          <Box sx={{ width: '100%', mb: 2 }}>
-            <Button
-              fullWidth variant="contained"
-              onClick={handleSubmit} disabled={isLoading}
-              style={{ width: '100%', height: 52, fontSize: '1rem', fontWeight: 800 }}
-            >
-              {isLoading ? '처리 중...' : '임시 비밀번호 발급받기'}
-            </Button>
-          </Box>
+              <Button
+                fullWidth variant="contained"
+                onClick={() => navigate('/login')}
+                sx={{ height: 60, fontSize: '1.1rem', fontWeight: 900, borderRadius: 4, mb: 2 }}
+              >
+                로그인하러 가기
+              </Button>
+            </Box>
+          )}
 
-          {/* 에러 */}
+          {/* 에러 메시지 */}
           {error && (
-            <Typography variant="body2" sx={{ color: 'error.main', textAlign: 'center', fontWeight: 600, mb: 2 }}>
-              ✗ {error}
+            <Typography variant="body2" sx={{ color: '#EF4444', fontWeight: 700, mt: 2, mb: 2 }}>
+              ⚠️ {error}
             </Typography>
           )}
 
-          {/* 하단 링크 */}
-          <Divider sx={{ my: 2 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Link component={RouterLink} to="/login" sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>
-              ← 로그인으로 돌아가기
-            </Link>
-            <Link component={RouterLink} to="/find-email" sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>
-              아이디 찾기 →
+          <Divider sx={{ my: 4 }}>
+            <Typography variant="caption" sx={{ color: 'text.muted', fontWeight: 600 }}>OR</Typography>
+          </Divider>
+
+          {/* 하단 보조 링크 */}
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, alignItems: 'center' }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 500 }}>아이디가 기억나지 않나요?</Typography>
+              <Link component={RouterLink} to="/find-email" sx={{ 
+                fontWeight: 800, textDecoration: 'none', color: 'primary.main',
+                '&:hover': { textDecoration: 'underline' }
+              }}>
+                아이디 찾기
+              </Link>
+            </Box>
+
+            <Link component={RouterLink} to="/login" sx={{ 
+              fontSize: '0.85rem', fontWeight: 700, color: '#9CA3AF', 
+              textDecoration: 'none', '&:hover': { color: '#6366F1' } 
+            }}>
+              ← 로그인 페이지로 돌아가기
             </Link>
           </Box>
-
         </Paper>
       </Container>
     </Box>
   );
+};
+
+// --- 스타일 정의 (LoginPage 시스템과 통일) ---
+const inputStyle = {
+  '& .MuiOutlinedInput-root': { 
+    borderRadius: 4, height: 56, bgcolor: '#F9FAFB',
+    '& fieldset': { borderColor: 'transparent' },
+    '&:hover fieldset': { borderColor: '#A5A6F6' },
+    '&.Mui-focused fieldset': { borderColor: '#6366F1', borderWidth: 2 }
+  },
+  '& .MuiFormHelperText-root': {
+    fontWeight: 600, ml: 1, mt: 1, color: '#6B7280'
+  }
 };
 
 export default FindPasswordPage;
