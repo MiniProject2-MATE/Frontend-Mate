@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/authStore.js';
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn, user, logout } = useAuthStore();
+  const { isLoggedIn, user, logout } = useAuthStore(); // isLoggedIn 상태 가져오기
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -25,11 +25,22 @@ const Header = () => {
 
   const menuItems = [
     { label: 'Explore', path: '/' },
-    { label: 'Post', path: '/posts/new', private: true },
-    { label: 'Community', path: '/' },
+    { label: 'Create', path: '/posts/new' },
   ];
 
-  const filteredMenuItems = menuItems.filter(item => !item.private || isLoggedIn);
+  const handleMenuClick = (item) => (e) => {
+    if (item.label === 'Create') {
+      e.preventDefault();
+      if (!isLoggedIn) {
+        navigate('/login', { state: { from: '/posts/new' } });
+      } else {
+        navigate('/posts/new');
+      }
+    }
+    if (mobileOpen) setMobileOpen(false);
+  };
+
+  const filteredMenuItems = menuItems;
 
   const drawer = (
     <Box sx={{ width: 250, pt: 2 }}>
@@ -43,7 +54,7 @@ const Header = () => {
             key={item.label} 
             component={Link} 
             to={item.path}
-            onClick={() => setMobileOpen(false)}
+            onClick={handleMenuClick(item)}
             selected={location.pathname === item.path}
           >
             <ListItemText primary={item.label} />
@@ -84,7 +95,6 @@ const Header = () => {
           zIndex: (theme) => theme.zIndex.drawer + 1
         }}
       >
-        {/* 데스크탑에서 화면을 꽉 채우기 위해 maxWidth={false}와 가로 패딩 적용 */}
         <Container maxWidth={false} sx={{ px: { xs: 2, md: 5, lg: 8 } }}>
           <Toolbar sx={{ height: 60, px: 0 }}>
             <Typography
@@ -110,6 +120,7 @@ const Header = () => {
                     key={item.label}
                     component={Link}
                     to={item.path}
+                    onClick={handleMenuClick(item)}
                     sx={{
                       fontSize: 16,
                       fontWeight: 600,

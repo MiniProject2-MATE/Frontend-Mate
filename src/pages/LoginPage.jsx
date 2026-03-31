@@ -1,37 +1,80 @@
 import React, { useState } from 'react';
-import { Container, Box, Typography, TextField, Button, Paper, Link, Alert, InputAdornment, IconButton, useMediaQuery, useTheme, Divider } from '@mui/material';
-import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import { Container, Box, Typography, TextField, Button, Paper, Link, InputAdornment, IconButton, useTheme, Divider } from '@mui/material';
+import { useNavigate, useLocation, Link as RouterLink } from 'react-router-dom';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { authApi } from '../api/authApi';
 import { useAuthStore } from '../store/authStore';
+import ToastMessage from '../component/common/ToastMessage';
 
 const LoginPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { setAuth } = useAuthStore();
   const theme = useTheme();
+  
+  const from = location.state?.from || '/';
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // 토스트 상태 관리
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+
+  const handleCloseToast = () => {
+    setToast(prev => ({ ...prev, open: false }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    
     if (!email || !password) {
-      setError('이메일과 비밀번호를 모두 입력해주세요.');
+      setToast({
+        open: true,
+        message: '이메일과 비밀번호를 모두 입력해주세요.',
+        severity: 'warning'
+      });
       return;
     }
+
     setIsLoading(true);
     try {
       const response = await authApi.login({ email, password });
       const { accessToken, refreshToken, user } = response;
       setAuth(accessToken, refreshToken, user);
-      navigate('/');
+      
+      setToast({
+        open: true,
+        message: '성공적으로 로그인되었습니다!',
+        severity: 'success'
+      });
+      
+      // 성공 시 토스트 보여줄 시간을 고려해 조금 더 길게 대기 후 이동
+      setTimeout(() => {
+        navigate(from, { replace: true });
+      }, 1500);
     } catch (err) {
-      setError(err.response?.data?.error?.message || '로그인 정보를 다시 확인해주세요.');
+      console.error('Login error full:', err);
+      
+      // axios 에러 구조에 맞춰 안전하게 메시지 추출
+      let errorMessage = '로그인 정보를 다시 확인해주세요.';
+      if (err.response?.data?.error?.message) {
+        errorMessage = err.response.data.error.message;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      }
+
+      setToast({
+        open: true,
+        message: errorMessage,
+        severity: 'error'
+      });
     } finally {
       setIsLoading(false);
     }
@@ -43,7 +86,7 @@ const LoginPage = () => {
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center',
-      bgcolor: 'background.default', // 연한 회색/푸른색 배경
+      bgcolor: 'background.default',
       py: 8,
       px: 2
     }}>
@@ -70,18 +113,12 @@ const LoginPage = () => {
             팀 프로젝트의 시작, 메이트와 함께하세요.
           </Typography>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 4, borderRadius: 4, textAlign: 'left' }}>
-              {error}
-            </Alert>
-          )}
-
           <Box component="form" onSubmit={handleSubmit} sx={{ textAlign: 'left' }}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>이메일</Typography>
               <TextField
                 fullWidth
-                placeholder="email@example.com"
+                placeholder="test@test.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 variant="outlined"
@@ -103,7 +140,7 @@ const LoginPage = () => {
               <TextField
                 fullWidth
                 type={showPassword ? 'text' : 'password'}
-                placeholder="비밀번호를 입력하세요"
+                placeholder="1234"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 InputProps={{
@@ -165,6 +202,14 @@ const LoginPage = () => {
           </Box>
         </Paper>
       </Container>
+      
+      {/* 토스트 메시지 */}
+      <ToastMessage 
+        open={toast.open}
+        message={toast.message}
+        severity={toast.severity}
+        onClose={handleCloseToast}
+      />
     </Box>
   );
 };

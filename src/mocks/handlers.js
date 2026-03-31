@@ -19,21 +19,37 @@ const mockPosts = Array.from({ length: 45 }).map((_, i) => ({
 export const handlers = [
   // 1. 로그인 API 모킹
   http.post('*/api/auth/login', async ({ request }) => {
-    const { email } = await request.json();
-    return HttpResponse.json({
-      success: true,
-      data: {
-        accessToken: 'mock-access-token',
-        refreshToken: 'mock-refresh-token',
-        user: {
-          id: 1,
-          email: email,
-          nickname: '테스트메이트',
-          role: 'USER',
-          position: 'FE',
+    const { email, password } = await request.json();
+
+    // 특정 계정만 성공하도록 수정 (테스트 용도)
+    if (email === 'test@test.com' && password === '1234') {
+      return HttpResponse.json({
+        success: true,
+        data: {
+          accessToken: 'mock-access-token',
+          refreshToken: 'mock-refresh-token',
+          user: {
+            id: 1,
+            email: email,
+            nickname: '테스트메이트',
+            role: 'USER',
+            position: 'FE',
+          }
         }
-      }
-    });
+      });
+    }
+
+    // 로그인 실패 응답 (401 Unauthorized)
+    return new HttpResponse(
+      JSON.stringify({
+        success: false,
+        error: {
+          code: 'AUTH_001',
+          message: '이메일 또는 비밀번호가 올바르지 않습니다.'
+        }
+      }),
+      { status: 401 }
+    );
   }),
 
   // 2. 회원가입 API 모킹

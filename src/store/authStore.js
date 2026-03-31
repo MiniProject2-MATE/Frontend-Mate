@@ -4,11 +4,11 @@ import { persist } from 'zustand/middleware';
 export const useAuthStore = create(
   persist(
     (set) => ({
-      // 상태
+      // 상태 초기값 (null로 명시적 설정)
       accessToken: null,
       refreshToken: null,
       user: null,
-      isAuthenticated: false,
+      isLoggedIn: false, // 명시적 로그인 상태 추가
 
       // 로그인 성공 시 토큰과 유저 정보 저장
       setAuth: (accessToken, refreshToken, user) => {
@@ -16,7 +16,7 @@ export const useAuthStore = create(
           accessToken,
           refreshToken,
           user,
-          isAuthenticated: true,
+          isLoggedIn: !!accessToken,
         });
       },
 
@@ -25,6 +25,7 @@ export const useAuthStore = create(
         set({
           accessToken,
           refreshToken,
+          isLoggedIn: !!accessToken,
         });
       },
 
@@ -34,9 +35,9 @@ export const useAuthStore = create(
           accessToken: null,
           refreshToken: null,
           user: null,
-          isAuthenticated: false,
+          isLoggedIn: false,
         });
-        // 명시적으로 로컬 스토리지 비우기 (필요시)
+        // 명시적으로 로컬 스토리지 비우기
         localStorage.removeItem('mate-auth');
       },
     }),

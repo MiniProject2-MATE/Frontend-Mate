@@ -1,12 +1,11 @@
 import React, { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Box, Typography, Paper, Divider, LinearProgress, Stack } from '@mui/material';
-import Grid from '@mui/material/Grid2'; 
+import { Container, Box, Typography, Paper, Divider, LinearProgress, Stack, Grid2 as Grid } from '@mui/material';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
-import Breadcrumb from '@/components/common/Breadcrumb';
-import CustomButton from '@/components/common/Button'; 
-import Tag from '@/components/common/Tag'; 
-import CustomAvatar from '@/components/common/Avatar';
+import Breadcrumb from '@/component/common/Breadcrumb';
+import CustomButton from '@/component/common/Button'; 
+import Tag from '@/component/common/Tag'; 
+import CustomAvatar from '@/component/common/Avatar';
 import { usePostStore } from '@/store/postStore';
 
 const PostDetailPage = () => {

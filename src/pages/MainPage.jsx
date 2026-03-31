@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Box, Typography, TextField, Button, Paper, Pagination as MuiPagination, useTheme } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { usePostStore } from '@/store/postStore';
+import { useAuthStore } from '@/store/authStore';
 import PostCard from '@/component/common/PostCard';
 
 const MainPage = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore();
   
   const { 
     posts, 
@@ -38,6 +40,14 @@ const MainPage = () => {
   const handlePageChange = (event, value) => {
     setPage(value - 1);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleStartProject = () => {
+    if (!isLoggedIn) {
+      navigate('/login', { state: { from: '/posts/new' } });
+    } else {
+      navigate('/posts/new');
+    }
   };
 
   const categories = ['전체', '스터디', '프로젝트'];
@@ -277,7 +287,7 @@ const MainPage = () => {
             <Button 
               variant="contained" 
               size="large"
-              onClick={() => navigate('/posts/new')}
+              onClick={handleStartProject}
               sx={{ 
                 bgcolor: '#fff', 
                 color: 'primary.main',
