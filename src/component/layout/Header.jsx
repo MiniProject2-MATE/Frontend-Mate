@@ -92,7 +92,7 @@ const Header = () => {
               component={Link}
               to="/"
               sx={{
-                fontSize: 22,
+                fontSize: 24,
                 fontWeight: 800,
                 color: 'primary.main',
                 textDecoration: 'none',
@@ -111,7 +111,7 @@ const Header = () => {
                     component={Link}
                     to={item.path}
                     sx={{
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: 600,
                       color: location.pathname === item.path ? 'primary.main' : 'text.secondary',
                       '&:hover': { color: 'text.primary', bgcolor: 'transparent' }
@@ -127,21 +127,21 @@ const Header = () => {
               {!isMobile ? (
                 isLoggedIn ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                    <Typography variant="body2" sx={{ color: 'text.muted', fontWeight: 600 }}>
+                    <Typography variant="body2" sx={{ color: 'text.muted', fontWeight: 600, fontSize: 15 }}>
                       {user?.nickname}님
                     </Typography>
                     <Button 
                       component={Link} 
                       to="/mypage" 
                       variant="text" 
-                      sx={{ color: 'text.secondary', fontWeight: 600 }}
+                      sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 15 }}
                     >
                       마이페이지
                     </Button>
                     <Button 
                       onClick={handleLogout} 
                       variant="outlined" 
-                      sx={{ borderRadius: 2, px: 3 }}
+                      sx={{ borderRadius: 2, px: 3, fontSize: 15 }}
                     >
                       로그아웃
                     </Button>
@@ -152,7 +152,7 @@ const Header = () => {
                       component={Link} 
                       to="/login" 
                       variant="text" 
-                      sx={{ color: 'text.secondary', fontWeight: 600 }}
+                      sx={{ color: 'text.secondary', fontWeight: 600, fontSize: 15 }}
                     >
                       로그인
                     </Button>
@@ -160,7 +160,7 @@ const Header = () => {
                       component={Link} 
                       to="/register" 
                       variant="contained" 
-                      sx={{ px: 4, py: 1 }}
+                      sx={{ px: 4, py: 1, fontSize: 15, fontWeight: 700 }}
                     >
                       Get Started
                     </Button>

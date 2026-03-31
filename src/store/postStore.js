@@ -22,18 +22,18 @@ export const usePostStore = create((set, get) => ({
   fetchPosts: async (params) => {
     set({ isLoading: true, error: null })
     try {
-      // params가 없으면 현재 store의 상태 사용
+      // 기본값 설정 (페이지당 15개)
       const currentParams = {
         keyword: get().keyword,
         category: get().category === '전체' ? '' : get().category,
         sort: get().sort,
         page: get().page,
-        size: 10,
+        size: 15, // 기본 15개로 변경
         ...params
       }
       
-      const response = await postApi.getPosts(currentParams)
-      // axiosInstance.js에서 response.data.data를 반환하도록 설정되어 있음
+      const response = await postApi.getPosts(currentParams);
+      
       set({ 
         posts: response.content || [], 
         totalPages: response.page?.totalPages || 0,
@@ -45,6 +45,16 @@ export const usePostStore = create((set, get) => ({
     }
   },
 
+  // 필터 변경
+  setKeyword: (keyword) => set({ keyword, page: 0 }),
+  setCategory: (category) => set({ category, page: 0 }),
+  setSort: (sort) => set({ sort, page: 0 }),
+  setPage: (page) => set({ page }),
+
+  // 로딩/에러
+  setLoading: (isLoading) => set({ isLoading }),
+  setError: (error) => set({ error }),
+
   // 모집글 상세 가져오기
   fetchPostDetail: async (projectId) => {
     set({ isLoading: true, error: null })
@@ -54,38 +64,6 @@ export const usePostStore = create((set, get) => ({
     } catch (error) {
       set({ error: error.message, isLoading: false })
     }
-  },
-
-  // 필터 변경 및 자동 호출
-  setKeyword: (keyword) => {
-    set({ keyword, page: 0 })
-  },
-  setCategory: (category) => {
-    set({ category, page: 0 })
-  },
-  setSort: (sort) => {
-    set({ sort, page: 0 })
-  },
-  setPage: (page) => {
-    set({ page })
-  },
-
-  // 로딩/에러
-  setLoading: (isLoading) => set({ isLoading }),
-  setError: (error) => set({ error }),
-
-  // 모집글 삭제 시 목록에서 제거
-  removePost: (postId) => {
-    const posts = get().posts.filter((p) => p.projectId !== postId)
-    set({ posts })
-  },
-
-  // 모집글 수정 시 목록 업데이트
-  updatePost: (updatedPost) => {
-    const posts = get().posts.map((p) =>
-      p.projectId === updatedPost.projectId ? updatedPost : p
-    )
-    set({ posts, currentPost: updatedPost })
   },
 
   // 초기화
