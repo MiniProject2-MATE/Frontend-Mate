@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
-  Button, Divider, TextField, Chip, IconButton, Tabs, Tab
+  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress
 } from '@mui/material';
 
 // Icons
@@ -15,65 +15,66 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 
-// 공통 컴포넌트 경로 확인
 import Breadcrumb from '../component/common/Breadcrumb';
 
 const MyPage = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [userInfo, setUserInfo] = useState(null);
 
-  // 목업 데이터
-  const [userInfo] = useState({
-    nickname: 'Jina_P',
-    position: '프론트엔드',
-    techStacks: ['React', 'TypeScript', 'Figma', 'Redux'],
-    intro: 'React와 TypeScript를 좋아하는 프론트엔드 개발자입니다. 🙌'
-  });
+  // 1. 스크롤 이동을 위한 Ref 생성
+  const profileRef = useRef(null);
+  const activityRef = useRef(null);
 
-  const handleTabChange = (event, newValue) => {
-    setTabValue(newValue);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      setTimeout(() => {
+        const mockData = {
+          nickname: 'Jina_P',
+          position: '프론트엔드',
+          email: 'jina@mate.dev',
+          techStacks: ['React', 'TypeScript', 'Figma', 'Redux'],
+          intro: 'React와 TypeScript를 좋아하는 프론트엔드 개발자입니다. 🙌',
+          postCount: 3,
+          applyCount: 5
+        };
+        setUserInfo(mockData);
+        setIsLoading(false);
+      }, 500);
+    };
+    fetchUserData();
+  }, []);
+
+  // 2. 스크롤 이동 함수
+  const scrollToSection = (ref, tabIdx = null) => {
+    if (tabIdx !== null) setTabValue(tabIdx); // 탭 전환이 필요하면 전환
+    
+    window.scrollTo({
+      top: ref.current.offsetTop - 100, // 헤더 높이만큼 여유 선언
+      behavior: 'smooth'
+    });
   };
 
-  // --- 핸들러 함수들 ---
-  
-  const handleEditPost = (postId) => {
-    // 요청하신 경로 규칙 /posts/:id/edit 적용
-    navigate(`/posts/${postId}/edit`);
-  };
+  const handleTabChange = (event, newValue) => setTabValue(newValue);
+  const handleInputChange = (field) => (e) => setUserInfo({ ...userInfo, [field]: e.target.value });
+  const handleEditPost = (postId) => navigate(`/posts/${postId}/edit`);
 
-  const handleDeletePost = (postId) => {
-    if (window.confirm('정말 이 게시글을 삭제하시겠습니까?')) {
-      alert(`${postId}번 게시글이 삭제되었습니다.`);
-    }
-  };
+  const handleSaveProfile = () => alert('프로필 정보가 안전하게 저장되었습니다!');
 
-  const handleCancelApply = (title) => {
-    if (window.confirm(`'${title}' 지원을 취소하시겠습니까?`)) {
-      alert('지원이 취소되었습니다.');
-    }
-  };
-
-  const handleSaveProfile = () => {
-    alert('프로필 정보가 안전하게 저장되었습니다!');
-  };
+  if (isLoading || !userInfo) {
+    return <Box sx={{ width: '100%', mt: '100px' }}><LinearProgress /></Box>;
+  }
 
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
-      {/* 화면을 넓게 쓰기 위해 maxWidth를 크게 잡고 Flex 레이아웃 적용 */}
       <Container maxWidth={false} sx={{ maxWidth: '1440px', px: { xs: 2, md: 5 } }}>
-        
         <Breadcrumb items={[{ label: '🏠', path: '/' }, { label: '마이페이지' }]} />
 
-        <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', md: 'row' }, 
-          gap: 5, 
-          mt: 4, 
-          alignItems: 'flex-start' 
-        }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 5, mt: 4, alignItems: 'flex-start' }}>
           
           {/* [좌측 사이드바] */}
-          <Box sx={{ width: { xs: '100%', md: '320px' }, flexShrink: 0 }}>
+          <Box sx={{ width: { xs: '100%', md: '320px' }, flexShrink: 0, position: { md: 'sticky' }, top: '100px' }}>
             <Stack spacing={3}>
               <Paper elevation={0} sx={{ borderRadius: 6, overflow: 'hidden', border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Box sx={{ height: 100, background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)' }} />
@@ -86,22 +87,34 @@ const MyPage = () => {
                     @{userInfo.nickname.toLowerCase()} · {userInfo.position}
                   </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 3 }}>
-                    <Box><Typography variant="h6" sx={{ fontWeight: 900 }}>3</Typography><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>개설 모집글</Typography></Box>
+                    <Box sx={{ cursor: 'pointer' }} onClick={() => scrollToSection(activityRef, 0)}>
+                      <Typography variant="h6" sx={{ fontWeight: 900 }}>{userInfo.postCount}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>개설 모집글</Typography>
+                    </Box>
                     <Divider orientation="vertical" flexItem />
-                    <Box><Typography variant="h6" sx={{ fontWeight: 900 }}>5</Typography><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>신청 현황</Typography></Box>
+                    <Box sx={{ cursor: 'pointer' }} onClick={() => scrollToSection(activityRef, 1)}>
+                      <Typography variant="h6" sx={{ fontWeight: 900 }}>{userInfo.applyCount}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>신청 현황</Typography>
+                    </Box>
                   </Box>
-                  <Button fullWidth variant="outlined" startIcon={<EditIcon />} sx={{ borderRadius: 3, fontWeight: 800, py: 1.2 }}>프로필 수정</Button>
+                  <Button 
+                    fullWidth variant="outlined" startIcon={<EditIcon />} 
+                    onClick={() => scrollToSection(profileRef)}
+                    sx={{ borderRadius: 3, fontWeight: 800, py: 1.2 }}
+                  >
+                    프로필 수정
+                  </Button>
                 </Box>
               </Paper>
 
               <Paper elevation={0} sx={{ p: 2, borderRadius: 5, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Stack spacing={0.5}>
-                  <MenuButton icon={<PersonIcon />} label="프로필 정보" active />
-                  <MenuButton icon={<AssignmentIcon />} label="내 모집글" count={3} />
-                  <MenuButton icon={<EmailIcon />} label="신청 현황" count={5} />
+                  <MenuButton icon={<PersonIcon />} label="프로필 정보" onClick={() => scrollToSection(profileRef)} />
+                  <MenuButton icon={<AssignmentIcon />} label="내 모집글" count={userInfo.postCount} onClick={() => scrollToSection(activityRef, 0)} />
+                  <MenuButton icon={<EmailIcon />} label="신청 현황" count={userInfo.applyCount} onClick={() => scrollToSection(activityRef, 1)} />
                   <MenuButton icon={<NotificationsIcon />} label="알림 설정" />
                   <Divider sx={{ my: 1.5 }} />
-                  <Button fullWidth startIcon={<LogoutIcon />} sx={{ justifyContent: 'flex-start', color: '#9CA3AF', fontWeight: 800, px: 2, py: 1.5, borderRadius: 3, '&:hover': { bgcolor: '#FFF1F2', color: '#EF4444' } }}>회원 탈퇴</Button>
+                  <Button fullWidth startIcon={<LogoutIcon />} sx={{ justifyContent: 'flex-start', color: '#9CA3AF', fontWeight: 800, px: 2, py: 1.5, borderRadius: 3 }}>회원 탈퇴</Button>
                 </Stack>
               </Paper>
             </Stack>
@@ -111,36 +124,32 @@ const MyPage = () => {
           <Box sx={{ flex: 1, width: '100%' }}>
             <Stack spacing={4}>
               
-              {/* 프로필 정보 섹션 */}
-              <Paper elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
+              {/* 프로필 정보 섹션 (Ref 연결) */}
+              <Paper ref={profileRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 5, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보
                 </Typography>
                 
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
-                  <Box><FormLabel text="이름" /><TextField fullWidth defaultValue="박진아" sx={inputStyle} /></Box>
-                  <Box><FormLabel text="닉네임" /><TextField fullWidth defaultValue={userInfo.nickname} sx={inputStyle} /></Box>
-                  <Box><FormLabel text="이메일" /><TextField fullWidth defaultValue="jina@mate.dev" sx={inputStyle} /></Box>
-                  <Box><FormLabel text="포지션" /><TextField fullWidth defaultValue={userInfo.position} sx={inputStyle} /></Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} defaultValue={userInfo.intro} sx={inputStyle} /></Box>
+                  <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
+                  <Box><FormLabel text="이메일 (변경 불가)" /><TextField fullWidth value={userInfo.email} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF' } }} /></Box>
+                  <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="기술 스택" />
                     <Box sx={{ p: 2.5, bgcolor: '#F9FAFB', borderRadius: 4, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', border: '1px solid #F3F4F6' }}>
-                      {userInfo.techStacks.map(stack => (
-                        <Chip key={stack} label={stack} sx={{ bgcolor: 'white', fontWeight: 800, border: '1px solid #E5E7EB', height: 32 }} />
-                      ))}
+                      {userInfo.techStacks.map(stack => (<Chip key={stack} label={stack} sx={{ bgcolor: 'white', fontWeight: 800, border: '1px solid #E5E7EB', height: 32 }} />))}
                       <IconButton size="small" sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}><AddIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 </Box>
-
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
                   <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1' }}>저장하기</Button>
                 </Box>
               </Paper>
 
-              {/* 활동 내역 섹션 */}
-              <Paper elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
+              {/* 활동 내역 섹션 (Ref 연결) */}
+              <Paper ref={activityRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />활동 내역
                 </Typography>
@@ -152,33 +161,11 @@ const MyPage = () => {
                 <Stack spacing={2.5}>
                   {tabValue === 0 ? (
                     <>
-                      <ActivityItem 
-                        title="개발 프로젝트 관리 툴 (Mate) 프론트엔드 팀원 모집" 
-                        status="모집중" 
-                        info="2025.04.21 등록 · 3명 신청" 
-                        tags={['React', 'TypeScript']} 
-                        isOwner 
-                        onEdit={() => handleEditPost(1)} // ID 1 전달
-                        onDelete={() => handleDeletePost(1)}
-                      />
-                      <ActivityItem 
-                        title="AI 기반 주식 추천 알고리즘 스터디원 모집" 
-                        status="모집중" 
-                        info="2025.04.10 등록 · 1명 신청" 
-                        tags={['Python']} 
-                        isOwner 
-                        onEdit={() => handleEditPost(2)} // ID 2 전달
-                        onDelete={() => handleDeletePost(2)}
-                      />
+                      <ActivityItem title="개발 프로젝트 관리 툴 (Mate) 프론트엔드 팀원 모집" status="모집중" info="2025.04.21 등록 · 3명 신청" tags={['React', 'TypeScript']} isOwner onEdit={() => handleEditPost(1)} />
+                      <ActivityItem title="AI 기반 주식 추천 알고리즘 스터디원 모집" status="모집중" info="2025.04.10 등록 · 1명 신청" tags={['Python']} isOwner onEdit={() => handleEditPost(2)} />
                     </>
                   ) : (
-                    <ActivityItem 
-                      title="딥러닝 논문 스터디 모집 (NLP 관심자 환영)" 
-                      status="승인완료" 
-                      info="방장: Soobin_H · 4월 22일 신청" 
-                      tags={['PyTorch']} 
-                      onCancel={() => handleCancelApply("딥러닝 논문 스터디 모집")}
-                    />
+                    <ActivityItem title="딥러닝 논문 스터디 모집 (NLP 관심자 환영)" status="승인완료" info="방장: Soobin_H · 4월 22일 신청" tags={['PyTorch']} />
                   )}
                 </Stack>
               </Paper>
@@ -190,18 +177,17 @@ const MyPage = () => {
   );
 };
 
-// --- 내부 컴포넌트 ---
-
-const MenuButton = ({ icon, label, count, active }) => (
-  <Button fullWidth startIcon={icon} sx={{ justifyContent: 'flex-start', px: 2.5, py: 1.8, borderRadius: 3, fontWeight: 800, color: active ? 'white' : '#6B7280', bgcolor: active ? '#6366F1' : 'transparent', '&:hover': { bgcolor: active ? '#4F46E5' : '#F9FAFB' } }}>
+// --- 서브 컴포넌트 ---
+const MenuButton = ({ icon, label, count, onClick }) => (
+  <Button fullWidth startIcon={icon} onClick={onClick} sx={{ justifyContent: 'flex-start', px: 2.5, py: 1.8, borderRadius: 3, fontWeight: 800, color: '#6B7280', '&:hover': { bgcolor: '#F9FAFB', color: '#6366F1' } }}>
     <Box sx={{ flexGrow: 1, textAlign: 'left' }}>{label}</Box>
-    {count && <Chip label={count} size="small" sx={{ height: 22, fontWeight: 900, bgcolor: active ? 'rgba(255,255,255,0.2)' : '#F3F4F6', color: active ? 'white' : '#6B7280' }} />}
+    {count !== undefined && <Chip label={count} size="small" sx={{ height: 22, fontWeight: 900, bgcolor: '#F3F4F6' }} />}
   </Button>
 );
 
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
-const ActivityItem = ({ title, status, info, tags, isOwner, onEdit, onDelete, onCancel }) => (
+const ActivityItem = ({ title, status, info, tags, isOwner, onEdit }) => (
   <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
     <Box sx={{ flex: 1 }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
@@ -211,14 +197,11 @@ const ActivityItem = ({ title, status, info, tags, isOwner, onEdit, onDelete, on
       <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 2 }}>{info}</Typography>
       <Stack direction="row" spacing={1}>{tags.map(tag => <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ height: 22, fontWeight: 700, bgcolor: 'white' }} />)}</Stack>
     </Box>
-    <Stack direction="row" spacing={1} sx={{ ml: 2 }}>
+    <Stack direction="row" spacing={1}>
       {isOwner ? (
-        <>
-          <Button onClick={onEdit} variant="contained" disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>수정</Button>
-          <Button onClick={onDelete} variant="contained" disableElevation sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 900, borderRadius: 2 }}>삭제</Button>
-        </>
+        <><Button variant="contained" onClick={onEdit} disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>수정</Button><Button variant="contained" disableElevation sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 900, borderRadius: 2 }}>삭제</Button></>
       ) : (
-        <Button onClick={onCancel} variant="outlined" color="inherit" sx={{ fontWeight: 900, borderRadius: 2, color: '#9CA3AF' }}>지원취소</Button>
+        <Button variant="outlined" color="inherit" sx={{ fontWeight: 900, borderRadius: 2, color: '#9CA3AF' }}>지원취소</Button>
       )}
     </Stack>
   </Box>
