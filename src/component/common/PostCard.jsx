@@ -1,0 +1,138 @@
+import React from 'react';
+import { Card, CardContent, Typography, Box, Skeleton } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import Badge from './Badge';
+import Tag from './Tag';
+import Avatar from './Avatar';
+
+export default function PostCard({ post, isLoading }) {
+  const navigate = useNavigate();
+
+  // 카드 스타일 수정: 가로로 더 긴 직사각형 형태, 곡률 완화
+  const cardStyle = {
+    width: '100%',
+    height: 300, // 높이를 줄여 가로로 긴 직사각형 형태로 변경
+    display: 'flex', 
+    flexDirection: 'column',
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    borderRadius: 2.5, // 곡률을 16px에서 10px 정도로 완화 (MUI 4 * 2.5 = 10px)
+    border: '1px solid #E5E7EB',
+    bgcolor: '#ffffff',
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    '&:hover': {
+      transform: 'translateY(-6px)',
+      boxShadow: '0 12px 30px rgba(108,99,255,0.1)',
+      borderColor: 'primary.main',
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card sx={cardStyle}>
+        <Box sx={{ p: 2.5, flexGrow: 1 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
+            <Skeleton variant="text" width={60} height={20} />
+            <Skeleton variant="circular" width={20} height={20} />
+          </Box>
+          <Skeleton variant="text" width="70%" height={28} sx={{ mb: 1 }} />
+          <Skeleton variant="text" width="100%" height={40} />
+          <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+            <Skeleton variant="rectangular" width={40} height={20} sx={{ borderRadius: 1 }} />
+            <Skeleton variant="rectangular" width={40} height={20} sx={{ borderRadius: 1 }} />
+          </Box>
+        </Box>
+        <Box sx={{ p: 1.5, borderTop: '1px solid #E5E7EB' }}>
+          <Skeleton variant="text" width="30%" />
+        </Box>
+      </Card>
+    );
+  }
+
+  if (!post) return null;
+
+  const {
+    projectId,
+    title,
+    content,
+    status,
+    recruitCount,
+    currentCount,
+    endDate,
+    ownerNickname,
+    techStacks = [],
+  } = post;
+
+  const calculateDDay = (dateStr) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const target = new Date(dateStr);
+    const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
+    return diff >= 0 ? `D-${diff}` : '만료';
+  };
+
+  return (
+    <Card onClick={() => navigate(`/posts/${projectId}`)} sx={cardStyle}>
+      <CardContent sx={{ p: 2.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, bgcolor: 'primary.soft', px: 1, py: 0.2, borderRadius: 1 }}>
+              {currentCount}/{recruitCount}명
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.muted', fontWeight: 600 }}>
+              {calculateDDay(endDate)}
+            </Typography>
+          </Box>
+          <Badge status={status} />
+        </Box>
+
+        <Typography variant="h6" sx={{ 
+          fontSize: '1.1rem', 
+          fontWeight: 800, 
+          lineHeight: 1.3, 
+          mb: 1,
+          display: '-webkit-box',
+          WebkitLineClamp: 1, // 제목을 1줄로 제한하여 더 깔끔하게
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          color: 'text.primary',
+        }}>
+          {title}
+        </Typography>
+
+        <Typography variant="body2" sx={{ 
+          color: 'text.secondary',
+          display: '-webkit-box',
+          WebkitLineClamp: 2, // 본문도 2줄로 제한
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+          lineHeight: 1.5,
+          mb: 2,
+          fontSize: '0.85rem'
+        }}>
+          {content}
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 0.6, flexWrap: 'wrap', mt: 'auto' }}>
+          {techStacks.slice(0, 4).map((stack, idx) => (
+            <Tag key={idx} label={stack} />
+          ))}
+          {techStacks.length > 4 && <Typography variant="caption" sx={{ color: 'text.muted', alignSelf: 'center', ml: 0.5 }}>+{techStacks.length - 4}</Typography>}
+        </Box>
+      </CardContent>
+
+      <Box sx={{ p: 2, borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#FAFAFF' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Avatar name={ownerNickname} size="sm" />
+          <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '0.8rem' }}>
+            {ownerNickname}
+          </Typography>
+        </Box>
+        <Typography variant="caption" sx={{ color: 'text.muted', fontWeight: 500 }}>
+          ~ {endDate}
+        </Typography>
+      </Box>
+    </Card>
+  );
+}
