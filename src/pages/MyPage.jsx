@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios'; 
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
   Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress
@@ -23,44 +24,46 @@ const MyPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
 
-  // 1. 스크롤 이동을 위한 Ref 생성
+  // 스크롤 이동을 위한 Ref
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
+  // 1. MSW 핸들러로부터 회원가입/로그인 내역 불러오기
   useEffect(() => {
     const fetchUserData = async () => {
-      setTimeout(() => {
-        const mockData = {
-          nickname: 'Jina_P',
-          position: '프론트엔드',
-          email: 'jina@mate.dev',
-          techStacks: ['React', 'TypeScript', 'Figma', 'Redux'],
-          intro: 'React와 TypeScript를 좋아하는 프론트엔드 개발자입니다. 🙌',
-          postCount: 3,
-          applyCount: 5
-        };
-        setUserInfo(mockData);
+      try {
+        // handlers.js에 추가한 '*/api/user/me' 호출
+        const response = await axios.get('/api/user/me');
+        if (response.data.success) {
+          setUserInfo(response.data.data);
+        }
+      } catch (error) {
+        console.error("회원 정보를 불러오지 못했습니다.", error);
+      } finally {
         setIsLoading(false);
-      }, 500);
+      }
     };
     fetchUserData();
   }, []);
 
-  // 2. 스크롤 이동 함수
+  // 2. 사이드바 메뉴 클릭 시 스크롤 & 탭 전환 함수
   const scrollToSection = (ref, tabIdx = null) => {
-    if (tabIdx !== null) setTabValue(tabIdx); // 탭 전환이 필요하면 전환
+    if (tabIdx !== null) setTabValue(tabIdx);
     
+    const offset = ref.current?.offsetTop - 100;
     window.scrollTo({
-      top: ref.current.offsetTop - 100, // 헤더 높이만큼 여유 선언
+      top: offset,
       behavior: 'smooth'
     });
   };
 
   const handleTabChange = (event, newValue) => setTabValue(newValue);
   const handleInputChange = (field) => (e) => setUserInfo({ ...userInfo, [field]: e.target.value });
-  const handleEditPost = (postId) => navigate(`/posts/${postId}/edit`);
 
-  const handleSaveProfile = () => alert('프로필 정보가 안전하게 저장되었습니다!');
+  const handleSaveProfile = () => {
+    alert('수정된 프로필 정보가 저장되었습니다!');
+    console.log('저장 데이터:', userInfo);
+  };
 
   if (isLoading || !userInfo) {
     return <Box sx={{ width: '100%', mt: '100px' }}><LinearProgress /></Box>;
@@ -124,7 +127,7 @@ const MyPage = () => {
           <Box sx={{ flex: 1, width: '100%' }}>
             <Stack spacing={4}>
               
-              {/* 프로필 정보 섹션 (Ref 연결) */}
+              {/* 프로필 정보 섹션 */}
               <Paper ref={profileRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 5, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보
@@ -132,23 +135,38 @@ const MyPage = () => {
                 
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
                   <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
-                  <Box><FormLabel text="이메일 (변경 불가)" /><TextField fullWidth value={userInfo.email} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF' } }} /></Box>
+                  
+                  {/* 이메일: 변경 불가 처리 */}
+                  <Box>
+                    <FormLabel text="이메일 (변경 불가)" />
+                    <TextField 
+                      fullWidth 
+                      value={userInfo.email} 
+                      InputProps={{ readOnly: true }} 
+                      sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF', cursor: 'not-allowed' } }} 
+                    />
+                  </Box>
+                  
                   <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
                   <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
+                  
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="기술 스택" />
                     <Box sx={{ p: 2.5, bgcolor: '#F9FAFB', borderRadius: 4, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', border: '1px solid #F3F4F6' }}>
-                      {userInfo.techStacks.map(stack => (<Chip key={stack} label={stack} sx={{ bgcolor: 'white', fontWeight: 800, border: '1px solid #E5E7EB', height: 32 }} />))}
+                      {userInfo.techStacks?.map(stack => (
+                        <Chip key={stack} label={stack} sx={{ bgcolor: 'white', fontWeight: 800, border: '1px solid #E5E7EB', height: 32 }} />
+                      ))}
                       <IconButton size="small" sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}><AddIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 </Box>
+
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
                   <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1' }}>저장하기</Button>
                 </Box>
               </Paper>
 
-              {/* 활동 내역 섹션 (Ref 연결) */}
+              {/* 활동 내역 섹션 */}
               <Paper ref={activityRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />활동 내역
@@ -161,8 +179,8 @@ const MyPage = () => {
                 <Stack spacing={2.5}>
                   {tabValue === 0 ? (
                     <>
-                      <ActivityItem title="개발 프로젝트 관리 툴 (Mate) 프론트엔드 팀원 모집" status="모집중" info="2025.04.21 등록 · 3명 신청" tags={['React', 'TypeScript']} isOwner onEdit={() => handleEditPost(1)} />
-                      <ActivityItem title="AI 기반 주식 추천 알고리즘 스터디원 모집" status="모집중" info="2025.04.10 등록 · 1명 신청" tags={['Python']} isOwner onEdit={() => handleEditPost(2)} />
+                      <ActivityItem title="개발 프로젝트 관리 툴 (Mate) 프론트엔드 팀원 모집" status="모집중" info="2025.04.21 등록 · 3명 신청" tags={['React', 'TypeScript']} isOwner onEdit={() => navigate('/posts/1/edit')} />
+                      <ActivityItem title="AI 기반 주식 추천 알고리즘 스터디원 모집" status="모집중" info="2025.04.10 등록 · 1명 신청" tags={['Python']} isOwner onEdit={() => navigate('/posts/2/edit')} />
                     </>
                   ) : (
                     <ActivityItem title="딥러닝 논문 스터디 모집 (NLP 관심자 환영)" status="승인완료" info="방장: Soobin_H · 4월 22일 신청" tags={['PyTorch']} />
@@ -177,7 +195,8 @@ const MyPage = () => {
   );
 };
 
-// --- 서브 컴포넌트 ---
+// --- 내부 컴포넌트 ---
+
 const MenuButton = ({ icon, label, count, onClick }) => (
   <Button fullWidth startIcon={icon} onClick={onClick} sx={{ justifyContent: 'flex-start', px: 2.5, py: 1.8, borderRadius: 3, fontWeight: 800, color: '#6B7280', '&:hover': { bgcolor: '#F9FAFB', color: '#6366F1' } }}>
     <Box sx={{ flexGrow: 1, textAlign: 'left' }}>{label}</Box>
@@ -198,10 +217,8 @@ const ActivityItem = ({ title, status, info, tags, isOwner, onEdit }) => (
       <Stack direction="row" spacing={1}>{tags.map(tag => <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ height: 22, fontWeight: 700, bgcolor: 'white' }} />)}</Stack>
     </Box>
     <Stack direction="row" spacing={1}>
-      {isOwner ? (
+      {isOwner && (
         <><Button variant="contained" onClick={onEdit} disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>수정</Button><Button variant="contained" disableElevation sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 900, borderRadius: 2 }}>삭제</Button></>
-      ) : (
-        <Button variant="outlined" color="inherit" sx={{ fontWeight: 900, borderRadius: 2, color: '#9CA3AF' }}>지원취소</Button>
       )}
     </Stack>
   </Box>
@@ -212,6 +229,7 @@ const inputStyle = {
     bgcolor: '#F9FAFB', borderRadius: 3, fontSize: '0.95rem', fontWeight: 600,
     '& fieldset': { border: '1px solid #E5E7EB' },
     '&.Mui-focused fieldset': { borderWidth: '2px', borderColor: '#6366F1' },
+    '&.Mui-focused': { bgcolor: 'white' }
   }
 };
 
