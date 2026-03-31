@@ -1,13 +1,12 @@
 import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Container, Box, Typography, TextField, Button, Paper, Pagination as MuiPagination, useTheme } from '@mui/material';
+import { Container, Box, Typography, TextField, Button, Paper, Pagination as MuiPagination } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { usePostStore } from '@/store/postStore';
 import { useAuthStore } from '@/store/authStore';
 import PostCard from '@/component/common/PostCard';
 
 const MainPage = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { isLoggedIn } = useAuthStore();
   
