@@ -1,29 +1,30 @@
-// components/common/SkeletonCard.jsx
+import React from 'react';
+import { Card, Box, Skeleton } from '@mui/material';
 
 export default function SkeletonCard() {
   return (
-    <div style={s.card}>
-      <div style={{ ...s.bar, width: '40%', marginBottom: 12 }} />
-      <div style={{ ...s.bar, width: '80%', height: 20, marginBottom: 8 }} />
-      <div style={{ ...s.bar, width: '90%', marginBottom: 4 }} />
-      <div style={{ ...s.bar, width: '60%', marginBottom: 16 }} />
-      <div style={s.tags}>
-        <div style={{ ...s.bar, width: 50, borderRadius: 99 }} />
-        <div style={{ ...s.bar, width: 60, borderRadius: 99 }} />
-      </div>
-      <div style={{ ...s.bar, width: '100%', marginTop: 12 }} />
-    </div>
-  )
-}
-
-const s = {
-  card: {
-    background: '#fff', borderRadius: 16, padding: 24,
-    border: '1px solid rgba(0,0,0,0.06)',
-  },
-  bar: {
-    height: 14, background: '#E5E7EB', borderRadius: 6,
-    animation: 'pulse 1.5s ease-in-out infinite',
-  },
-  tags: { display: 'flex', gap: 6 },
+    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: 4 }}>
+      <Box sx={{ p: 3, flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+          <Skeleton variant="text" width={80} height={20} />
+          <Skeleton variant="rectangular" width={60} height={24} sx={{ borderRadius: 99 }} />
+        </Box>
+        <Skeleton variant="text" width="90%" height={32} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="100%" height={20} />
+        <Skeleton variant="text" width="100%" height={20} sx={{ mb: 2 }} />
+        <Box sx={{ display: 'flex', gap: 1 }}>
+          <Skeleton variant="rectangular" width={50} height={24} sx={{ borderRadius: 99 }} />
+          <Skeleton variant="rectangular" width={60} height={24} sx={{ borderRadius: 99 }} />
+          <Skeleton variant="rectangular" width={40} height={24} sx={{ borderRadius: 99 }} />
+        </Box>
+      </Box>
+      <Box sx={{ p: 2, borderTop: '1px solid #E5E7EB', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Skeleton variant="circular" width={24} height={24} />
+          <Skeleton variant="text" width={60} height={20} />
+        </Box>
+        <Skeleton variant="text" width={80} height={20} />
+      </Box>
+    </Card>
+  );
 }
