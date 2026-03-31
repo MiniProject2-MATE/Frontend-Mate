@@ -105,4 +105,21 @@ export const handlers = [
       }
     });
   }),
+
+// 5. 마이페이지용 내 정보 조회 API (회원가입/로그인 데이터 연동)
+  http.get('*/api/user/me', () => {
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id: 1,
+        email: 'test@test.com', // 회원가입 시 입력한 이메일 가정
+        nickname: '테스트메이트', // 회원가입 시 입력한 닉네임
+        position: '프론트엔드',   // 회원가입 시 선택한 포지션
+        intro: '안녕하세요! 함께 성장하고 싶은 개발자입니다.', 
+        techStacks: ['React', 'TypeScript', 'Node.js'], // 선택했던 스택
+        postCount: 3, 
+        applyCount: 5
+      }
+    });
+  }),
 ];
