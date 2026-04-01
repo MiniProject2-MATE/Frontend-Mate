@@ -34,7 +34,8 @@ axiosInstance.interceptors.response.use(
 
     // RESTAPI설계서.md의 3.2 JWT 인증 흐름을 완벽히 구현
     // 응답에서 401 에러가 발생하고, 원래 요청이 재시도된 요청이 아닐 경우 (!originalRequest._retry)
-    if (response?.status === 401 && !originalRequest._retry) {
+    // [추가] 로그인 요청(/auth/login)은 401이 발생하더라도 토큰 갱신 로직을 타지 않아야 함 (로그인 실패이므로)
+    if (response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
       originalRequest._retry = true;
       const refreshToken = useAuthStore.getState().refreshToken;
 
