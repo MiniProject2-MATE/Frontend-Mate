@@ -35,7 +35,7 @@ const TECH_STACK_OPTIONS = [
 const PostEditPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { showToast } = useUiStore();
+  const { showToast, openModal } = useUiStore();
 
   // 오늘 날짜 기준 데이터 생성
   const currentYear = new Date().getFullYear();
@@ -140,28 +140,42 @@ const PostEditPage = () => {
     }
   };
 
-  const handleClosePost = async () => {
-    if (window.confirm('정말 이 모집글을 조기 마감하시겠습니까?')) {
-      try {
-        await postApi.closePost(id);
-        showToast('모집이 마감되었습니다.', 'info');
-        navigate(`/posts/${id}`);
-      } catch (error) {
-        showToast('마감 처리 중 오류가 발생했습니다.', 'error');
+  const handleClosePost = () => {
+    openModal('confirm', {
+      title: '모집 조기 마감',
+      message: '정말 이 모집글을 조기 마감하시겠습니까? 마감 후에는 다시 모집 중 상태로 되돌릴 수 없습니다.',
+      confirmText: '마감하기',
+      color: 'primary',
+      onConfirm: async () => {
+        try {
+          await postApi.closePost(id);
+          showToast('모집이 마감되었습니다.', 'info');
+          navigate(`/posts/${id}`);
+        } catch (error) {
+          console.error('마감 실패:', error);
+          showToast('마감 처리 중 오류가 발생했습니다.', 'error');
+        }
       }
-    }
+    });
   };
 
-  const handleDelete = async () => {
-    if (window.confirm('정말 이 게시글을 삭제하시겠습니까?')) {
-      try {
-        await postApi.deletePost(id);
-        showToast('삭제되었습니다.', 'success');
-        navigate('/posts');
-      } catch (error) {
-        showToast('삭제 중 오류가 발생했습니다.', 'error');
+  const handleDelete = () => {
+    openModal('confirm', {
+      title: '게시글 삭제',
+      message: '정말 이 게시글을 삭제하시겠습니까? 삭제된 게시글은 복구할 수 없습니다.',
+      confirmText: '삭제하기',
+      color: 'error',
+      onConfirm: async () => {
+        try {
+          await postApi.deletePost(id);
+          showToast('삭제되었습니다.', 'success');
+          navigate('/posts');
+        } catch (error) {
+          console.error('삭제 실패:', error);
+          showToast('삭제 중 오류가 발생했습니다.', 'error');
+        }
       }
-    }
+    });
   };
 
   if (isLoading) return null;
