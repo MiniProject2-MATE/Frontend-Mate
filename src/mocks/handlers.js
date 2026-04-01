@@ -177,4 +177,105 @@ export const handlers = [
       { status: 400 }
     );
   }),
+
+  // 9. 게시판(Board) 목록 조회
+  http.get('*/api/posts/:projectId/board', ({ request, params }) => {
+    const { projectId } = params;
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get('page') || '0');
+    const size = parseInt(url.searchParams.get('size') || '10');
+
+    // 20개의 목업 데이터 생성
+    const allBoardPosts = Array.from({ length: 20 }).map((_, i) => ({
+      id: i + 1,
+      type: i === 0 ? "NOTICE" : (i % 5 === 0 ? "QUESTION" : "GENERAL"),
+      title: i === 0 ? `[공지] 프로젝트(${projectId}) 시작 안내` : `게시글 제목 #${20 - i}`,
+      author: i % 2 === 0 ? "팀장" : "메이트1",
+      date: "2026.04.01",
+      views: Math.floor(Math.random() * 100),
+    }));
+
+    const totalElements = allBoardPosts.length;
+    const totalPages = Math.ceil(totalElements / size);
+    const start = page * size;
+    const end = start + size;
+    const content = allBoardPosts.slice(start, end);
+
+    return HttpResponse.json({
+      success: true,
+      data: {
+        content: content,
+        page: {
+          size: size,
+          number: page,
+          totalElements: totalElements,
+          totalPages: totalPages
+        }
+      }
+    });
+  }),
+
+  // 10. 게시판 게시글 상세 조회
+  http.get('*/api/posts/:projectId/board/:boardPostId', ({ params }) => {
+    const { boardPostId } = params;
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id: parseInt(boardPostId),
+        title: boardPostId === '1' ? "[공지] 정기 회의 안내" : "API 명세서 공유",
+        content: "안녕하세요. 이번 주 정기 회의는 토요일 저녁 9시에 진행될 예정입니다.\n\n다들 일정 확인 부탁드려요!",
+        author: "팀장",
+        date: "2026.03.31",
+        views: 125,
+        type: boardPostId === '1' ? "NOTICE" : "GENERAL"
+      }
+    });
+  }),
+
+  // 11. 게시판 게시글 작성
+  http.post('*/api/posts/:projectId/board', async ({ request }) => {
+    const data = await request.json();
+    return HttpResponse.json({
+      success: true,
+      data: { id: 99, ...data, author: "테스트메이트", date: "2026.04.01", views: 0 }
+    });
+  }),
+
+  // 12. 댓글 목록 조회
+  http.get('*/api/posts/:projectId/board/:boardPostId/comments', () => {
+    return HttpResponse.json({
+      success: true,
+      data: [
+        { id: 101, author: "백엔드1", content: "확인했습니다! 토요일에 뵙겠습니다.", date: "2026.03.31 15:30" },
+        { id: 102, author: "프론트1", content: "저는 조금 늦을 수도 있을 것 같아요.", date: "2026.03.31 16:20" },
+      ]
+    });
+  }),
+
+  // 13. 댓글 작성
+  http.post('*/api/posts/:projectId/board/:boardPostId/comments', async ({ request }) => {
+    const { content } = await request.json();
+    return HttpResponse.json({
+      success: true,
+      data: { id: Date.now(), author: "테스트메이트", content, date: "2026.04.01 18:00" }
+    });
+  }),
+
+  // 14. 프로젝트 상세 정보 및 멤버 조회 (BoardPage 헤더용)
+  http.get('*/api/posts/:id', ({ params }) => {
+    const { id } = params;
+    return HttpResponse.json({
+      success: true,
+      data: {
+        id: parseInt(id),
+        title: "사이드 프로젝트 백엔드 구함 (API 데이터)",
+        members: [
+          { nickname: "user", position: "BE", role: "OWNER" },
+          { nickname: "mate1", position: "FE", role: "MEMBER" },
+          { nickname: "mate2", position: "DE", role: "MEMBER" },
+          { nickname: "mate3", position: "FE", role: "MEMBER" },
+        ]
+      }
+    });
+  }),
 ];
