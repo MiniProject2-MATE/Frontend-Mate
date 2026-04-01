@@ -1,8 +1,12 @@
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
 
+// baseURL 끝에 /api가 붙어있는지 확인하거나, 수동으로 붙여줍니다.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000';
+const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
+
 const axiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: API_URL, // 이제 모든 요청 앞에 자동으로 /api가 붙습니다.
   timeout: 5000,
 });
 
