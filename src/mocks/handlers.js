@@ -79,12 +79,28 @@ export const handlers = [
   http.get('*/api/projects', ({ request }) => {
     const url = new URL(request.url);
     const category = url.searchParams.get('category');
+    const keyword = url.searchParams.get('keyword')?.toLowerCase();
     const page = parseInt(url.searchParams.get('page') || '0');
     const size = parseInt(url.searchParams.get('size') || '15');
     
     let filteredPosts = [...mockPosts];
-    if (category && category !== '전체') {
-      filteredPosts = filteredPosts.filter(p => p.category === category);
+
+    // 카테고리 필터링 (이미 Store에서 PROJECT/STUDY로 변환해서 보냄)
+    if (category && category !== '전체' && category !== '') {
+      // 혹시라도 한글로 올 경우를 대비한 매핑
+      const categoryMap = { '프로젝트': 'PROJECT', '스터디': 'STUDY' };
+      const targetCategory = categoryMap[category] || category;
+      filteredPosts = filteredPosts.filter(p => p.category === targetCategory);
+    }
+
+    // 키워드 검색 (제목, 내용, 기술 스택 포함 여부)
+    if (keyword && keyword.trim() !== '') {
+      const searchKey = keyword.trim().toLowerCase();
+      filteredPosts = filteredPosts.filter(p => 
+        p.title.toLowerCase().includes(searchKey) || 
+        p.content.toLowerCase().includes(searchKey) ||
+        p.techStacks.some(stack => stack.toLowerCase().includes(searchKey))
+      );
     }
 
     const totalElements = filteredPosts.length;

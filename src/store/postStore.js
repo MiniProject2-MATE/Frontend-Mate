@@ -22,22 +22,30 @@ export const usePostStore = create((set, get) => ({
   fetchPosts: async (params) => {
     set({ isLoading: true, error: null })
     try {
-      // 기본값 설정 (페이지당 15개)
+      const state = get();
+      
+      // 카테고리 값 서버 규격으로 변환
+      let targetCategory = '';
+      if (state.category === '프로젝트') targetCategory = 'PROJECT';
+      else if (state.category === '스터디') targetCategory = 'STUDY';
+
+      // 기본값 및 현재 상태 결합
       const currentParams = {
-        keyword: get().keyword,
-        category: get().category === '전체' ? '' : get().category,
-        sort: get().sort,
-        page: get().page,
-        size: 15, // 기본 15개로 변경
+        keyword: state.keyword,
+        category: targetCategory,
+        sort: state.sort,
+        page: state.page,
+        size: 15,
         ...params
       }
       
       const response = await postApi.getPosts(currentParams);
       
+      // axiosInstance가 res.data.data를 반환하므로 response는 { content, page } 구조임
       set({ 
-        posts: response.content || [], 
-        totalPages: response.page?.totalPages || 0,
-        totalElements: response.page?.totalElements || 0,
+        posts: response?.content || [], 
+        totalPages: response?.page?.totalPages || 0,
+        totalElements: response?.page?.totalElements || 0,
         isLoading: false 
       })
     } catch (error) {

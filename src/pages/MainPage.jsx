@@ -45,14 +45,9 @@ const MainPage = () => {
   }, [location]);
 
   useEffect(() => {
-    // 모집글 최신순 정렬은 백엔드 API 기본값이거나 fetch 시 정렬 파라미터를 추가하여 처리
+    // 카테고리, 검색어, 페이지가 바뀔 때마다 데이터를 실시간으로 가져옴
     fetchPosts({ size: 15 });
-  }, [category, page, fetchPosts]);
-
-  const handleSearch = () => {
-    setPage(0);
-    fetchPosts({ page: 0, size: 15 });
-  };
+  }, [category, keyword, page, fetchPosts]);
 
   const handleCategoryChange = (newCat) => {
     setCategory(newCat);
@@ -160,7 +155,6 @@ const MainPage = () => {
                   variant="standard"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                   fullWidth
                   InputProps={{
                     disableUnderline: true,
@@ -174,7 +168,6 @@ const MainPage = () => {
               </Box>
               <Button 
                 variant="contained" 
-                onClick={handleSearch}
                 sx={{ 
                   px: 6, 
                   py: 1.8,

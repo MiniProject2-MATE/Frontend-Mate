@@ -63,7 +63,10 @@ const ToastMessage = ({ open, message, severity = 'success', onClose }) => {
       >
         <Box>
           <Typography sx={{ fontWeight: 800, fontSize: '1rem', mb: 0.2 }}>
-            {severity === 'success' ? 'Success' : severity === 'error' ? 'Error' : 'Notice'}
+            {severity === 'success' && 'Success'}
+            {severity === 'error' && 'Error'}
+            {severity === 'warning' && 'Warning'}
+            {severity === 'info' && 'Notice'}
           </Typography>
           <Typography sx={{ fontWeight: 500, fontSize: '0.9rem', opacity: 0.8 }}>
             {message}

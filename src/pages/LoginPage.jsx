@@ -8,12 +8,13 @@ import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { authApi } from '../api/authApi';
 import { useAuthStore } from '../store/authStore';
-import ToastMessage from '../component/common/ToastMessage';
+import { useUiStore } from '../store/uiStore';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { setAuth } = useAuthStore();
+  const { showToast } = useUiStore();
   // const theme = useTheme();
   
   const from = location.state?.from || '/';
@@ -23,20 +24,10 @@ const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [toast, setToast] = useState({
-    open: false,
-    message: '',
-    severity: 'success'
-  });
-
-  const handleCloseToast = () => {
-    setToast(prev => ({ ...prev, open: false }));
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!email || !password) {
-      setToast({ open: true, message: '이메일과 비밀번호를 모두 입력해주세요.', severity: 'warning' });
+      showToast('이메일과 비밀번호를 모두 입력해주세요.', 'warning');
       return;
     }
 
@@ -46,7 +37,7 @@ const LoginPage = () => {
       const { accessToken, refreshToken, user } = response;
       setAuth(accessToken, refreshToken, user);
       
-      setToast({ open: true, message: '성공적으로 로그인되었습니다!', severity: 'success' });
+      showToast('성공적으로 로그인되었습니다!', 'success');
       
       setTimeout(() => {
         navigate(from, { replace: true });
@@ -56,7 +47,7 @@ const LoginPage = () => {
       if (err.response?.data?.error?.message) {
         errorMessage = err.response.data.error.message;
       }
-      setToast({ open: true, message: errorMessage, severity: 'error' });
+      showToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -164,8 +155,6 @@ const LoginPage = () => {
           </Box>
         </Paper>
       </Container>
-      
-      <ToastMessage open={toast.open} message={toast.message} severity={toast.severity} onClose={handleCloseToast} />
     </Box>
   );
 };
