@@ -1,33 +1,61 @@
 import React, { useState } from 'react';
 import {
   Box, Typography, TextField, Stack, Divider, 
-  FormLabel, IconButton, Chip, Card, CardContent, Grid
+  FormLabel, IconButton, Chip, Card, CardContent, 
+  Container, Paper, Autocomplete, createFilterOptions, Grid, MenuItem
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 // Icons
-import AddIcon from '@mui/icons-material/Add';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import RadioButtonCheckedIcon from '@mui/icons-material/RadioButtonChecked';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
+import CodeIcon from '@mui/icons-material/Code';
+import DescriptionIcon from '@mui/icons-material/Description';
+import GroupAddIcon from '@mui/icons-material/GroupAdd';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 
-// 공통 컴포넌트 경로 확인 (상대 경로)
+// 공통 컴포넌트
 import Breadcrumb from '../component/common/Breadcrumb';
-import Button from '../component/common/Button';
+import CustomButton from '../component/common/Button';
+import { postApi } from '../api/postApi';
+
+const filter = createFilterOptions();
+
+// 추천 기술 스택 리스트
+const TECH_STACK_OPTIONS = [
+  'JavaScript', 'TypeScript', 'React', 'Vue', 'Next.js', 'Svelte',
+  'Node.js', 'Spring Boot', 'Java', 'Python', 'Django', 'Flask',
+  'Go', 'NestJS', 'Express', 'MySQL', 'PostgreSQL', 'MongoDB',
+  'Redis', 'Docker', 'Kubernetes', 'AWS', 'Flutter', 'ReactNative',
+  'Swift', 'Kotlin', 'Unity', 'Figma'
+];
 
 const PostWritePage = () => {
   const navigate = useNavigate();
 
-  // 1. 상태 관리 (techStacks를 빈 배열로 초기화)
+  // 오늘 날짜 기준 데이터 생성
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  // 1. 상태 관리
   const [formData, setFormData] = useState({
     category: 'PROJECT',
     title: '',
     recruitCount: '',
-    techStacks: [], // 요청하신 대로 비워두었습니다.
-    endDate: '',
+    techStacks: [],
+    endDate: '', // YYYY-MM-DD 형식으로 저장
     onOffline: '온라인',
     content: ''
+  });
+
+  // 날짜 선택용 로컬 상태
+  const [dateParts, setDateParts] = useState({
+    year: '',
+    month: '',
+    day: ''
   });
 
   // 2. 입력 핸들러
@@ -35,197 +63,280 @@ const PostWritePage = () => {
     setFormData({ ...formData, [field]: e.target.value });
   };
 
-  // 3. 기술 스택 추가 (Prompt 활용)
-  const handleAddStack = () => {
-    const newStack = prompt('추가할 기술 스택을 입력하세요 (예: React, Spring)');
-    if (newStack && !formData.techStacks.includes(newStack)) {
-      setFormData({
-        ...formData,
-        techStacks: [...formData.techStacks, newStack]
-      });
+  // 날짜 부분 변경 핸들러
+  const handleDateChange = (part) => (e) => {
+    const newVal = e.target.value;
+    const newDateParts = { ...dateParts, [part]: newVal };
+    setDateParts(newDateParts);
+
+    // YYYY-MM-DD 형식 생성
+    if (newDateParts.year && newDateParts.month && newDateParts.day) {
+      const formattedDate = `${newDateParts.year}-${String(newDateParts.month).padStart(2, '0')}-${String(newDateParts.day).padStart(2, '0')}`;
+      setFormData(prev => ({ ...prev, endDate: formattedDate }));
     }
   };
 
-  // 4. 기술 스택 삭제
-  const handleDeleteStack = (stackToDelete) => {
-    setFormData({
-      ...formData,
-      techStacks: formData.techStacks.filter(s => s !== stackToDelete)
+  // 3. 기술 스택 변경 핸들러
+  const handleTechStacksChange = (event, newValue) => {
+    const processedValue = newValue.map((option) => {
+      if (typeof option === 'string') return option;
+      if (option.inputValue) return option.inputValue;
+      return option;
     });
+    setFormData({ ...formData, techStacks: processedValue });
   };
 
-  // 5. 등록 버튼 클릭 시 (Mock)
-  const handleSubmit = () => {
-    if (!formData.title || !formData.recruitCount || formData.techStacks.length === 0) {
-      alert('필수 항목(제목, 인원, 기술 스택)을 모두 입력해주세요.');
+  // 4. 등록 버튼 클릭 시 (404 에러 방지 및 상세 이동 로직)
+  const handleSubmit = async () => {
+    if (!formData.title || !formData.recruitCount || formData.techStacks.length === 0 || !formData.content || !formData.endDate) {
+      alert('모든 필수 항목(*)을 입력해주세요.');
       return;
     }
-    console.log('최종 데이터:', formData);
-    alert('모집글이 성공적으로 등록되었습니다!');
-    navigate('/posts');
+
+    try {
+      // postApi.createPost는 내부적으로 /api/projects를 호출해야 합니다.
+      const response = await postApi.createPost({
+        ...formData,
+        recruitCount: Number(formData.recruitCount)
+      });
+      
+      // MSW 핸들러 응답에서 새 ID 추출
+      const newPostId = response?.projectId || response?.data?.projectId || 100;
+
+      alert('모집글이 성공적으로 등록되었습니다! 🚀');
+      
+      // 등록된 게시글의 상세 페이지로 즉시 이동
+      navigate(`/posts/${newPostId}`);
+    } catch (error) {
+      console.error('등록 실패:', error);
+      alert('등록 중 오류가 발생했습니다. handlers.js의 API 주소와 postApi의 주소가 일치하는지 확인하세요.');
+    }
   };
 
   return (
-    <Box sx={{ bgcolor: 'white', minHeight: '100vh', pt: '80px', pb: 8 }}>
-      <Box sx={{ px: { xs: 3, md: 6, lg: 10 }, width: '100%' }}>
+    <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
+      <Container maxWidth="lg">
+        <Breadcrumb items={[{ label: '홈', path: '/' }, { label: '프로젝트 탐색', path: '/posts' }, { label: '모집글 작성' }]} />
         
-        <Breadcrumb items={[{ label: '🏠', path: '/' }, { label: 'Explore', path: '/posts' }, { label: '모집글 작성' }]} />
-        
-        <Box sx={{ mt: 3, mb: 6 }}>
-          <Typography variant="h4" sx={{ fontWeight: 900, mb: 1 }}>▌ 모집글 작성</Typography>
-          <Typography variant="body1" color="text.secondary">함께할 팀원을 찾는 모집글을 작성해 보세요.</Typography>
+        <Box sx={{ mt: 3, mb: 5 }}>
+          <Typography variant="h4" sx={{ fontWeight: 900, mb: 1, color: '#111827' }}>🚀 모집글 작성</Typography>
+          <Typography variant="body1" sx={{ color: '#6B7280', fontWeight: 500 }}>함께할 팀원을 찾는 모집글을 작성해 보세요.</Typography>
         </Box>
 
-        <Box sx={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4 }}>
           
-          {/* [좌측 영역] */}
-          <Box sx={{ flex: 7 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 4 }}>▌ 기본 정보</Typography>
-            
-            <Box sx={{ mb: 5 }}>
-              <FormLabel sx={{ fontWeight: 700, mb: 2, display: 'block', color: '#333' }}>모집 유형 *</FormLabel>
-              <Stack direction="row" spacing={2.5}>
-                {['PROJECT', 'STUDY'].map((type) => (
-                  <Box
-                    key={type}
-                    onClick={() => setFormData({...formData, category: type})}
-                    sx={{
-                      flex: 1, p: 2.5, borderRadius: 4, cursor: 'pointer', border: '2.5px solid',
-                      display: 'flex', alignItems: 'center', gap: 2, transition: '0.2s',
-                      borderColor: formData.category === type ? '#6366F1' : '#F3F4F6',
-                      bgcolor: formData.category === type ? 'white' : '#F9FAFB',
-                      fontWeight: 800
-                    }}
-                  >
-                    {formData.category === type ? <RadioButtonCheckedIcon color="primary" /> : <RadioButtonUncheckedIcon sx={{ color: '#DDD' }} />}
-                    <span style={{ fontSize: '1.2rem' }}>{type === 'PROJECT' ? '💻 프로젝트' : '📚 스터디'}</span>
-                  </Box>
-                ))}
-              </Stack>
-            </Box>
-
-            <Box sx={{ mb: 5 }}>
-              <FormLabel sx={{ fontWeight: 700, mb: 1.5, display: 'block' }}>제목 *</FormLabel>
-              <TextField 
-                fullWidth 
-                value={formData.title} 
-                onChange={handleChange('title')}
-                placeholder="제목을 입력하세요"
-                variant="outlined"
-                sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, '& fieldset': { border: 'none' } } }} 
-              />
-            </Box>
-
-            <Divider sx={{ my: 6, borderColor: '#F3F4F6' }} />
-
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 4 }}>▌ 모집 조건</Typography>
-            
-            <Box sx={{ mb: 5 }}>
-              <FormLabel sx={{ fontWeight: 700, mb: 1.5, display: 'block' }}>모집 인원 * <Typography component="span" variant="caption" color="text.secondary">(※ 방장을 제외한 인원수)</Typography></FormLabel>
-              <TextField 
-                fullWidth type="number"
-                value={formData.recruitCount} onChange={handleChange('recruitCount')}
-                variant="outlined" sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, '& fieldset': { border: 'none' } } }} 
-              />
-            </Box>
-
-            <Box sx={{ mb: 5 }}>
-              <FormLabel sx={{ fontWeight: 700, mb: 1.5, display: 'block' }}>기술 스택 *</FormLabel>
-              <Box sx={{ p: 2, borderRadius: 3, display: 'flex', flexWrap: 'wrap', gap: 1.5, bgcolor: '#F9FAFB', minHeight: '60px', alignItems: 'center' }}>
-                {formData.techStacks.length > 0 ? (
-                  formData.techStacks.map(s => (
-                    <Chip 
-                      key={s} label={s} 
-                      onDelete={() => handleDeleteStack(s)}
-                      sx={{ fontWeight: 700, bgcolor: 'white', border: '1px solid #EEE' }} 
-                    />
-                  ))
-                ) : (
-                  <Typography variant="body2" color="text.disabled" sx={{ ml: 1 }}>기술 스택을 추가해 주세요.</Typography>
-                )}
-                <IconButton sx={{ bgcolor: 'white', '&:hover': { bgcolor: '#f0f0f0' } }} size="small" onClick={handleAddStack}>
-                  <AddIcon color="primary" />
-                </IconButton>
-              </Box>
-            </Box>
-
-            <Stack direction="row" spacing={3} sx={{ mb: 5 }}>
-              <Box sx={{ flex: 1 }}>
-                <FormLabel sx={{ fontWeight: 700, mb: 1 }}>모집 마감일 *</FormLabel>
-                <TextField 
-                  fullWidth type="date" value={formData.endDate} onChange={handleChange('endDate')}
-                  InputLabelProps={{ shrink: true }}
-                  variant="outlined" sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, '& fieldset': { border: 'none' } } }} 
-                />
-              </Box>
-              <Box sx={{ flex: 1 }}>
-                <FormLabel sx={{ fontWeight: 700, mb: 1 }}>진행 방식 *</FormLabel>
-                <Stack direction="row" sx={{ bgcolor: '#F9FAFB', borderRadius: 3, overflow: 'hidden' }}>
-                  {['온라인', '오프라인', '혼합'].map((m) => (
-                    <Box 
-                      key={m} 
-                      onClick={() => setFormData({...formData, onOffline: m})}
-                      sx={{ 
-                        flex: 1, py: 2, textAlign: 'center', cursor: 'pointer', 
-                        bgcolor: formData.onOffline === m ? '#6366F1' : 'transparent', 
-                        color: formData.onOffline === m ? 'white' : '#666', 
-                        fontWeight: 800, transition: '0.2s'
-                      }}
-                    >
-                      {m}
-                    </Box>
-                  ))}
+          <Box sx={{ flex: 8 }}>
+            <Stack spacing={4}>
+              
+              {/* 기본 정보 */}
+              <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE', borderTop: '4px solid #6C63FF' }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
+                  <DescriptionIcon sx={{ color: '#6C63FF' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 900 }}>기본 정보</Typography>
                 </Stack>
-              </Box>
-            </Stack>
+                
+                <Box sx={{ mb: 4 }}>
+                  <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>모집 유형 *</FormLabel>
+                  <Stack direction="row" spacing={2}>
+                    {['PROJECT', 'STUDY'].map((type) => (
+                      <Box
+                        key={type}
+                        onClick={() => setFormData({...formData, category: type})}
+                        sx={{
+                          flex: 1, p: 2, borderRadius: 3, cursor: 'pointer', border: '2px solid',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, transition: '0.2s',
+                          borderColor: formData.category === type ? '#6C63FF' : '#F3F4F6',
+                          bgcolor: formData.category === type ? '#F5F3FF' : 'white',
+                          color: formData.category === type ? '#6C63FF' : '#6B7280',
+                          fontWeight: 800,
+                          '&:hover': { borderColor: '#6C63FF' }
+                        }}
+                      >
+                        {formData.category === type ? <RadioButtonCheckedIcon /> : <RadioButtonUncheckedIcon />}
+                        <Typography sx={{ fontWeight: 800 }}>{type === 'PROJECT' ? '💻 프로젝트' : '📚 스터디'}</Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                </Box>
 
-            <Divider sx={{ my: 6, borderColor: '#F3F4F6' }} />
+                <Box sx={{ mb: 0 }}>
+                  <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>제목 *</FormLabel>
+                  <TextField 
+                    fullWidth 
+                    value={formData.title} 
+                    onChange={handleChange('title')}
+                    placeholder="함께하고 싶은 열정이 느껴지는 제목을 지어주세요!"
+                    variant="outlined"
+                    sx={{ 
+                      '& .MuiOutlinedInput-root': { 
+                        bgcolor: '#F9FAFB', 
+                        borderRadius: 3,
+                        fontWeight: 600,
+                        '& fieldset': { border: '1px solid #E5E7EB' },
+                        '&:hover fieldset': { borderColor: '#6C63FF' },
+                        '&.Mui-focused fieldset': { borderColor: '#6C63FF' }
+                      } 
+                    }} 
+                  />
+                </Box>
+              </Paper>
 
-            <Typography variant="h6" sx={{ fontWeight: 800, mb: 4 }}>▌ 상세 내용</Typography>
-            <Box sx={{ border: '1px solid #F3F4F6', borderRadius: 4, overflow: 'hidden' }}>
-              <Box sx={{ p: 2, bgcolor: '#F9FAFB', borderBottom: '1px solid #F3F4F6', display: 'flex', gap: 2, fontWeight: 900 }}>
-                B I U H1 H2
-              </Box>
-              <TextField 
-                multiline rows={12} fullWidth value={formData.content} onChange={handleChange('content')}
-                placeholder="내용을 입력하세요" sx={{ '& .MuiOutlinedInput-root': { '& fieldset': { border: 'none' } } }} 
-              />
-            </Box>
+              {/* 모집 조건 */}
+              <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE' }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
+                  <GroupAddIcon sx={{ color: '#6C63FF' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 900 }}>모집 조건</Typography>
+                </Stack>
+                
+                <Stack spacing={4}>
+                  <Stack direction="row" spacing={3}>
+                    <Box sx={{ flex: 0.7 }}>
+                      <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>모집 인원 *</FormLabel>
+                      <TextField 
+                        fullWidth type="number"
+                        value={formData.recruitCount} onChange={handleChange('recruitCount')}
+                        placeholder="본인 제외 인원 (명)"
+                        sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 } }} 
+                      />
+                    </Box>
+                    <Box sx={{ flex: 1.3 }}>
+                      <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>마감 일자 *</FormLabel>
+                      <Stack direction="row" spacing={1}>
+                        <TextField select fullWidth value={dateParts.year} onChange={handleDateChange('year')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
+                          <MenuItem value="" disabled>년</MenuItem>
+                          {years.map(y => <MenuItem key={y} value={y}>{y}년</MenuItem>)}
+                        </TextField>
+                        <TextField select fullWidth value={dateParts.month} onChange={handleDateChange('month')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
+                          <MenuItem value="" disabled>월</MenuItem>
+                          {months.map(m => <MenuItem key={m} value={m}>{m}월</MenuItem>)}
+                        </TextField>
+                        <TextField select fullWidth value={dateParts.day} onChange={handleDateChange('day')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
+                          <MenuItem value="" disabled>일</MenuItem>
+                          {days.map(d => <MenuItem key={d} value={d}>{d}일</MenuItem>)}
+                        </TextField>
+                      </Stack>
+                    </Box>
+                  </Stack>
 
-            <Stack direction="row" justifyContent="center" spacing={3} sx={{ mt: 8 }}>
-              <Button variant="outlined" onClick={() => navigate(-1)} style={{ width: '160px', height: '52px', fontWeight: 800 }}>취소</Button>
-              <Button variant="contained" onClick={handleSubmit} style={{ width: '160px', height: '52px', background: '#6366F1', fontWeight: 800 }}>🚀 등록</Button>
+                  <Box>
+                    <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>진행 방식 *</FormLabel>
+                    <Stack direction="row" sx={{ bgcolor: '#F3F4F6', borderRadius: 3, p: 0.5 }}>
+                      {['온라인', '오프라인', '혼합'].map((m) => (
+                        <Box 
+                          key={m} 
+                          onClick={() => setFormData({...formData, onOffline: m})}
+                          sx={{ 
+                            flex: 1, py: 1.5, textAlign: 'center', cursor: 'pointer', borderRadius: 2.5,
+                            bgcolor: formData.onOffline === m ? 'white' : 'transparent', 
+                            color: formData.onOffline === m ? '#6C63FF' : '#6B7280', 
+                            fontWeight: 800, transition: '0.2s',
+                            boxShadow: formData.onOffline === m ? '0 2px 8px rgba(0,0,0,0.05)' : 'none'
+                          }}
+                        >
+                          {m}
+                        </Box>
+                      ))}
+                    </Stack>
+                  </Box>
+
+                  <Box>
+                    <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>기술 스택 *</FormLabel>
+                    <Autocomplete
+                      multiple
+                      freeSolo
+                      value={formData.techStacks}
+                      onChange={handleTechStacksChange}
+                      options={TECH_STACK_OPTIONS}
+                      filterOptions={(options, params) => {
+                        const filtered = filter(options, params);
+                        const { inputValue } = params;
+                        const isExisting = options.some((option) => inputValue === option);
+                        if (inputValue !== '' && !isExisting) {
+                          filtered.push({ inputValue, title: `"${inputValue}" 추가하기` });
+                        }
+                        return filtered;
+                      }}
+                      getOptionLabel={(option) => {
+                        if (typeof option === 'string') return option;
+                        if (option.inputValue) return option.inputValue;
+                        return option.title;
+                      }}
+                      renderInput={(params) => (
+                        <TextField {...params} placeholder="스택을 선택하거나 직접 입력하세요" sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 } }} />
+                      )}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index }); // [핵심 수정] key를 직접 분리하여 전달
+                          return (
+                            <Chip
+                              key={key} 
+                              label={typeof option === 'string' ? option : option.inputValue}
+                              {...tagProps}
+                              sx={{ bgcolor: '#EEF2FF', color: '#4F46E5', fontWeight: 800 }}
+                            />
+                          );
+                        })
+                      }
+                    />
+                  </Box>
+                </Stack>
+              </Paper>
+
+              <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE' }}>
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
+                  <CodeIcon sx={{ color: '#6C63FF' }} />
+                  <Typography variant="h6" sx={{ fontWeight: 900 }}>상세 소개</Typography>
+                </Stack>
+                <TextField 
+                  multiline rows={12} fullWidth value={formData.content} onChange={handleChange('content')}
+                  placeholder="프로젝트의 목적, 방식, 커리큘럼 등을 자세히 적어주세요. 🚀" 
+                  sx={{ 
+                    '& .MuiOutlinedInput-root': { 
+                      bgcolor: '#F9FAFB', 
+                      borderRadius: 4,
+                      p: 3,
+                      lineHeight: 1.6,
+                      '& fieldset': { border: '1px solid #E5E7EB' }
+                    } 
+                  }} 
+                />
+              </Paper>
+
+              <Stack direction="row" justifyContent="center" spacing={2} sx={{ pt: 2 }}>
+                <CustomButton variant="primary" onClick={handleSubmit} sx={{ px: 6, height: 56, fontWeight: 900 }}>🚀 모집글 등록하기</CustomButton>
+                <CustomButton variant="secondary" onClick={() => navigate(-1)} sx={{ px: 6, height: 56 }}>취소</CustomButton>
+              </Stack>
             </Stack>
           </Box>
 
-          {/* [우측 영역] - 체크리스트 로직 포함 */}
-          <Box sx={{ flex: 3, position: 'sticky', top: '100px' }}>
-            <Stack spacing={3}>
-              <Card elevation={0} sx={{ borderRadius: 5, bgcolor: '#F5F6FF', border: '1px solid #E0E4FF', p: 1 }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography sx={{ fontWeight: 900, mb: 2, color: '#5856D6' }}>💡 작성 가이드</Typography>
-                  <Stack spacing={1.5} sx={{ color: '#4F46E5', fontWeight: 600 }}>
-                    <Typography variant="body2">• 제목에 기술 스택과 주제가 드러나면 좋습니다.</Typography>
-                    <Typography variant="body2">• 프로젝트 목표와 결과를 명확히 기술해 주세요.</Typography>
-                    <Typography variant="body2">• 지원 자격은 본문에 명시해 주세요.</Typography>
+          <Box sx={{ flex: 4 }}>
+            <Stack spacing={3} sx={{ position: 'sticky', top: '100px' }}>
+              <Card elevation={0} sx={{ borderRadius: 5, bgcolor: '#EEF2FF', border: '1px solid #E0E7FF' }}>
+                <CardContent sx={{ p: 4 }}>
+                  <Typography sx={{ fontWeight: 900, mb: 2.5, color: '#4F46E5', display: 'flex', alignItems: 'center', gap: 1 }}>
+                    💡 작성 꿀팁
+                  </Typography>
+                  <Stack spacing={2}>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1E1B4B' }}>목표를 구체적으로!</Typography>
+                      <Typography variant="body2" sx={{ color: '#4338CA', mt: 0.5 }}>'무엇'을 '어떻게' 만들지 구체적일수록 매력적인 공고가 됩니다.</Typography>
+                    </Box>
                   </Stack>
                 </CardContent>
               </Card>
 
-              <Card elevation={0} sx={{ borderRadius: 5, border: '1px solid #F3F4F6', p: 1 }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography sx={{ fontWeight: 900, mb: 2 }}>✅ 등록 전 체크</Typography>
+              <Card elevation={0} sx={{ borderRadius: 5, border: '1px solid #EEEEEE' }}>
+                <CardContent sx={{ p: 4 }}>
+                  <Typography sx={{ fontWeight: 900, mb: 3 }}>✅ 등록 전 체크리스트</Typography>
                   {[
-                    { label: '모집 유형 선택', done: !!formData.category },
-                    { label: '제목 작성 완료', done: formData.title.trim().length > 0 },
-                    { label: '모집 인원 설정', done: Number(formData.recruitCount) > 0 },
-                    { label: '기술 스택 추가', done: formData.techStacks.length > 0 },
-                    { label: '마감일 설정', done: !!formData.endDate },
-                    { label: '프로젝트 소개', done: formData.content.trim().length > 0 }
+                    { label: '모집 유형 및 제목', done: !!formData.category && formData.title.trim().length > 0 },
+                    { label: '모집 인원 및 마감일', done: Number(formData.recruitCount) > 0 && !!formData.endDate },
+                    { label: '기술 스택 (최소 1개)', done: formData.techStacks.length > 0 },
+                    { label: '상세 내용 작성', done: formData.content.trim().length > 10 }
                   ].map((item, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-                      <CheckCircleIcon sx={{ fontSize: 22, color: item.done ? '#4CAF50' : '#EEE' }} />
-                      <Typography variant="body2" sx={{ fontWeight: item.done ? 800 : 500, color: item.done ? '#333' : '#AAA' }}>{item.label}</Typography>
+                      <CheckCircleIcon sx={{ fontSize: 22, color: item.done ? '#22C55E' : '#E5E7EB' }} />
+                      <Typography variant="body2" sx={{ fontWeight: item.done ? 800 : 500, color: item.done ? '#1F2937' : '#9CA3AF' }}>{item.label}</Typography>
                     </Stack>
                   ))}
                 </CardContent>
@@ -233,7 +344,7 @@ const PostWritePage = () => {
             </Stack>
           </Box>
         </Box>
-      </Box>
+      </Container>
     </Box>
   );
 };
