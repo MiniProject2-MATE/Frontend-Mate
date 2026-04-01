@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios'; 
 import {
@@ -24,15 +24,12 @@ const MyPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
 
-  // 스크롤 이동을 위한 Ref
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
-  // 1. MSW 핸들러로부터 회원가입/로그인 내역 불러오기
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // handlers.js에 추가한 '*/api/user/me' 호출
         const response = await axios.get('/api/user/me');
         if (response.data.success) {
           setUserInfo(response.data.data);
@@ -46,23 +43,18 @@ const MyPage = () => {
     fetchUserData();
   }, []);
 
-  // 2. 사이드바 메뉴 클릭 시 스크롤 & 탭 전환 함수
-  const scrollToSection = (ref, tabIdx = null) => {
+  // 불필요한 리렌더링 방지를 위해 useCallback 사용
+  const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
-    
-    const offset = ref.current?.offsetTop - 100;
-    window.scrollTo({
-      top: offset,
-      behavior: 'smooth'
-    });
-  };
+    const offset = (ref.current?.offsetTop || 0) - 100;
+    window.scrollTo({ top: offset, behavior: 'smooth' });
+  }, []);
 
   const handleTabChange = (event, newValue) => setTabValue(newValue);
   const handleInputChange = (field) => (e) => setUserInfo({ ...userInfo, [field]: e.target.value });
 
   const handleSaveProfile = () => {
     alert('수정된 프로필 정보가 저장되었습니다!');
-    console.log('저장 데이터:', userInfo);
   };
 
   if (isLoading || !userInfo) {
@@ -126,47 +118,28 @@ const MyPage = () => {
           {/* [우측 메인 콘텐츠] */}
           <Box sx={{ flex: 1, width: '100%' }}>
             <Stack spacing={4}>
-              
-              {/* 프로필 정보 섹션 */}
               <Paper ref={profileRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 5, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보
                 </Typography>
-                
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
                   <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
-                  
-                  {/* 이메일: 변경 불가 처리 */}
-                  <Box>
-                    <FormLabel text="이메일 (변경 불가)" />
-                    <TextField 
-                      fullWidth 
-                      value={userInfo.email} 
-                      InputProps={{ readOnly: true }} 
-                      sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF', cursor: 'not-allowed' } }} 
-                    />
-                  </Box>
-                  
+                  <Box><FormLabel text="이메일 (변경 불가)" /><TextField fullWidth value={userInfo.email} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF', cursor: 'not-allowed' } }} /></Box>
                   <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
                   <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
-                  
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="기술 스택" />
                     <Box sx={{ p: 2.5, bgcolor: '#F9FAFB', borderRadius: 4, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', border: '1px solid #F3F4F6' }}>
-                      {userInfo.techStacks?.map(stack => (
-                        <Chip key={stack} label={stack} sx={{ bgcolor: 'white', fontWeight: 800, border: '1px solid #E5E7EB', height: 32 }} />
-                      ))}
+                      {userInfo.techStacks?.map(stack => <Chip key={stack} label={stack} sx={{ bgcolor: 'white', fontWeight: 800, border: '1px solid #E5E7EB', height: 32 }} />)}
                       <IconButton size="small" sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}><AddIcon fontSize="small" /></IconButton>
                     </Box>
                   </Box>
                 </Box>
-
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
                   <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1' }}>저장하기</Button>
                 </Box>
               </Paper>
 
-              {/* 활동 내역 섹션 */}
               <Paper ref={activityRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />활동 내역
@@ -179,11 +152,33 @@ const MyPage = () => {
                 <Stack spacing={2.5}>
                   {tabValue === 0 ? (
                     <>
-                      <ActivityItem title="개발 프로젝트 관리 툴 (Mate) 프론트엔드 팀원 모집" status="모집중" info="2025.04.21 등록 · 3명 신청" tags={['React', 'TypeScript']} isOwner onEdit={() => navigate('/posts/1/edit')} />
-                      <ActivityItem title="AI 기반 주식 추천 알고리즘 스터디원 모집" status="모집중" info="2025.04.10 등록 · 1명 신청" tags={['Python']} isOwner onEdit={() => navigate('/posts/2/edit')} />
+                      <ActivityItem 
+                        title="개발 프로젝트 관리 툴 (Mate) 프론트엔드 팀원 모집" 
+                        status="모집중" 
+                        info="2025.04.21 등록 · 3명 신청" 
+                        tags={['React', 'TypeScript']} 
+                        isOwner 
+                        onEdit={() => navigate('/posts/1/edit')}
+                        onBoardClick={() => navigate('/posts/1/board')} // 별도 함수로 전달
+                      />
+                      <ActivityItem 
+                        title="AI 기반 주식 추천 알고리즘 스터디원 모집" 
+                        status="모집중" 
+                        info="2025.04.10 등록 · 1명 신청" 
+                        tags={['Python']} 
+                        isOwner 
+                        onEdit={() => navigate('/posts/2/edit')}
+                        onBoardClick={() => navigate('/posts/2/board')}
+                      />
                     </>
                   ) : (
-                    <ActivityItem title="딥러닝 논문 스터디 모집 (NLP 관심자 환영)" status="승인완료" info="방장: Soobin_H · 4월 22일 신청" tags={['PyTorch']} />
+                    <ActivityItem 
+                      title="딥러닝 논문 스터디 모집 (NLP 관심자 환영)" 
+                      status="승인완료" 
+                      info="방장: Soobin_H · 4월 22일 신청" 
+                      tags={['PyTorch']} 
+                      onBoardClick={() => navigate('/posts/3/board')}
+                    />
                   )}
                 </Stack>
               </Paper>
@@ -206,19 +201,40 @@ const MenuButton = ({ icon, label, count, onClick }) => (
 
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
-const ActivityItem = ({ title, status, info, tags, isOwner, onEdit }) => (
-  <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+// ActivityItem: 전체 클릭 대신 제목을 클릭하거나 특정 영역을 클릭하도록 최적화
+const ActivityItem = ({ title, status, info, tags, isOwner, onEdit, onBoardClick }) => (
+  <Box sx={{ 
+    p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', 
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    transition: '0.2s',
+    '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }
+  }}>
     <Box sx={{ flex: 1 }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography variant="h6" sx={{ fontWeight: 900, fontSize: '1.1rem' }}>{title}</Typography>
+        {/* 제목을 클릭했을 때만 게시판으로 이동하도록 하여 이벤트 혼선 방지 */}
+        <Typography 
+          variant="h6" 
+          onClick={onBoardClick}
+          sx={{ 
+            fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', 
+            '&:hover': { color: 'primary.main', textDecoration: 'underline' } 
+          }}
+        >
+          {title}
+        </Typography>
         <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '모집중' ? '#ECFDF5' : '#F3F4F6', color: status === '모집중' ? '#10B981' : '#6B7280' }} />
       </Stack>
       <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 2 }}>{info}</Typography>
       <Stack direction="row" spacing={1}>{tags.map(tag => <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ height: 22, fontWeight: 700, bgcolor: 'white' }} />)}</Stack>
     </Box>
     <Stack direction="row" spacing={1}>
-      {isOwner && (
-        <><Button variant="contained" onClick={onEdit} disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>수정</Button><Button variant="contained" disableElevation sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 900, borderRadius: 2 }}>삭제</Button></>
+      {isOwner ? (
+        <>
+          <Button variant="contained" onClick={onEdit} disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>수정</Button>
+          <Button variant="contained" disableElevation sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 900, borderRadius: 2 }}>삭제</Button>
+        </>
+      ) : (
+        <Button variant="outlined" onClick={onBoardClick} sx={{ fontWeight: 800, borderRadius: 2 }}>게시판</Button>
       )}
     </Stack>
   </Box>
