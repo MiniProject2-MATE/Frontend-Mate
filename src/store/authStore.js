@@ -29,6 +29,13 @@ export const useAuthStore = create(
         });
       },
 
+      // 유저 정보만 부분 업데이트
+      updateUser: (userData) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...userData } : userData
+        }));
+      },
+
       // 모든 상태 초기화 (로그아웃)
       logout: () => {
         set({

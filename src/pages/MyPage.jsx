@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
-  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment
+  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem
 } from '@mui/material';
 
 // Icons
@@ -21,20 +21,38 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import axiosInstance from '../api/axiosInstance'; 
 import Breadcrumb from '../component/common/Breadcrumb';
 import { useUiStore } from '../store/uiStore';
+import { useAuthStore } from '../store/authStore';
 
 const MyPage = () => {
   const navigate = useNavigate();
   const { showToast } = useUiStore();
-  const [tabValue, setTabValue] = useState(0); // 0: 내 모집글, 1: 신청 현황, 2: 내 팀
+  const { user: authUser, updateUser } = useAuthStore();
+
+  const [tabValue, setTabValue] = useState(0); 
   const [categoryFilter, setCategoryFilter] = useState('전체');
   const [isLoading, setIsLoading] = useState(true);
+
+  // userInfo는 서버에서 받은 "확정된 데이터", formData는 사용자가 "입력 중인 데이터"
   const [userInfo, setUserInfo] = useState(null);
+  const [formData, setFormData] = useState({
+    nickname: '',
+    position: '',
+    intro: ''
+  });
 
   // 비밀번호 관련 상태
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  const POSITION_OPTIONS = [
+    { value: 'FE', label: '프론트엔드 (FE)' },
+    { value: 'BE', label: '백엔드 (BE)' },
+    { value: 'DE', label: '디자이너 (DE)' },
+    { value: 'PM', label: '기획자 (PM)' },
+    { value: 'ETC', label: '기타 (ETC)' }
+  ];
 
   const profileRef = useRef(null);
   const activityRef = useRef(null);
@@ -43,15 +61,30 @@ const MyPage = () => {
     const fetchUserData = async () => {
       try {
         const data = await axiosInstance.get('/user/me');
-        setUserInfo(data);
+        setUserInfo(data); // 표시용
+        setFormData({ // 입력용
+          nickname: data.nickname || '',
+          position: data.position || '',
+          intro: data.intro || ''
+        });
+        updateUser(data);
       } catch (error) {
         console.error("회원 정보를 불러오지 못했습니다.", error);
+        if (authUser) {
+          setUserInfo(authUser);
+          setFormData({
+            nickname: authUser.nickname || '',
+            position: authUser.position || '',
+            intro: authUser.intro || ''
+          });
+        }
       } finally {
         setIsLoading(false);
       }
     };
     fetchUserData();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 의존성 배열 비움 (입력창 리셋 방지)
 
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
@@ -67,7 +100,7 @@ const MyPage = () => {
   };
 
   const handleInputChange = (field) => (e) => {
-    setUserInfo((prev) => ({
+    setFormData((prev) => ({
       ...prev,
       [field]: e.target.value
     }));
@@ -87,15 +120,20 @@ const MyPage = () => {
     }
 
     try {
-      const updateData = {
-        nickname: userInfo.nickname,
-        position: userInfo.position,
-        intro: userInfo.intro,
+      const updatePayload = {
+        nickname: formData.nickname,
+        position: formData.position,
+        intro: formData.intro,
         // 비밀번호가 입력된 경우에만 포함
         ...(password && { password })
       };
       
-      await axiosInstance.put('/users/me', updateData);
+      const response = await axiosInstance.put('/users/me', updatePayload);
+      
+      // API 성공 시에만 화면 데이터(userInfo)와 전역 상태(updateUser) 업데이트
+      setUserInfo(response); 
+      updateUser(response); 
+      
       showToast('프로필 정보가 성공적으로 저장되었습니다!', 'success');
       
       // 비밀번호 필드 초기화
@@ -199,7 +237,7 @@ const MyPage = () => {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
                   <Box>
                     <FormLabel text="닉네임" />
-                    <TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} />
+                    <TextField fullWidth value={formData.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} />
                   </Box>
                   <Box>
                     <FormLabel text="이메일" />
@@ -252,11 +290,23 @@ const MyPage = () => {
 
                   <Box>
                     <FormLabel text="포지션" />
-                    <TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} />
+                    <TextField 
+                      select
+                      fullWidth 
+                      value={formData.position} 
+                      onChange={handleInputChange('position')} 
+                      sx={inputStyle}
+                    >
+                      {POSITION_OPTIONS.map((option) => (
+                        <MenuItem key={option.value} value={option.value}>
+                          {option.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
                   </Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="한 줄 소개" />
-                    <TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} />
+                    <TextField fullWidth multiline rows={2} value={formData.intro} onChange={handleInputChange('intro')} sx={inputStyle} />
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
