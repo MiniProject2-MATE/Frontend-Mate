@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
-  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress
+  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment
 } from '@mui/material';
 
 // Icons
@@ -15,16 +15,26 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 import axiosInstance from '../api/axiosInstance'; 
 import Breadcrumb from '../component/common/Breadcrumb';
+import { useUiStore } from '../store/uiStore';
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const { showToast } = useUiStore();
   const [tabValue, setTabValue] = useState(0); // 0: 내 모집글, 1: 신청 현황, 2: 내 팀
   const [categoryFilter, setCategoryFilter] = useState('전체');
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
+
+  // 비밀번호 관련 상태
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const profileRef = useRef(null);
   const activityRef = useRef(null);
@@ -64,11 +74,36 @@ const MyPage = () => {
   };
 
   const handleSaveProfile = async () => {
+    // 비밀번호 변경 시도 시 유효성 검사
+    if (password || confirmPassword) {
+      if (password !== confirmPassword) {
+        showToast('비밀번호가 일치하지 않습니다.', 'error');
+        return;
+      }
+      if (password.length < 8) {
+        showToast('비밀번호는 8자 이상이어야 합니다.', 'warning');
+        return;
+      }
+    }
+
     try {
-      console.log("저장 시도 데이터:", userInfo);
-      alert('프로필 정보가 성공적으로 저장되었습니다!');
-    } catch {
-      alert('저장 중 오류가 발생했습니다.');
+      const updateData = {
+        nickname: userInfo.nickname,
+        position: userInfo.position,
+        intro: userInfo.intro,
+        // 비밀번호가 입력된 경우에만 포함
+        ...(password && { password })
+      };
+      
+      await axiosInstance.put('/users/me', updateData);
+      showToast('프로필 정보가 성공적으로 저장되었습니다!', 'success');
+      
+      // 비밀번호 필드 초기화
+      setPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      console.error("저장 실패:", error);
+      showToast('저장 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -162,10 +197,67 @@ const MyPage = () => {
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
-                  <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
-                  <Box><FormLabel text="이메일" /><TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} /></Box>
-                  <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
+                  <Box>
+                    <FormLabel text="닉네임" />
+                    <TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} />
+                  </Box>
+                  <Box>
+                    <FormLabel text="이메일" />
+                    <TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} />
+                  </Box>
+                  
+                  {/* 비밀번호 입력 필드 */}
+                  <Box>
+                    <FormLabel text="비밀번호 변경" />
+                    <TextField 
+                      fullWidth 
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="새 비밀번호 입력"
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                              {showPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={inputStyle} 
+                    />
+                  </Box>
+                  <Box>
+                    <FormLabel text="비밀번호 확인" />
+                    <TextField 
+                      fullWidth 
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="비밀번호 확인 입력"
+                      error={password !== confirmPassword && confirmPassword !== ''}
+                      helperText={password !== confirmPassword && confirmPassword !== '' ? '비밀번호가 일치하지 않습니다.' : ''}
+                      InputProps={{
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                              {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                      sx={inputStyle} 
+                    />
+                  </Box>
+
+                  <Box>
+                    <FormLabel text="포지션" />
+                    <TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} />
+                  </Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <FormLabel text="한 줄 소개" />
+                    <TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} />
+                  </Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
                   <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)' }}>저장하기</Button>
