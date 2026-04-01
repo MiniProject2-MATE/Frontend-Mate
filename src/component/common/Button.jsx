@@ -1,73 +1,69 @@
-// components/common/Button.jsx
+import React from 'react';
+import { Button as MuiButton } from '@mui/material';
 
-export default function Button({
-  children,
-  variant = 'primary',
-  disabled = false,
-  onClick,
-  type = 'button',
-  style,
-}) {
-
-  const getStyle = () => {
-    if (disabled) return { ...s.base, ...s.disabled }
+/**
+ * 공통 커스텀 버튼 컴포넌트
+ * @param {Object} props - MUI Button의 모든 props를 상속받습니다.
+ * @param {string} variant - 'primary' | 'secondary' | 'ghost' | 'danger' (기존 커스텀 타입 지원용)
+ */
+const CustomButton = ({ 
+  children, 
+  variant = 'primary', 
+  sx = {}, 
+  ...props 
+}) => {
+  
+  // 기존 커스텀 variant를 MUI 스타일로 매핑
+  const getVariantStyles = () => {
     switch (variant) {
-      case 'primary':   return { ...s.base, ...s.primary }
-      case 'secondary': return { ...s.base, ...s.secondary }
-      case 'ghost':     return { ...s.base, ...s.ghost }
-      case 'danger':    return { ...s.base, ...s.danger }
-      default:          return { ...s.base, ...s.primary }
+      case 'primary':
+        return {
+          bgcolor: '#6C63FF',
+          color: '#fff',
+          '&:hover': { bgcolor: '#5A52E5' },
+          boxShadow: '0 4px 14px rgba(108,99,255,0.35)',
+        };
+      case 'secondary':
+        return {
+          bgcolor: '#fff',
+          color: '#6B7280',
+          border: '1.5px solid #E5E7EB',
+          '&:hover': { bgcolor: '#F9FAFB', borderColor: '#D1D5DB' },
+        };
+      case 'ghost':
+        return {
+          bgcolor: 'transparent',
+          color: '#6B7280',
+          border: 'none',
+          '&:hover': { bgcolor: 'rgba(0,0,0,0.04)' },
+        };
+      case 'danger':
+        return {
+          bgcolor: '#EF4444',
+          color: '#fff',
+          '&:hover': { bgcolor: '#DC2626' },
+        };
+      default:
+        return {};
     }
-  }
+  };
 
   return (
-    <button
-      type={type}
-      onClick={onClick}
-      disabled={disabled}
-      style={{ ...getStyle(), ...style }}
+    <MuiButton
+      sx={{
+        borderRadius: 99,
+        textTransform: 'none',
+        fontWeight: 600,
+        px: 3,
+        py: 1,
+        ...getVariantStyles(),
+        ...sx,
+      }}
+      {...props} // component={Link}, to 등 모든 props 전달
     >
       {children}
-    </button>
-  )
-}
+    </MuiButton>
+  );
+};
 
-const s = {
-  base: {
-    fontFamily: 'inherit',
-    fontSize: 14,
-    fontWeight: 600,
-    padding: '8px 20px',
-    borderRadius: 99,
-    border: 'none',
-    cursor: 'pointer',
-    display: 'inline-block',
-    transition: 'opacity 0.15s',
-  },
-  primary: {
-    background: '#6C63FF',
-    color: '#fff',
-    boxShadow: '0 4px 14px rgba(108,99,255,0.35)',
-  },
-  secondary: {
-    background: '#fff',
-    color: '#6B7280',
-    border: '1.5px solid #E5E7EB',
-  },
-  ghost: {
-    background: 'none',
-    color: '#6B7280',
-    border: 'none',
-  },
-  danger: {
-    background: '#EF4444',
-    color: '#fff',
-    border: '1.5px solid #EF4444',
-  },
-  disabled: {
-    background: '#F3F4F6',
-    color: '#9CA3AF',
-    border: '1.5px solid #E5E7EB',
-    cursor: 'not-allowed',
-  },
-}
+export default CustomButton;

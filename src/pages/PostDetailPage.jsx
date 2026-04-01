@@ -9,6 +9,7 @@ import {
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import PersonIcon from '@mui/icons-material/Person';
+import ForumIcon from '@mui/icons-material/Forum';
 
 // 공통 컴포넌트 (상대 경로 확인 필요)
 import Breadcrumb from '../component/common/Breadcrumb';
@@ -207,11 +208,27 @@ const PostDetailPage = () => {
                   sx={{ 
                     bgcolor: 'white', color: '#6C63FF', height: 60, borderRadius: 4, fontWeight: 900, fontSize: '1.1rem',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+                    mb: 2,
                     '&:hover': { bgcolor: '#F3F4F6', transform: 'translateY(-2px)' },
                     transition: 'all 0.2s'
                   }}
                 >
                   프로젝트 지원하기
+                </CustomButton>
+
+                {/* 팀 전용 게시판 이동 버튼 추가 */}
+                <CustomButton 
+                  fullWidth 
+                  variant="outlined" 
+                  component={Link}
+                  to={`/posts/${id}/board`}
+                  startIcon={<ForumIcon />}
+                  sx={{ 
+                    color: 'white', borderColor: 'rgba(255,255,255,0.5)', height: 50, borderRadius: 4, fontWeight: 800,
+                    '&:hover': { borderColor: 'white', bgcolor: 'rgba(255,255,255,0.1)' }
+                  }}
+                >
+                  팀 전용 게시판 이동
                 </CustomButton>
               </Paper>
 
