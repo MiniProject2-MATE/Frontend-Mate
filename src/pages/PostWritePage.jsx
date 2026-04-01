@@ -86,7 +86,7 @@ const PostWritePage = () => {
     setFormData({ ...formData, techStacks: processedValue });
   };
 
-  // 4. 등록 버튼 클릭 시
+  // 4. 등록 버튼 클릭 시 (404 에러 방지 및 상세 이동 로직)
   const handleSubmit = async () => {
     if (!formData.title || !formData.recruitCount || formData.techStacks.length === 0 || !formData.content || !formData.endDate) {
       alert('모든 필수 항목(*)을 입력해주세요.');
@@ -94,15 +94,22 @@ const PostWritePage = () => {
     }
 
     try {
-      await postApi.createPost({
+      // postApi.createPost는 내부적으로 /api/projects를 호출해야 합니다.
+      const response = await postApi.createPost({
         ...formData,
         recruitCount: Number(formData.recruitCount)
       });
+      
+      // MSW 핸들러 응답에서 새 ID 추출
+      const newPostId = response?.projectId || response?.data?.projectId || 100;
+
       alert('모집글이 성공적으로 등록되었습니다! 🚀');
-      navigate('/posts');
+      
+      // 등록된 게시글의 상세 페이지로 즉시 이동
+      navigate(`/posts/${newPostId}`);
     } catch (error) {
       console.error('등록 실패:', error);
-      alert('등록 중 오류가 발생했습니다.');
+      alert('등록 중 오류가 발생했습니다. handlers.js의 API 주소와 postApi의 주소가 일치하는지 확인하세요.');
     }
   };
 
@@ -118,7 +125,6 @@ const PostWritePage = () => {
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4 }}>
           
-          {/* [좌측 입력 영역] */}
           <Box sx={{ flex: 8 }}>
             <Stack spacing={4}>
               
@@ -196,36 +202,15 @@ const PostWritePage = () => {
                     <Box sx={{ flex: 1.3 }}>
                       <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>마감 일자 *</FormLabel>
                       <Stack direction="row" spacing={1}>
-                        <TextField
-                          select
-                          fullWidth
-                          value={dateParts.year}
-                          onChange={handleDateChange('year')}
-                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }}
-                          SelectProps={{ displayEmpty: true }}
-                        >
+                        <TextField select fullWidth value={dateParts.year} onChange={handleDateChange('year')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
                           <MenuItem value="" disabled>년</MenuItem>
                           {years.map(y => <MenuItem key={y} value={y}>{y}년</MenuItem>)}
                         </TextField>
-                        <TextField
-                          select
-                          fullWidth
-                          value={dateParts.month}
-                          onChange={handleDateChange('month')}
-                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }}
-                          SelectProps={{ displayEmpty: true }}
-                        >
+                        <TextField select fullWidth value={dateParts.month} onChange={handleDateChange('month')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
                           <MenuItem value="" disabled>월</MenuItem>
                           {months.map(m => <MenuItem key={m} value={m}>{m}월</MenuItem>)}
                         </TextField>
-                        <TextField
-                          select
-                          fullWidth
-                          value={dateParts.day}
-                          onChange={handleDateChange('day')}
-                          sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }}
-                          SelectProps={{ displayEmpty: true }}
-                        >
+                        <TextField select fullWidth value={dateParts.day} onChange={handleDateChange('day')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
                           <MenuItem value="" disabled>일</MenuItem>
                           {days.map(d => <MenuItem key={d} value={d}>{d}일</MenuItem>)}
                         </TextField>
@@ -267,10 +252,7 @@ const PostWritePage = () => {
                         const { inputValue } = params;
                         const isExisting = options.some((option) => inputValue === option);
                         if (inputValue !== '' && !isExisting) {
-                          filtered.push({
-                            inputValue,
-                            title: `"${inputValue}" 추가하기`,
-                          });
+                          filtered.push({ inputValue, title: `"${inputValue}" 추가하기` });
                         }
                         return filtered;
                       }}
@@ -283,20 +265,23 @@ const PostWritePage = () => {
                         <TextField {...params} placeholder="스택을 선택하거나 직접 입력하세요" sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 } }} />
                       )}
                       renderTags={(value, getTagProps) =>
-                        value.map((option, index) => (
-                          <Chip
-                            label={typeof option === 'string' ? option : option.inputValue}
-                            {...getTagProps({ index })}
-                            sx={{ bgcolor: '#EEF2FF', color: '#4F46E5', fontWeight: 800 }}
-                          />
-                        ))
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index }); // [핵심 수정] key를 직접 분리하여 전달
+                          return (
+                            <Chip
+                              key={key} 
+                              label={typeof option === 'string' ? option : option.inputValue}
+                              {...tagProps}
+                              sx={{ bgcolor: '#EEF2FF', color: '#4F46E5', fontWeight: 800 }}
+                            />
+                          );
+                        })
                       }
                     />
                   </Box>
                 </Stack>
               </Paper>
 
-              {/* 상세 내용 */}
               <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
                   <CodeIcon sx={{ color: '#6C63FF' }} />
@@ -304,8 +289,7 @@ const PostWritePage = () => {
                 </Stack>
                 <TextField 
                   multiline rows={12} fullWidth value={formData.content} onChange={handleChange('content')}
-                  placeholder="프로젝트의 목적, 방식, 커리큘럼 등을 자세히 적어주세요. 
-자세히 적을수록 좋은 팀원을 만날 확률이 높아집니다! 🚀" 
+                  placeholder="프로젝트의 목적, 방식, 커리큘럼 등을 자세히 적어주세요. 🚀" 
                   sx={{ 
                     '& .MuiOutlinedInput-root': { 
                       bgcolor: '#F9FAFB', 
@@ -325,7 +309,6 @@ const PostWritePage = () => {
             </Stack>
           </Box>
 
-          {/* [우측 사이드바] */}
           <Box sx={{ flex: 4 }}>
             <Stack spacing={3} sx={{ position: 'sticky', top: '100px' }}>
               <Card elevation={0} sx={{ borderRadius: 5, bgcolor: '#EEF2FF', border: '1px solid #E0E7FF' }}>
@@ -337,10 +320,6 @@ const PostWritePage = () => {
                     <Box>
                       <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1E1B4B' }}>목표를 구체적으로!</Typography>
                       <Typography variant="body2" sx={{ color: '#4338CA', mt: 0.5 }}>'무엇'을 '어떻게' 만들지 구체적일수록 매력적인 공고가 됩니다.</Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: '#1E1B4B' }}>스택 태그 활용</Typography>
-                      <Typography variant="body2" sx={{ color: '#4338CA', mt: 0.5 }}>정확한 기술 스택 태그는 관심 있는 유저들에게 더 잘 노출됩니다.</Typography>
                     </Box>
                   </Stack>
                 </CardContent>

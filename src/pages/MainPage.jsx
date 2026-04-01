@@ -4,12 +4,14 @@ import { Container, Box, Typography, TextField, Button, Paper, Pagination as Mui
 import SearchIcon from '@mui/icons-material/Search';
 import { usePostStore } from '@/store/postStore';
 import { useAuthStore } from '@/store/authStore';
+import { useUiStore } from '@/store/uiStore';
 import PostCard from '@/component/common/PostCard';
 
 const MainPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoggedIn } = useAuthStore();
+  const { showToast } = useUiStore();
   
   const { 
     posts, 
@@ -67,6 +69,7 @@ const MainPage = () => {
 
   const handleStartProject = () => {
     if (!isLoggedIn) {
+      showToast('로그인이 필요한 서비스입니다.', 'warning');
       navigate('/login', { state: { from: '/posts/new' } });
     } else {
       navigate('/posts/new');
@@ -217,7 +220,7 @@ const MainPage = () => {
 
       {/* Main Content Area - ID 부여된 섹션 */}
       <Container id="new-opportunities" maxWidth="xl" sx={{ mt: 10, px: { xs: 3, md: 8 }, scrollMarginTop: '100px' }}>
-        <Box sx={{ mb: 6, borderBottom: '2px solid #F3F4F6', pb: 3 }}>
+        <Box sx={{ mb: 6, borderBottom: '2px solid #F3F4F6', pb: 3, textAlign: 'left' }}>
           <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.03em' }}>
             🚀 New Opportunities
           </Typography>

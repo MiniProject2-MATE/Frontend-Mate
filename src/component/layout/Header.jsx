@@ -3,11 +3,13 @@ import { AppBar, Toolbar, Typography, Button, Box, IconButton, Drawer, List, Lis
 import MenuIcon from '@mui/icons-material/Menu';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
+import { useUiStore } from '../../store/uiStore.js';
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { isLoggedIn, user, logout } = useAuthStore();
+  const { showToast } = useUiStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -33,6 +35,7 @@ const Header = () => {
     if (item.label === 'Create') {
       e.preventDefault();
       if (!isLoggedIn) {
+        showToast('로그인이 필요한 서비스입니다.', 'warning');
         navigate('/login', { state: { from: '/posts/new' } });
       } else {
         navigate('/posts/new');

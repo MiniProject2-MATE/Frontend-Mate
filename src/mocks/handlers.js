@@ -1,19 +1,21 @@
 import { http, HttpResponse } from 'msw';
 
-// 1. 공통 임시 저장소 (모집글 45개)
-const mockPosts = Array.from({ length: 45 }).map((_, i) => ({
+// 1. 공통 임시 저장소 (초기 데이터 45개)
+// [수정] let으로 선언하여 push(추가) 및 filter(삭제)가 가능하도록 함
+let mockPosts = Array.from({ length: 45 }).map((_, i) => ({
   projectId: i + 1,
   title: `[${i % 2 === 0 ? '프로젝트' : '스터디'}] 함께 성장할 메이트를 찾습니다 ${i + 1}`,
   content: i % 3 === 0 
     ? '프론트엔드와 백엔드 개발자를 찾고 있습니다. 열정적인 분들의 지원을 기다립니다!' 
     : '코딩 테스트 대비 알고리즘 스터디원을 모집합니다. 매주 2회 오프라인 모임 예정입니다.',
-  category: i % 2 === 0 ? '프로젝트' : '스터디',
+  category: i % 2 === 0 ? 'PROJECT' : 'STUDY',
   status: i % 3 === 0 ? 'RECRUITING' : (i % 3 === 1 ? 'DEADLINE_SOON' : 'CLOSED'),
   recruitCount: 4,
   currentCount: Math.floor(Math.random() * 4),
   endDate: '2026-12-31',
-  ownerNickname: i < 3 ? '테스트메이트' : `User_${i + 1}`, // 처음 3개는 로그인 유저 소유로 설정
+  ownerNickname: i < 3 ? '테스트메이트' : `User_${i + 1}`,
   techStacks: i % 2 === 0 ? ['React', 'TypeScript', 'Node.js'] : ['Spring Boot', 'Java', 'MySQL'],
+  onOffline: '온라인' // 필드 추가
 }));
 
 // 2. 지원서 임시 저장소
@@ -21,7 +23,7 @@ let mockApplies = [
   {
     applyId: 999,
     projectId: 10,
-    projectTitle: mockPosts[9].title, // mockPosts 데이터와 동기화
+    projectTitle: mockPosts[9].title, // [수정] 정합성을 위해 실제 제목 참조
     category: mockPosts[9].category,
     position: "프론트엔드",
     status: "ACCEPTED",
@@ -118,13 +120,8 @@ export const handlers = [
 
   // 5. 마이페이지 내 정보 조회 (탭 분리 로직 적용)
   http.get('*/api/user/me', () => {
-    // 내가 작성한 글 (ownerNickname이 나인 것)
     const myPosts = mockPosts.filter(p => p.ownerNickname === '테스트메이트');
-    
-    // 내가 신청한 글 (지원 목록 중, 내가 작성자가 아닌 것만 추출하여 섞임 방지)
     const myApplies = mockApplies.filter(a => a.ownerNickname !== '테스트메이트');
-    
-    // 내 팀 (상태가 ACCEPTED인 것)
     const acceptedProjects = mockApplies.filter(a => a.status === 'ACCEPTED');
 
     return HttpResponse.json({
@@ -227,8 +224,8 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: { id: Date.now(), author: "테스트메이트", content, date: "2026.04.01 18:00" } });
   }),
 
-  // 14. 프로젝트 상세 정보 (상세페이지/지원페이지용)
-  http.get('*/api/posts/:id', ({ params }) => {
+  // 14. [수정] 프로젝트 상세 정보 조회 (postApi.getPostDetail 규격인 /api/projects/:id 사용)
+  http.get('*/api/projects/:id', ({ params }) => {
     const { id } = params;
     const post = mockPosts.find(p => p.projectId === parseInt(id));
 
@@ -239,8 +236,6 @@ export const handlers = [
       data: {
         ...post,
         alreadyApplied: mockApplies.some(a => a.projectId === parseInt(id)),
-        onOffline: "온라인",
-        viewCount: 125,
         owner: {
           nickname: post.ownerNickname,
           position: post.techStacks[0] === 'React' ? 'FE' : 'BE',
@@ -253,7 +248,47 @@ export const handlers = [
     });
   }),
 
-  // 15. 모집글 지원서 제출
+  // 15. [수정] 새로운 모집글 등록 API (postApi.createPost 규격인 POST /api/projects 사용)
+  http.post('*/api/projects', async ({ request }) => {
+    const newPostData = await request.json();
+    // 마지막 ID + 1 생성
+    const newId = mockPosts.length > 0 ? Math.max(...mockPosts.map(p => p.projectId)) + 1 : 100;
+
+    const newPost = {
+      projectId: newId,
+      ...newPostData,
+      status: 'RECRUITING',
+      currentCount: 0,
+      ownerNickname: '테스트메이트', // 작성자 고정
+    };
+
+    // 실제 배열에 추가 (상세 조회 시 404 방지)
+    mockPosts.push(newPost);
+
+    return HttpResponse.json({
+      success: true,
+      data: { projectId: newId }
+    });
+  }),
+
+  // 16. [수정] 모집글 수정/삭제 API 추가
+  http.put('*/api/projects/:id', async ({ params, request }) => {
+    const { id } = params;
+    const updateData = await request.json();
+    const index = mockPosts.findIndex(p => p.projectId === parseInt(id));
+    if (index !== -1) {
+      mockPosts[index] = { ...mockPosts[index], ...updateData };
+    }
+    return HttpResponse.json({ success: true });
+  }),
+
+  http.delete('*/api/projects/:id', ({ params }) => {
+    const { id } = params;
+    mockPosts = mockPosts.filter(p => p.projectId !== parseInt(id));
+    return HttpResponse.json({ success: true });
+  }),
+
+  // 17. 모집글 지원서 제출
   http.post('*/api/posts/:id/applies', async ({ params, request }) => {
     const { id } = params;
     const applyData = await request.json();
