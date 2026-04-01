@@ -7,7 +7,7 @@ import { useAuthStore } from '../../store/authStore.js';
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn, user, logout } = useAuthStore(); // isLoggedIn 상태 가져오기
+  const { isLoggedIn, user, logout } = useAuthStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   
@@ -23,8 +23,9 @@ const Header = () => {
     if (mobileOpen) setMobileOpen(false);
   };
 
+  // Explore 경로에 해시(#) 추가
   const menuItems = [
-    { label: 'Explore', path: '/' },
+    { label: 'Explore', path: '/#new-opportunities' },
     { label: 'Create', path: '/posts/new' },
   ];
 
@@ -37,6 +38,7 @@ const Header = () => {
         navigate('/posts/new');
       }
     }
+    // Explore 클릭 시에도 모바일 드로어 닫기
     if (mobileOpen) setMobileOpen(false);
   };
 
@@ -55,7 +57,7 @@ const Header = () => {
             component={Link} 
             to={item.path}
             onClick={handleMenuClick(item)}
-            selected={location.pathname === item.path}
+            selected={location.pathname + location.hash === item.path}
           >
             <ListItemText primary={item.label} />
           </ListItem>
@@ -124,7 +126,7 @@ const Header = () => {
                     sx={{
                       fontSize: 16,
                       fontWeight: 600,
-                      color: location.pathname === item.path ? 'primary.main' : 'text.secondary',
+                      color: (location.pathname + location.hash) === item.path ? 'primary.main' : 'text.secondary',
                       '&:hover': { color: 'text.primary', bgcolor: 'transparent' }
                     }}
                   >
