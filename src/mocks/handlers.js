@@ -179,17 +179,38 @@ export const handlers = [
   }),
 
   // 9. 게시판(Board) 목록 조회
-  http.get('*/api/posts/:projectId/board', ({ params }) => {
+  http.get('*/api/posts/:projectId/board', ({ request, params }) => {
     const { projectId } = params;
+    const url = new URL(request.url);
+    const page = parseInt(url.searchParams.get('page') || '0');
+    const size = parseInt(url.searchParams.get('size') || '10');
+
+    // 20개의 목업 데이터 생성
+    const allBoardPosts = Array.from({ length: 20 }).map((_, i) => ({
+      id: i + 1,
+      type: i === 0 ? "NOTICE" : (i % 5 === 0 ? "QUESTION" : "GENERAL"),
+      title: i === 0 ? `[공지] 프로젝트(${projectId}) 시작 안내` : `게시글 제목 #${20 - i}`,
+      author: i % 2 === 0 ? "팀장" : "메이트1",
+      date: "2026.04.01",
+      views: Math.floor(Math.random() * 100),
+    }));
+
+    const totalElements = allBoardPosts.length;
+    const totalPages = Math.ceil(totalElements / size);
+    const start = page * size;
+    const end = start + size;
+    const content = allBoardPosts.slice(start, end);
+
     return HttpResponse.json({
       success: true,
       data: {
-        content: [
-          { id: 1, type: "NOTICE", title: `[공지] 프로젝트(${projectId}) 정기 회의 안내`, author: "팀장", date: "2026.03.31", views: 120 },
-          { id: 2, type: "GENERAL", title: "API 명세서 1차 공유", author: "백엔드1", date: "2026.04.01", views: 45 },
-          { id: 3, type: "QUESTION", title: "ERD 설계 피드백 부탁드려요", author: "디자이너", date: "2026.04.01", views: 32 },
-          { id: 4, type: "GENERAL", title: "프론트엔드 라이브러리 선정", author: "프론트1", date: "2026.03.29", views: 28 },
-        ]
+        content: content,
+        page: {
+          size: size,
+          number: page,
+          totalElements: totalElements,
+          totalPages: totalPages
+        }
       }
     });
   }),

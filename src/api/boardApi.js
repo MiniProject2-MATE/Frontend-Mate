@@ -8,9 +8,10 @@ const boardApi = {
   },
 
   // 게시글 목록 조회
-  getBoardPosts: async (projectId) => {
-    // axiosInstance 인터셉터가 이미 response.data.data를 반환하므로 바로 response를 리턴
-    const response = await axiosInstance.get(`/posts/${projectId}/board`);
+  getBoardPosts: async (projectId, page = 0, size = 10) => {
+    const response = await axiosInstance.get(`/posts/${projectId}/board`, {
+      params: { page, size }
+    });
     return response;
   },
 
