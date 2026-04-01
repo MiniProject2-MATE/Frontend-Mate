@@ -10,20 +10,18 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
-// API 연동 전까지 주석 처리
-// import axiosInstance from '../api/axiosInstance'; 
+import axiosInstance from '../api/axiosInstance'; 
 import { useAuthStore } from '../store/authStore';
 import Breadcrumb from '../component/common/Breadcrumb';
 
 const PostApplyPage = () => {
-  const { id } = useParams(); // URL의 :id 값을 가져옴
+  const { id } = useParams(); 
   const navigate = useNavigate();
-  const { user } = useAuthStore(); // 로그인 유저 정보 (본인 확인용)
+  const { user } = useAuthStore(); 
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // 서버에서 받아올 공고 상태 데이터
   const [postInfo, setPostInfo] = useState({
     title: '',
     isOwner: false,
@@ -31,7 +29,6 @@ const PostApplyPage = () => {
     status: '모집중'
   });
 
-  // 지원서 폼 데이터
   const [formData, setFormData] = useState({
     position: '',
     content: '',
@@ -43,66 +40,29 @@ const PostApplyPage = () => {
     const fetchPostData = async () => {
       setIsLoading(true);
       try {
-        /**
-         * [MOCK DATABASE] 
-         * 상세 페이지(PostDetailPage)에서 사용하는 데이터와 ID를 맞춰 관리합니다.
-         */
-        const mockPostsDB = [
-          {
-            id: "1",
-            title: "사이드 프로젝트 백엔드 구함",
-            ownerNickname: "other_user1",
-            alreadyApplied: false,
-            status: "모집중"
-          },
-          {
-            id: "2",
-            title: "대학생 팀플 메이커 플랫폼 토이 프로젝트",
-            ownerNickname: "user", // 내 닉네임과 동일하게 설정하여 '본인 글' 테스트 가능
-            alreadyApplied: false,
-            status: "모집중"
-          },
-          {
-            id: "3",
-            title: "React 디자인 시스템 구축 전문가 모집",
-            ownerNickname: "design_king",
-            alreadyApplied: true, // 이미 지원함 테스트 가능
-            status: "모집중"
-          }
-        ];
-
-        // 현재 URL의 id와 일치하는 데이터 찾기
-        const currentPost = mockPostsDB.find(post => post.id === id);
-
-        setTimeout(() => {
-          if (currentPost) {
-            setPostInfo({
-              title: currentPost.title,
-              // 내 닉네임과 작성자 닉네임 비교
-              isOwner: user?.nickname === currentPost.ownerNickname,
-              isApplied: currentPost.alreadyApplied,
-              status: currentPost.status
-            });
-          } else {
-            // 해당 ID의 글이 없을 경우 예외 처리
-            setPostInfo({
-              title: "존재하지 않거나 삭제된 공고입니다.",
-              isOwner: false,
-              isApplied: false,
-              status: "종료"
-            });
-          }
-          setIsLoading(false);
-        }, 500);
-
-      } catch {
-        console.error("데이터 로드 중 에러 발생");
-        navigate('/error');
+        // handlers.js의 14번 핸들러를 호출하여 공고 상세 정보 및 중복 지원 여부 확인
+        const data = await axiosInstance.get(`/posts/${id}`);
+        
+        if (data) {
+          setPostInfo({
+            title: data.title,
+            // handlers.js의 ownerNickname과 현재 로그인 유저의 닉네임 비교
+            isOwner: user?.nickname === data.ownerNickname,
+            // handlers.js의 alreadyApplied 필드로 중복 지원 상태 확인
+            isApplied: data.alreadyApplied || false,
+            status: data.status
+          });
+        }
+      } catch (error) {
+        console.error("데이터 로드 중 에러 발생", error);
+        setPostInfo(prev => ({ ...prev, title: "정보를 불러올 수 없습니다." }));
+      } finally {
+        setIsLoading(false);
       }
     };
 
     fetchPostData();
-  }, [id, user, navigate]);
+  }, [id, user]);
 
   const handleChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
@@ -110,26 +70,29 @@ const PostApplyPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // 방어 로직: 제출 중이거나, 이미 지원했거나, 본인 글인 경우 차단
     if (isSubmitting || postInfo.isApplied || postInfo.isOwner) return;
 
     setIsSubmitting(true);
     try {
-      // 실제 API 호출 대신 콘솔 로그와 타이머로 시뮬레이션
-      console.log("지원서 제출 데이터:", formData);
+      // handlers.js의 15번 핸들러(POST)를 호출하여 mockApplies 배열에 데이터 추가
+      await axiosInstance.post(`/posts/${id}/applies`, formData);
       
-      setTimeout(() => {
-        alert("지원이 완료되었습니다!");
-        navigate('/mypage/applies');
-      }, 1000);
-    } catch {
-      alert("제출 중 오류가 발생했습니다.");
+      alert("지원이 성공적으로 완료되었습니다!");
+      // 지원 내역을 바로 확인할 수 있도록 마이페이지로 이동
+      navigate('/mypage'); 
+    } catch (error) {
+      console.error("제출 오류:", error);
+      alert("제출 중 오류가 발생했습니다. 다시 시도해주세요.");
+    } finally {
       setIsSubmitting(false);
     }
   };
 
   if (isLoading) return <Box sx={{ mt: 20 }}><LinearProgress /></Box>;
 
-  // [본인 글 지원 차단]
+  // [본인 글 지원 차단 화면]
   if (postInfo.isOwner) {
     return (
       <Container maxWidth="sm" sx={{ mt: 15 }}>
@@ -143,7 +106,7 @@ const PostApplyPage = () => {
             fullWidth 
             variant="contained" 
             onClick={() => navigate(-1)} 
-            sx={{ borderRadius: 2, fontWeight: 800 }}
+            sx={{ mt: 2, borderRadius: 2, fontWeight: 800, bgcolor: '#6366F1' }}
           >
             이전 페이지로 돌아가기
           </Button>
@@ -155,15 +118,15 @@ const PostApplyPage = () => {
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
       <Container maxWidth="md">
-        {/* 상단 네비게이션 및 브레드크럼 */}
+        {/* 상단 네비게이션 */}
         <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 4 }}>
-          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: 'white', border: '1px solid #E5E7EB', '&:hover': { bgcolor: '#F3F4F6' } }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}>
             <ArrowBackIosNewIcon sx={{ fontSize: 18 }} />
           </IconButton>
           <Breadcrumb items={[{ label: '홈', path: '/' }, { label: '상세보기', path: `/posts/${id}` }, { label: '지원하기' }]} />
         </Stack>
 
-        {/* 중복 지원 상태 알림 */}
+        {/* 중복 지원 안내 알림 */}
         {postInfo.isApplied && (
           <Alert severity="warning" icon={<CheckCircleIcon />} sx={{ mb: 4, borderRadius: 4, fontWeight: 700 }}>
             이미 지원한 프로젝트입니다. 마이페이지에서 지원 현황을 확인하실 수 있습니다.
@@ -171,7 +134,6 @@ const PostApplyPage = () => {
         )}
 
         <Paper elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
-          {/* 공고 요약 바 (PostSummaryBar) */}
           <Box sx={{ mb: 6 }}>
             <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 900, letterSpacing: 2, display: 'block', mb: 1 }}>
               APPLY FOR PROJECT
@@ -241,7 +203,7 @@ const PostApplyPage = () => {
               />
             </Box>
 
-            {/* 제출 및 취소 버튼 */}
+            {/* 하단 액션 버튼 */}
             <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ pt: 4 }}>
               <Button 
                 variant="outlined" 

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios'; 
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
   Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress
@@ -16,11 +15,13 @@ import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
 
+import axiosInstance from '../api/axiosInstance'; 
 import Breadcrumb from '../component/common/Breadcrumb';
 
 const MyPage = () => {
   const navigate = useNavigate();
-  const [tabValue, setTabValue] = useState(0);
+  const [tabValue, setTabValue] = useState(0); // 0: 내 모집글, 1: 신청 현황
+  const [categoryFilter, setCategoryFilter] = useState('전체'); // '전체', '프로젝트', '스터디'
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
 
@@ -30,10 +31,8 @@ const MyPage = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const response = await axios.get('/api/user/me');
-        if (response.data.success) {
-          setUserInfo(response.data.data);
-        }
+        const data = await axiosInstance.get('/user/me');
+        setUserInfo(data);
       } catch (error) {
         console.error("회원 정보를 불러오지 못했습니다.", error);
       } finally {
@@ -43,23 +42,43 @@ const MyPage = () => {
     fetchUserData();
   }, []);
 
-  // 불필요한 리렌더링 방지를 위해 useCallback 사용
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
     const offset = (ref.current?.offsetTop || 0) - 100;
     window.scrollTo({ top: offset, behavior: 'smooth' });
   }, []);
 
-  const handleTabChange = (event, newValue) => setTabValue(newValue);
+  const handleTabChange = (event, newValue) => {
+    setTabValue(newValue);
+    setCategoryFilter('전체'); // 탭 변경 시 필터 초기화
+  };
+
   const handleInputChange = (field) => (e) => setUserInfo({ ...userInfo, [field]: e.target.value });
 
   const handleSaveProfile = () => {
     alert('수정된 프로필 정보가 저장되었습니다!');
   };
 
+  // 필터링 로직 (신청 현황 데이터 기준)
+  const getFilteredApplies = () => {
+    if (!userInfo?.applies) return [];
+    if (categoryFilter === '전체') return userInfo.applies;
+    
+    // handlers.js의 mockPosts 타이틀이나 카테고리 정보를 기반으로 필터링
+    // 여기서는 타이틀에 포함된 [프로젝트], [스터디] 키워드로 구분하거나 
+    // 데이터 구조에 category가 있다면 그것을 사용합니다.
+    return userInfo.applies.filter(apply => {
+      if (categoryFilter === '프로젝트') return apply.projectTitle.includes('프로젝트');
+      if (categoryFilter === '스터디') return apply.projectTitle.includes('스터디');
+      return true;
+    });
+  };
+
   if (isLoading || !userInfo) {
     return <Box sx={{ width: '100%', mt: '100px' }}><LinearProgress /></Box>;
   }
+
+  const filteredApplies = getFilteredApplies();
 
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
@@ -75,11 +94,11 @@ const MyPage = () => {
                 <Box sx={{ height: 100, background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)' }} />
                 <Box sx={{ px: 3, pb: 4, textAlign: 'center', mt: -6 }}>
                   <Avatar sx={{ width: 110, height: 110, mx: 'auto', border: '5px solid white', bgcolor: '#6366F1', fontSize: '2.5rem', fontWeight: 900 }}>
-                    {userInfo.nickname[0]}
+                    {userInfo.nickname ? userInfo.nickname[0] : 'U'}
                   </Avatar>
                   <Typography variant="h5" sx={{ fontWeight: 900, mt: 2 }}>{userInfo.nickname}</Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 3 }}>
-                    @{userInfo.nickname.toLowerCase()} · {userInfo.position}
+                    @{userInfo.nickname?.toLowerCase()} · {userInfo.position}
                   </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 3 }}>
                     <Box sx={{ cursor: 'pointer' }} onClick={() => scrollToSection(activityRef, 0)}>
@@ -123,10 +142,10 @@ const MyPage = () => {
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
-                  <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
-                  <Box><FormLabel text="이메일 (변경 불가)" /><TextField fullWidth value={userInfo.email} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF', cursor: 'not-allowed' } }} /></Box>
-                  <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
+                  <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
+                  <Box><FormLabel text="이메일 (변경 불가)" /><TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF', cursor: 'not-allowed' } }} /></Box>
+                  <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="기술 스택" />
                     <Box sx={{ p: 2.5, bgcolor: '#F9FAFB', borderRadius: 4, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', border: '1px solid #F3F4F6' }}>
@@ -144,41 +163,54 @@ const MyPage = () => {
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />활동 내역
                 </Typography>
+                
                 <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 4, borderBottom: '1px solid #F3F4F6' }}>
-                  <Tab label="내 모집글" sx={{ fontWeight: 900, fontSize: '1rem', px: 4 }} />
-                  <Tab label="신청 현황" sx={{ fontWeight: 900, fontSize: '1rem', px: 4 }} />
+                  <Tab label={`내 모집글 (${userInfo.postCount})`} sx={{ fontWeight: 900, fontSize: '1rem', px: 4 }} />
+                  <Tab label={`신청 현황 (${userInfo.applyCount})`} sx={{ fontWeight: 900, fontSize: '1rem', px: 4 }} />
                 </Tabs>
+
+                {/* 카테고리 필터 칩 추가 */}
+                <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
+                  {['전체', '프로젝트', '스터디'].map((cat) => (
+                    <Chip 
+                      key={cat} 
+                      label={cat} 
+                      onClick={() => setCategoryFilter(cat)}
+                      sx={{ 
+                        fontWeight: 800, 
+                        px: 1,
+                        bgcolor: categoryFilter === cat ? '#6366F1' : '#F3F4F6',
+                        color: categoryFilter === cat ? 'white' : '#6B7280',
+                        '&:hover': { bgcolor: categoryFilter === cat ? '#4F46E5' : '#E5E7EB' }
+                      }} 
+                    />
+                  ))}
+                </Stack>
 
                 <Stack spacing={2.5}>
                   {tabValue === 0 ? (
-                    <>
-                      <ActivityItem 
-                        title="개발 프로젝트 관리 툴 (Mate) 프론트엔드 팀원 모집" 
-                        status="모집중" 
-                        info="2025.04.21 등록 · 3명 신청" 
-                        tags={['React', 'TypeScript']} 
-                        isOwner 
-                        onEdit={() => navigate('/posts/1/edit')}
-                        onBoardClick={() => navigate('/posts/1/board')} // 별도 함수로 전달
-                      />
-                      <ActivityItem 
-                        title="AI 기반 주식 추천 알고리즘 스터디원 모집" 
-                        status="모집중" 
-                        info="2025.04.10 등록 · 1명 신청" 
-                        tags={['Python']} 
-                        isOwner 
-                        onEdit={() => navigate('/posts/2/edit')}
-                        onBoardClick={() => navigate('/posts/2/board')}
-                      />
-                    </>
+                    <Box sx={{ py: 4, textAlign: 'center' }}>
+                      <Typography color="text.secondary" sx={{ fontWeight: 600 }}>아직 개설한 모집글이 없습니다.</Typography>
+                    </Box>
                   ) : (
-                    <ActivityItem 
-                      title="딥러닝 논문 스터디 모집 (NLP 관심자 환영)" 
-                      status="승인완료" 
-                      info="방장: Soobin_H · 4월 22일 신청" 
-                      tags={['PyTorch']} 
-                      onBoardClick={() => navigate('/posts/3/board')}
-                    />
+                    filteredApplies.length > 0 ? (
+                      filteredApplies.map((apply) => (
+                        <ActivityItem 
+                          key={apply.applyId}
+                          title={apply.projectTitle}
+                          status={apply.status === 'PENDING' ? '대기중' : '승인완료'} 
+                          info={`지원 분야: ${apply.position} · 신청일: ${apply.appliedDate}`} 
+                          tags={[]} 
+                          onBoardClick={() => navigate(`/posts/${apply.projectId}/board`)}
+                        />
+                      ))
+                    ) : (
+                      <Box sx={{ py: 4, textAlign: 'center' }}>
+                        <Typography color="text.secondary" sx={{ fontWeight: 600 }}>
+                          {categoryFilter} 내역이 없습니다.
+                        </Typography>
+                      </Box>
+                    )
                   )}
                 </Stack>
               </Paper>
@@ -201,8 +233,7 @@ const MenuButton = ({ icon, label, count, onClick }) => (
 
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
-// ActivityItem: 전체 클릭 대신 제목을 클릭하거나 특정 영역을 클릭하도록 최적화
-const ActivityItem = ({ title, status, info, tags, isOwner, onEdit, onBoardClick }) => (
+const ActivityItem = ({ title, status, info, tags = [], isOwner, onEdit, onBoardClick }) => (
   <Box sx={{ 
     p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', 
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -211,7 +242,6 @@ const ActivityItem = ({ title, status, info, tags, isOwner, onEdit, onBoardClick
   }}>
     <Box sx={{ flex: 1 }}>
       <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-        {/* 제목을 클릭했을 때만 게시판으로 이동하도록 하여 이벤트 혼선 방지 */}
         <Typography 
           variant="h6" 
           onClick={onBoardClick}
@@ -222,10 +252,20 @@ const ActivityItem = ({ title, status, info, tags, isOwner, onEdit, onBoardClick
         >
           {title}
         </Typography>
-        <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '모집중' ? '#ECFDF5' : '#F3F4F6', color: status === '모집중' ? '#10B981' : '#6B7280' }} />
+        <Chip 
+          label={status} 
+          size="small" 
+          sx={{ 
+            fontWeight: 900, 
+            bgcolor: status === '대기중' ? '#FFFBEB' : '#ECFDF5', 
+            color: status === '대기중' ? '#D97706' : '#10B981' 
+          }} 
+        />
       </Stack>
       <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 2 }}>{info}</Typography>
-      <Stack direction="row" spacing={1}>{tags.map(tag => <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ height: 22, fontWeight: 700, bgcolor: 'white' }} />)}</Stack>
+      <Stack direction="row" spacing={1}>
+        {tags.map(tag => <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ height: 22, fontWeight: 700, bgcolor: 'white' }} />)}
+      </Stack>
     </Box>
     <Stack direction="row" spacing={1}>
       {isOwner ? (
