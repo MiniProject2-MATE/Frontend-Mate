@@ -126,7 +126,7 @@ export const handlers = [
   }),
 
   // 5. 마이페이지 내 정보 조회
-  http.get('*/api/user/me', () => {
+  http.get('*/api/users/me', () => {
     const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
     const myApplies = mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname);
     const acceptedProjects = mockApplies.filter(a => a.status === 'ACCEPTED');

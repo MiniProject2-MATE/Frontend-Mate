@@ -64,7 +64,7 @@ const MyPage = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const data = await axiosInstance.get('/user/me');
+        const data = await axiosInstance.get('/users/me');
         setUserInfo(data); // 표시용
         setFormData({ // 입력용
           nickname: data.nickname || '',
