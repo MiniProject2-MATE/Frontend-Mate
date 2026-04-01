@@ -19,6 +19,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import Breadcrumb from '../component/common/Breadcrumb';
 import CustomButton from '../component/common/Button';
 import { postApi } from '../api/postApi';
+import { useUiStore } from '../store/uiStore';
 
 const filter = createFilterOptions();
 
@@ -33,6 +34,7 @@ const TECH_STACK_OPTIONS = [
 
 const PostWritePage = () => {
   const navigate = useNavigate();
+  const { showToast } = useUiStore();
 
   // 오늘 날짜 기준 데이터 생성
   const currentYear = new Date().getFullYear();
@@ -86,30 +88,25 @@ const PostWritePage = () => {
     setFormData({ ...formData, techStacks: processedValue });
   };
 
-  // 4. 등록 버튼 클릭 시 (404 에러 방지 및 상세 이동 로직)
+  // 4. 등록 버튼 클릭 시
   const handleSubmit = async () => {
     if (!formData.title || !formData.recruitCount || formData.techStacks.length === 0 || !formData.content || !formData.endDate) {
-      alert('모든 필수 항목(*)을 입력해주세요.');
+      showToast('모든 필수 항목(*)을 입력해주세요.', 'warning');
       return;
     }
 
     try {
-      // postApi.createPost는 내부적으로 /api/projects를 호출해야 합니다.
       const response = await postApi.createPost({
         ...formData,
         recruitCount: Number(formData.recruitCount)
       });
       
-      // MSW 핸들러 응답에서 새 ID 추출
       const newPostId = response?.projectId || response?.data?.projectId || 100;
-
-      alert('모집글이 성공적으로 등록되었습니다! 🚀');
-      
-      // 등록된 게시글의 상세 페이지로 즉시 이동
+      showToast('모집글이 성공적으로 등록되었습니다! 🚀', 'success');
       navigate(`/posts/${newPostId}`);
     } catch (error) {
       console.error('등록 실패:', error);
-      alert('등록 중 오류가 발생했습니다. handlers.js의 API 주소와 postApi의 주소가 일치하는지 확인하세요.');
+      showToast('등록 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.', 'error');
     }
   };
 
@@ -128,7 +125,6 @@ const PostWritePage = () => {
           <Box sx={{ flex: 8 }}>
             <Stack spacing={4}>
               
-              {/* 기본 정보 */}
               <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE', borderTop: '4px solid #6C63FF' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
                   <DescriptionIcon sx={{ color: '#6C63FF' }} />
@@ -181,7 +177,6 @@ const PostWritePage = () => {
                 </Box>
               </Paper>
 
-              {/* 모집 조건 */}
               <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
                   <GroupAddIcon sx={{ color: '#6C63FF' }} />
@@ -266,7 +261,7 @@ const PostWritePage = () => {
                       )}
                       renderTags={(value, getTagProps) =>
                         value.map((option, index) => {
-                          const { key, ...tagProps } = getTagProps({ index }); // [핵심 수정] key를 직접 분리하여 전달
+                          const { key, ...tagProps } = getTagProps({ index });
                           return (
                             <Chip
                               key={key} 
