@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Container, Box, Typography, TextField, Button, Paper, Pagination as MuiPagination } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import { usePostStore } from '@/store/postStore';
@@ -8,6 +8,7 @@ import PostCard from '@/component/common/PostCard';
 
 const MainPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoggedIn } = useAuthStore();
   
   const { 
@@ -23,7 +24,26 @@ const MainPage = () => {
     totalPages 
   } = usePostStore();
 
+  // URL 해시(#) 체크 후 자동 스크롤 로직
   useEffect(() => {
+    if (location.hash === '#new-opportunities') {
+      const element = document.getElementById('new-opportunities');
+      if (element) {
+        // 헤더 높이(약 60px)만큼 오프셋을 주기 위해 약간의 여백을 두고 스크롤
+        const headerOffset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    }
+  }, [location]);
+
+  useEffect(() => {
+    // 모집글 최신순 정렬은 백엔드 API 기본값이거나 fetch 시 정렬 파라미터를 추가하여 처리
     fetchPosts({ size: 15 });
   }, [category, page, fetchPosts]);
 
@@ -38,7 +58,11 @@ const MainPage = () => {
 
   const handlePageChange = (event, value) => {
     setPage(value - 1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // 페이지 변경 시 섹션 상단으로 이동
+    const element = document.getElementById('new-opportunities');
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   const handleStartProject = () => {
@@ -85,7 +109,6 @@ const MainPage = () => {
             <span>✨</span> Discover Your Perfect Project Partner
           </Box>
 
-          {/* docs/1.png 스타일의 2단 타이틀 */}
           <Typography variant="h1" sx={{ 
             fontSize: { xs: '2.5rem', md: '4rem' }, 
             lineHeight: 1.2, 
@@ -94,7 +117,7 @@ const MainPage = () => {
             color: 'text.primary',
             letterSpacing: '-0.04em',
           }}>
-            함께 성장할<br />
+             함께 성장할<br />
             <Box component="span" sx={{ 
               background: 'linear-gradient(90deg, #6C63FF 0%, #FF6584 100%)',
               WebkitBackgroundClip: 'text',
@@ -116,7 +139,7 @@ const MainPage = () => {
             지금 바로 멋진 팀을 꾸려 가치 있는 프로젝트를 시작해 보세요.
           </Typography>
 
-          {/* Search Bar - 완벽한 가로형 레이아웃 */}
+          {/* Search Bar */}
           <Box sx={{ width: '100%', maxWidth: 800, mx: 'auto', mb: 8 }}>
             <Paper elevation={0} sx={{ 
               p: 0.8, 
@@ -192,8 +215,8 @@ const MainPage = () => {
         </Container>
       </Box>
 
-      {/* Main Content Area */}
-      <Container maxWidth="xl" sx={{ mt: 10, px: { xs: 3, md: 8 } }}>
+      {/* Main Content Area - ID 부여된 섹션 */}
+      <Container id="new-opportunities" maxWidth="xl" sx={{ mt: 10, px: { xs: 3, md: 8 }, scrollMarginTop: '100px' }}>
         <Box sx={{ mb: 6, borderBottom: '2px solid #F3F4F6', pb: 3 }}>
           <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: '-0.03em' }}>
             🚀 New Opportunities
@@ -248,7 +271,7 @@ const MainPage = () => {
           </Box>
         )}
 
-        {/* docs/2.png 스타일의 CTA Banner Section */}
+        {/* CTA Banner Section */}
         <Box sx={{ mt: 20 }}>
           <Paper elevation={0} sx={{ 
             borderRadius: { xs: 6, md: 10 },
@@ -260,7 +283,6 @@ const MainPage = () => {
             overflow: 'hidden',
             position: 'relative'
           }}>
-            {/* 배경 데코레이션용 원형 요소들 */}
             <Box sx={{ position: 'absolute', top: -100, left: -100, width: 300, height: 300, borderRadius: '50%', background: 'rgba(255,255,255,0.05)' }} />
             <Box sx={{ position: 'absolute', bottom: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.08)' }} />
             
