@@ -14,13 +14,14 @@ import EmailIcon from '@mui/icons-material/Email';
 import NotificationsIcon from '@mui/icons-material/Notifications';
 import LogoutIcon from '@mui/icons-material/Logout';
 import AddIcon from '@mui/icons-material/Add';
+import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 
 import axiosInstance from '../api/axiosInstance'; 
 import Breadcrumb from '../component/common/Breadcrumb';
 
 const MyPage = () => {
   const navigate = useNavigate();
-  const [tabValue, setTabValue] = useState(0); // 0: 내 모집글, 1: 신청 현황
+  const [tabValue, setTabValue] = useState(0); // 0: 내 모집글, 1: 신청 현황, 2: 내 팀
   const [categoryFilter, setCategoryFilter] = useState('전체'); // '전체', '프로젝트', '스터디'
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
@@ -28,6 +29,7 @@ const MyPage = () => {
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
+  // 데이터 로드
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -42,43 +44,71 @@ const MyPage = () => {
     fetchUserData();
   }, []);
 
+  // 섹션 스크롤 및 탭 이동
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
-    const offset = (ref.current?.offsetTop || 0) - 100;
-    window.scrollTo({ top: offset, behavior: 'smooth' });
+    setTimeout(() => {
+      const offset = (ref.current?.offsetTop || 0) - 100;
+      window.scrollTo({ top: offset, behavior: 'smooth' });
+    }, 100);
   }, []);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
-    setCategoryFilter('전체'); // 탭 변경 시 필터 초기화
+    setCategoryFilter('전체');
   };
 
-  const handleInputChange = (field) => (e) => setUserInfo({ ...userInfo, [field]: e.target.value });
-
-  const handleSaveProfile = () => {
-    alert('수정된 프로필 정보가 저장되었습니다!');
+  // 프로필 정보 수정 핸들러 (실시간 반영)
+  const handleInputChange = (field) => (e) => {
+    setUserInfo((prev) => ({
+      ...prev,
+      [field]: e.target.value
+    }));
   };
 
-  // 필터링 로직 (신청 현황 데이터 기준)
-  const getFilteredApplies = () => {
-    if (!userInfo?.applies) return [];
-    if (categoryFilter === '전체') return userInfo.applies;
+  // 프로필 저장
+  const handleSaveProfile = async () => {
+    try {
+      console.log("저장 시도 데이터:", userInfo);
+      alert('프로필 정보가 성공적으로 저장되었습니다!');
+    } catch {
+      alert('저장 중 오류가 발생했습니다.');
+    }
+  };
+
+  // 통합 필터링 로직
+  const getFilteredData = useCallback(() => {
+    if (!userInfo) return [];
     
-    // handlers.js의 mockPosts 타이틀이나 카테고리 정보를 기반으로 필터링
-    // 여기서는 타이틀에 포함된 [프로젝트], [스터디] 키워드로 구분하거나 
-    // 데이터 구조에 category가 있다면 그것을 사용합니다.
-    return userInfo.applies.filter(apply => {
-      if (categoryFilter === '프로젝트') return apply.projectTitle.includes('프로젝트');
-      if (categoryFilter === '스터디') return apply.projectTitle.includes('스터디');
-      return true;
+    let sourceData = [];
+
+    if (tabValue === 0) {
+      sourceData = userInfo.myPosts || [];
+    } else if (tabValue === 1) {
+      sourceData = userInfo.applies || [];
+    } else if (tabValue === 2) {
+      sourceData = userInfo.acceptedProjects || [];
+    }
+
+    if (categoryFilter === '전체') return sourceData;
+
+    return sourceData.filter(item => {
+      const title = item?.projectTitle || item?.title || "";
+      const category = item?.category || "";
+      return title.includes(categoryFilter) || category === categoryFilter;
     });
-  };
+  }, [userInfo, tabValue, categoryFilter]);
 
   if (isLoading || !userInfo) {
-    return <Box sx={{ width: '100%', mt: '100px' }}><LinearProgress /></Box>;
+    return (
+      <Box sx={{ width: '100%', mt: '100px', textAlign: 'center' }}>
+        <LinearProgress />
+        <Typography sx={{ mt: 2, fontWeight: 700, color: '#6366F1' }}>데이터를 불러오는 중입니다...</Typography>
+      </Box>
+    );
   }
 
-  const filteredApplies = getFilteredApplies();
+  const displayList = getFilteredData();
 
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
@@ -102,19 +132,19 @@ const MyPage = () => {
                   </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 3 }}>
                     <Box sx={{ cursor: 'pointer' }} onClick={() => scrollToSection(activityRef, 0)}>
-                      <Typography variant="h6" sx={{ fontWeight: 900 }}>{userInfo.postCount}</Typography>
-                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>개설 모집글</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 900 }}>{userInfo.postCount || 0}</Typography>
+                      <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>내 모집글</Typography>
                     </Box>
                     <Divider orientation="vertical" flexItem />
                     <Box sx={{ cursor: 'pointer' }} onClick={() => scrollToSection(activityRef, 1)}>
-                      <Typography variant="h6" sx={{ fontWeight: 900 }}>{userInfo.applyCount}</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 900 }}>{userInfo.applyCount || 0}</Typography>
                       <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>신청 현황</Typography>
                     </Box>
                   </Box>
                   <Button 
                     fullWidth variant="outlined" startIcon={<EditIcon />} 
                     onClick={() => scrollToSection(profileRef)}
-                    sx={{ borderRadius: 3, fontWeight: 800, py: 1.2 }}
+                    sx={{ borderRadius: 3, fontWeight: 800, py: 1.2, borderColor: '#E5E7EB', color: '#374151' }}
                   >
                     프로필 수정
                   </Button>
@@ -126,7 +156,7 @@ const MyPage = () => {
                   <MenuButton icon={<PersonIcon />} label="프로필 정보" onClick={() => scrollToSection(profileRef)} />
                   <MenuButton icon={<AssignmentIcon />} label="내 모집글" count={userInfo.postCount} onClick={() => scrollToSection(activityRef, 0)} />
                   <MenuButton icon={<EmailIcon />} label="신청 현황" count={userInfo.applyCount} onClick={() => scrollToSection(activityRef, 1)} />
-                  <MenuButton icon={<NotificationsIcon />} label="알림 설정" />
+                  <MenuButton icon={<RocketLaunchIcon />} label="내 팀" count={userInfo.acceptedProjects?.length || 0} onClick={() => scrollToSection(activityRef, 2)} />
                   <Divider sx={{ my: 1.5 }} />
                   <Button fullWidth startIcon={<LogoutIcon />} sx={{ justifyContent: 'flex-start', color: '#9CA3AF', fontWeight: 800, px: 2, py: 1.5, borderRadius: 3 }}>회원 탈퇴</Button>
                 </Stack>
@@ -142,43 +172,49 @@ const MyPage = () => {
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
-                  <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
-                  <Box><FormLabel text="이메일 (변경 불가)" /><TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6', color: '#9CA3AF', cursor: 'not-allowed' } }} /></Box>
-                  <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
+                  <Box>
+                    <FormLabel text="닉네임" />
+                    <TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} />
+                  </Box>
+                  <Box>
+                    <FormLabel text="이메일 (변경 불가)" />
+                    <TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} />
+                  </Box>
+                  <Box>
+                    <FormLabel text="포지션" />
+                    <TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} />
+                  </Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
-                    <FormLabel text="기술 스택" />
-                    <Box sx={{ p: 2.5, bgcolor: '#F9FAFB', borderRadius: 4, display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center', border: '1px solid #F3F4F6' }}>
-                      {userInfo.techStacks?.map(stack => <Chip key={stack} label={stack} sx={{ bgcolor: 'white', fontWeight: 800, border: '1px solid #E5E7EB', height: 32 }} />)}
-                      <IconButton size="small" sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}><AddIcon fontSize="small" /></IconButton>
-                    </Box>
+                    <FormLabel text="한 줄 소개" />
+                    <TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} />
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
-                  <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1' }}>저장하기</Button>
+                  <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)' }}>
+                    저장하기
+                  </Button>
                 </Box>
               </Paper>
 
+              {/* 활동 내역 섹션 */}
               <Paper ref={activityRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />활동 내역
                 </Typography>
                 
                 <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 4, borderBottom: '1px solid #F3F4F6' }}>
-                  <Tab label={`내 모집글 (${userInfo.postCount})`} sx={{ fontWeight: 900, fontSize: '1rem', px: 4 }} />
-                  <Tab label={`신청 현황 (${userInfo.applyCount})`} sx={{ fontWeight: 900, fontSize: '1rem', px: 4 }} />
+                  <Tab label={`내 모집글 (${userInfo.postCount || 0})`} sx={{ fontWeight: 900, px: 3 }} />
+                  <Tab label={`신청 현황 (${userInfo.applyCount || 0})`} sx={{ fontWeight: 900, px: 3 }} />
+                  <Tab label={`내 팀 (${userInfo.acceptedProjects?.length || 0})`} sx={{ fontWeight: 900, px: 3 }} />
                 </Tabs>
 
-                {/* 카테고리 필터 칩 추가 */}
+                {/* 카테고리 필터 */}
                 <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
                   {['전체', '프로젝트', '스터디'].map((cat) => (
                     <Chip 
-                      key={cat} 
-                      label={cat} 
-                      onClick={() => setCategoryFilter(cat)}
+                      key={cat} label={cat} onClick={() => setCategoryFilter(cat)}
                       sx={{ 
-                        fontWeight: 800, 
-                        px: 1,
+                        fontWeight: 800, px: 1,
                         bgcolor: categoryFilter === cat ? '#6366F1' : '#F3F4F6',
                         color: categoryFilter === cat ? 'white' : '#6B7280',
                         '&:hover': { bgcolor: categoryFilter === cat ? '#4F46E5' : '#E5E7EB' }
@@ -188,29 +224,29 @@ const MyPage = () => {
                 </Stack>
 
                 <Stack spacing={2.5}>
-                  {tabValue === 0 ? (
-                    <Box sx={{ py: 4, textAlign: 'center' }}>
-                      <Typography color="text.secondary" sx={{ fontWeight: 600 }}>아직 개설한 모집글이 없습니다.</Typography>
-                    </Box>
+                  {displayList.length > 0 ? (
+                    displayList.map((item) => (
+                      <ActivityItem 
+                        key={item.applyId || item.projectId || item.id}
+                        item={item}
+                        tabValue={tabValue}
+                        onTitleClick={() => {
+                          const id = item.projectId || item.id;
+                          // 0: 내 모집글 -> 팀 게시판 / 1: 신청 현황 -> 상세페이지 / 2: 내 팀 -> 팀 게시판
+                          if (tabValue === 1) {
+                            navigate(`/posts/${id}`);
+                          } else {
+                            navigate(`/posts/${id}/board`);
+                          }
+                        }}
+                      />
+                    ))
                   ) : (
-                    filteredApplies.length > 0 ? (
-                      filteredApplies.map((apply) => (
-                        <ActivityItem 
-                          key={apply.applyId}
-                          title={apply.projectTitle}
-                          status={apply.status === 'PENDING' ? '대기중' : '승인완료'} 
-                          info={`지원 분야: ${apply.position} · 신청일: ${apply.appliedDate}`} 
-                          tags={[]} 
-                          onBoardClick={() => navigate(`/posts/${apply.projectId}/board`)}
-                        />
-                      ))
-                    ) : (
-                      <Box sx={{ py: 4, textAlign: 'center' }}>
-                        <Typography color="text.secondary" sx={{ fontWeight: 600 }}>
-                          {categoryFilter} 내역이 없습니다.
-                        </Typography>
-                      </Box>
-                    )
+                    <Box sx={{ py: 6, textAlign: 'center', bgcolor: '#F9FAFB', borderRadius: 4 }}>
+                      <Typography color="text.secondary" sx={{ fontWeight: 600 }}>
+                        {categoryFilter} 내역이 없습니다.
+                      </Typography>
+                    </Box>
                   )}
                 </Stack>
               </Paper>
@@ -233,52 +269,61 @@ const MenuButton = ({ icon, label, count, onClick }) => (
 
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
-const ActivityItem = ({ title, status, info, tags = [], isOwner, onEdit, onBoardClick }) => (
-  <Box sx={{ 
-    p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', 
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    transition: '0.2s',
-    '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }
-  }}>
-    <Box sx={{ flex: 1 }}>
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
-        <Typography 
-          variant="h6" 
-          onClick={onBoardClick}
-          sx={{ 
-            fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', 
-            '&:hover': { color: 'primary.main', textDecoration: 'underline' } 
-          }}
-        >
-          {title}
-        </Typography>
-        <Chip 
-          label={status} 
-          size="small" 
-          sx={{ 
-            fontWeight: 900, 
-            bgcolor: status === '대기중' ? '#FFFBEB' : '#ECFDF5', 
-            color: status === '대기중' ? '#D97706' : '#10B981' 
-          }} 
-        />
-      </Stack>
-      <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 2 }}>{info}</Typography>
+const ActivityItem = ({ item, tabValue, onTitleClick }) => {
+  const title = item.projectTitle || item.title;
+  const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : '승인완료');
+  const info = tabValue === 2 
+    ? `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${item.position || '멤버'}` 
+    : `지원 분야: ${item.position} · 신청일: ${item.appliedDate}`;
+
+  return (
+    <Box sx={{ 
+      p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', 
+      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }, transition: '0.2s'
+    }}>
+      <Box sx={{ flex: 1 }}>
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
+          <Typography 
+            variant="h6" 
+            onClick={onTitleClick}
+            sx={{ 
+              fontWeight: 900, 
+              fontSize: '1.1rem', 
+              cursor: 'pointer',
+              '&:hover': { color: '#6366F1', textDecoration: 'underline' } 
+            }}
+          >
+            {title}
+          </Typography>
+          
+          {/* 내 모집글 탭(0번)이 아닐 때만 상태 칩을 표시 */}
+          {tabValue !== 0 && (
+            <Chip 
+              label={status} size="small" 
+              sx={{ 
+                fontWeight: 900, 
+                bgcolor: status === '참여중' ? '#EEF2FF' : (status === '대기중' ? '#FFFBEB' : '#ECFDF5'), 
+                color: status === '참여중' ? '#6366F1' : (status === '대기중' ? '#D97706' : '#10B981') 
+              }} 
+            />
+          )}
+        </Stack>
+        <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{info}</Typography>
+      </Box>
+      
       <Stack direction="row" spacing={1}>
-        {tags.map(tag => <Chip key={tag} label={tag} size="small" variant="outlined" sx={{ height: 22, fontWeight: 700, bgcolor: 'white' }} />)}
+        {tabValue === 0 && (
+          <Button variant="contained" disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button>
+        )}
+        {tabValue === 1 && item.status === 'PENDING' && (
+          <Button variant="outlined" disabled sx={{ fontWeight: 800, borderRadius: 2, borderColor: '#E5E7EB' }}>대기 중</Button>
+        )}
+        {/* 내 팀(tabValue 2)은 버튼 없이 제목 클릭만으로 이동하므로 버튼 영역 비움 */}
       </Stack>
     </Box>
-    <Stack direction="row" spacing={1}>
-      {isOwner ? (
-        <>
-          <Button variant="contained" onClick={onEdit} disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>수정</Button>
-          <Button variant="contained" disableElevation sx={{ bgcolor: '#FEE2E2', color: '#B91C1C', fontWeight: 900, borderRadius: 2 }}>삭제</Button>
-        </>
-      ) : (
-        <Button variant="outlined" onClick={onBoardClick} sx={{ fontWeight: 800, borderRadius: 2 }}>게시판</Button>
-      )}
-    </Stack>
-  </Box>
-);
+  );
+};
 
 const inputStyle = {
   '& .MuiOutlinedInput-root': {
