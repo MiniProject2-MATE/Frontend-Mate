@@ -54,7 +54,7 @@ export const handlers = [
         data: {
           accessToken: 'mock-access-token',
           refreshToken: 'mock-refresh-token',
-          user: currentUserData // 전역 변수 참조
+          user: currentUserData
         }
       });
     }
@@ -66,6 +66,23 @@ export const handlers = [
       }),
       { status: 401 }
     );
+  }),
+
+  // [신규] 닉네임 중복 확인 API
+  http.get('*/api/auth/check-nickname', ({ request }) => {
+    const url = new URL(request.url);
+    const nickname = url.searchParams.get('nickname');
+
+    if (nickname === currentUserData.nickname) {
+      return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '현재 사용 중인 닉네임입니다.' });
+    }
+
+    const isTaken = mockPosts.some(p => p.ownerNickname === nickname);
+    if (isTaken) {
+      return HttpResponse.json({ success: true, data: { isAvailable: false }, message: '이미 사용 중인 닉네임입니다.' });
+    }
+
+    return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '사용 가능한 닉네임입니다.' });
   }),
 
   // 3. 모집글 목록 조회 API 모킹 (페이징 로직)
@@ -131,13 +148,11 @@ export const handlers = [
   http.put('*/api/users/me', async ({ request }) => {
     const updateData = await request.json();
     
-    // 실제 전역 변수 업데이트
     currentUserData = {
       ...currentUserData,
       ...updateData
     };
 
-    // 닉네임이 바뀌면 mockPosts의 ownerNickname도 동기화 (선택 사항이지만 일관성을 위해)
     if (updateData.nickname) {
       mockPosts = mockPosts.map(p => 
         p.ownerNickname === currentUserData.nickname ? { ...p, ownerNickname: updateData.nickname } : p

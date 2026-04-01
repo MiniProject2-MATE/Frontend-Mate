@@ -40,6 +40,10 @@ const MyPage = () => {
     intro: ''
   });
 
+  // 닉네임 중복 체크 관련 상태
+  const [isNicknameChecked, setIsNicknameChecked] = useState(true); 
+  const [lastCheckedNickname, setLastCheckedNickname] = useState('');
+
   // 비밀번호 관련 상태
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -100,14 +104,56 @@ const MyPage = () => {
   };
 
   const handleInputChange = (field) => (e) => {
+    const value = e.target.value;
     setFormData((prev) => ({
       ...prev,
-      [field]: e.target.value
+      [field]: value
     }));
+
+    // 닉네임이 바뀌면 중복 체크 상태 리셋 (기존 서버 닉네임과 다를 경우에만)
+    if (field === 'nickname') {
+      if (userInfo && value !== userInfo.nickname) {
+        setIsNicknameChecked(false);
+      } else {
+        setIsNicknameChecked(true);
+      }
+    }
+  };
+
+  // [신규] 닉네임 중복 확인 핸들러
+  const handleCheckNickname = async () => {
+    if (!formData.nickname.trim()) {
+      showToast('닉네임을 입력해주세요.', 'warning');
+      return;
+    }
+    
+    if (formData.nickname === userInfo.nickname) {
+      showToast('현재 사용 중인 본인의 닉네임입니다.', 'info');
+      setIsNicknameChecked(true);
+      setLastCheckedNickname(formData.nickname);
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(`/auth/check-nickname?nickname=${formData.nickname}`);
+      const { isAvailable } = response;
+      
+      if (isAvailable) {
+        showToast('사용 가능한 닉네임입니다!', 'success');
+        setIsNicknameChecked(true);
+        setLastCheckedNickname(formData.nickname);
+      } else {
+        showToast('이미 사용 중인 닉네임입니다.', 'error');
+        setIsNicknameChecked(false);
+      }
+    } catch (error) {
+      console.error("중복 확인 실패:", error);
+      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+    }
   };
 
   const handleSaveProfile = async () => {
-    // [추가] 변경 사항이 있는지 먼저 체크
+    // 1. 변경 사항 체크
     const isProfileUnchanged = 
       formData.nickname === userInfo.nickname &&
       formData.position === userInfo.position &&
@@ -120,7 +166,15 @@ const MyPage = () => {
       return;
     }
 
-    // 비밀번호 변경 시도 시 유효성 검사
+    // 2. 닉네임 중복 확인 여부 체크 (닉네임이 변경된 경우만)
+    if (formData.nickname !== userInfo.nickname) {
+      if (!isNicknameChecked || formData.nickname !== lastCheckedNickname) {
+        showToast('닉네임 중복 확인이 필요합니다.', 'warning');
+        return;
+      }
+    }
+
+    // 3. 비밀번호 변경 시도 시 유효성 검사
     if (password || confirmPassword) {
       if (password !== confirmPassword) {
         showToast('비밀번호가 일치하지 않습니다.', 'error');
@@ -250,7 +304,30 @@ const MyPage = () => {
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
                   <Box>
                     <FormLabel text="닉네임" />
-                    <TextField fullWidth value={formData.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} />
+                    <Stack direction="row" spacing={1}>
+                      <TextField 
+                        fullWidth 
+                        value={formData.nickname} 
+                        onChange={handleInputChange('nickname')} 
+                        sx={inputStyle} 
+                      />
+                      <Button 
+                        variant="outlined" 
+                        onClick={handleCheckNickname}
+                        disabled={isNicknameChecked && formData.nickname === (lastCheckedNickname || userInfo?.nickname)}
+                        sx={{ 
+                          whiteSpace: 'nowrap', 
+                          px: 3, 
+                          borderRadius: 3, 
+                          fontWeight: 800,
+                          borderColor: isNicknameChecked ? '#10B981' : '#6366F1',
+                          color: isNicknameChecked ? '#10B981' : '#6366F1',
+                          '&:hover': { borderColor: '#4F46E5' }
+                        }}
+                      >
+                        {isNicknameChecked ? '확인됨' : '중복 확인'}
+                      </Button>
+                    </Stack>
                   </Box>
                   <Box>
                     <FormLabel text="이메일" />
