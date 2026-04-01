@@ -107,6 +107,19 @@ const MyPage = () => {
   };
 
   const handleSaveProfile = async () => {
+    // [추가] 변경 사항이 있는지 먼저 체크
+    const isProfileUnchanged = 
+      formData.nickname === userInfo.nickname &&
+      formData.position === userInfo.position &&
+      formData.intro === userInfo.intro;
+    
+    const isPasswordEmpty = !password && !confirmPassword;
+
+    if (isProfileUnchanged && isPasswordEmpty) {
+      showToast('변경된 정보가 없습니다!', 'info');
+      return;
+    }
+
     // 비밀번호 변경 시도 시 유효성 검사
     if (password || confirmPassword) {
       if (password !== confirmPassword) {
