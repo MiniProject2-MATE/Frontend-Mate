@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom'; // 1. useNavigate 추가
 import { 
   Container, Box, Typography, Paper, Divider, 
   LinearProgress, Stack, Chip, Avatar 
@@ -10,51 +10,102 @@ import VisibilityIcon from '@mui/icons-material/Visibility';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import PersonIcon from '@mui/icons-material/Person';
 
-// 공통 컴포넌트 (상대 경로 확인 필요)
+// 공통 컴포넌트
 import Breadcrumb from '../component/common/Breadcrumb';
 import CustomButton from '../component/common/Button'; 
+import { useAuthStore } from '../store/authStore'; // 2. 로그인 상태 확인을 위해 추가
+
+// ... 상단 import 및 아이콘 생략
 
 const PostDetailPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+  const { isLoggedIn } = useAuthStore();
 
-  // 1. 상태 관리: ESLint 에러 방지를 위해 isLoading 초기값은 true
   const [post, setPost] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // 2. Mock Data: API 연동 전까지 사용할 데이터
-    const mockData = {
-      title: "사이드 프로젝트 백엔드 구함", 
-      category: "PROJECT", 
-      status: "모집중", 
-      viewCount: 150,
-      owner: { 
-        nickname: "user", 
-        position: "BE", 
-        job: "백엔드 개발자",
-        avatar: "" 
-      }, 
-      techStacks: ["Java", "Spring Boot", "MySQL"],
-      onOffline: "온라인", 
-      endDate: "2026.04.30", 
-      content: "JPA 실력이 출중하신 분을 모십니다.\n\n함께 성장할 수 있는 팀원을 찾고 있습니다. 관심 있으신 분은 지원해 주세요!\n\n현재 프로젝트는 초기 기획 단계이며, 데이터베이스 설계부터 함께하실 분을 찾고 있습니다.",
-      currentCount: 1, 
-      recruitCount: 3, 
-      members: [
-        { nickname: "user", position: "BE", job: "백엔드 개발자", role: "OWNER" }
-      ]
-    };
+    // 1. 목업 데이터베이스 (배열 형태로 여러 개 준비)
+    const mockDB = [
+      {
+        id: "1",
+        title: "사이드 프로젝트 백엔드 구함",
+        category: "PROJECT",
+        status: "모집중",
+        viewCount: 150,
+        owner: { nickname: "user1", position: "BE", job: "백엔드 개발자" },
+        techStacks: ["Java", "Spring Boot", "MySQL"],
+        onOffline: "온라인",
+        endDate: "2026.04.30",
+        content: "1번 프로젝트 상세 내용입니다. JPA 실력이 출중하신 분을 모십니다.",
+        currentCount: 1,
+        recruitCount: 3,
+        members: [{ nickname: "user1", position: "BE", job: "백엔드 개발자", role: "OWNER" }]
+      },
+      {
+        id: "2",
+        title: "대학생 팀플 메이커 플랫폼 토이 프로젝트",
+        category: "PROJECT",
+        status: "모집중",
+        viewCount: 210,
+        owner: { nickname: "design_star", position: "DE", job: "UI/UX 디자이너" },
+        techStacks: ["Figma", "React"],
+        onOffline: "오프라인",
+        endDate: "2026.05.15",
+        content: "2번 프로젝트 상세 내용입니다. 대학생 전용 플랫폼을 함께 만들 팀원을 구합니다.",
+        currentCount: 2,
+        recruitCount: 4,
+        members: [
+          { nickname: "design_star", position: "DE", job: "UI/UX 디자이너", role: "OWNER" },
+          { nickname: "fe_dev", position: "FE", job: "프론트엔드", role: "MEMBER" }
+        ]
+      },
+      {
+        id: "3",
+        title: "React 디자인 시스템 구축 전문가 모집",
+        category: "STUDY",
+        status: "모집중",
+        viewCount: 89,
+        owner: { nickname: "king_of_fe", position: "FE", job: "프론트엔드 리드" },
+        techStacks: ["React", "TypeScript", "Storybook"],
+        onOffline: "온라인",
+        endDate: "2026.06.01",
+        content: "3번 프로젝트 상세 내용입니다. 회사에서 바로 쓸 수 있는 디자인 시스템을 연구합니다.",
+        currentCount: 1,
+        recruitCount: 5,
+        members: [{ nickname: "king_of_fe", position: "FE", job: "프론트엔드 리드", role: "OWNER" }]
+      }
+    ];
 
-    // 3. 데이터 로딩 시뮬레이션 (300ms 후 로딩 완료)
+    // 2. URL 파라미터로 넘어온 id와 일치하는 데이터 찾기
+    const foundPost = mockDB.find((item) => item.id === String(id));
+
     const timer = setTimeout(() => {
-      setPost(mockData);
+      if (foundPost) {
+        setPost(foundPost);
+      } else {
+        setPost(null); // 못 찾았을 때
+      }
       setIsLoading(false);
     }, 300);
 
     return () => clearTimeout(timer);
   }, [id]);
 
-  // 로딩 화면 (MUI LinearProgress)
+  // ... (이후 handleApplyClick 및 렌더링 로직은 기존과 동일)
+
+  // 지원하기 버튼 핸들러
+  const handleApplyClick = () => {
+    if (!isLoggedIn) {
+      alert("로그인이 필요한 서비스입니다.");
+      navigate('/login', { state: { from: `/posts/${id}/apply` } });
+    } else {
+      // 4. 지원 페이지로 이동
+      navigate(`/posts/${id}/apply`);
+    }
+  };
+
   if (isLoading) {
     return (
       <Box sx={{ width: '100%', mt: '100px' }}>
@@ -66,7 +117,6 @@ const PostDetailPage = () => {
     );
   }
 
-  // 데이터가 없을 경우 예외 처리
   if (!post) return <Typography sx={{ mt: 20, textAlign: 'center' }}>데이터를 찾을 수 없습니다.</Typography>;
 
   const progress = (post.currentCount / post.recruitCount) * 100;
@@ -74,17 +124,13 @@ const PostDetailPage = () => {
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
       <Container maxWidth="lg">
-        {/* 브레드크럼 */}
         <Breadcrumb items={[{ label: '홈', path: '/' }, { label: '프로젝트 탐색', path: '/posts' }, { label: '상세 보기' }]} />
 
-        {/* 메인 레이아웃 (좌측 본문 8 : 우측 사이드바 4) */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4, mt: 2 }}>
           
           {/* [좌측 영역] */}
           <Box sx={{ flex: 8 }}>
             <Stack spacing={4}>
-              
-              {/* 상단 메타 정보 카드 */}
               <Paper elevation={0} sx={{ p: { xs: 4, sm: 6 }, borderRadius: 4, borderTop: '4px solid #7275FC', border: '1px solid #EEEEEE' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
                   <Stack direction="row" spacing={1.5} alignItems="center">
@@ -132,7 +178,6 @@ const PostDetailPage = () => {
                 </Box>
               </Paper>
 
-              {/* 상세 내용 카드 */}
               <Paper elevation={0} sx={{ p: 5, borderRadius: 4, border: '1px solid #EEEEEE' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', color: '#111827' }}>
                   <Box component="span" sx={{ width: 4, height: 20, bgcolor: '#6C63FF', mr: 2, borderRadius: 1 }} />
@@ -143,7 +188,6 @@ const PostDetailPage = () => {
                 </Typography>
               </Paper>
 
-              {/* 참여 멤버 카드 */}
               <Paper elevation={0} sx={{ p: 5, borderRadius: 4, border: '1px solid #EEEEEE' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center', color: '#111827' }}>
                   <Box component="span" sx={{ width: 4, height: 20, bgcolor: '#6C63FF', mr: 2, borderRadius: 1 }} />
@@ -180,8 +224,6 @@ const PostDetailPage = () => {
           {/* [우측 사이드바 영역] */}
           <Box sx={{ flex: 4 }}>
             <Stack spacing={3} sx={{ position: 'sticky', top: '100px' }}>
-              
-              {/* 모집 현황 & 지원 버튼 (Gradient 카드) */}
               <Paper elevation={0} sx={{ 
                 p: 5, borderRadius: 5, 
                 background: 'linear-gradient(135deg, #6C63FF 0%, #4834D4 100%)', 
@@ -200,10 +242,12 @@ const PostDetailPage = () => {
                   <Box sx={{ bgcolor: 'white', height: '100%', width: `${progress}%`, transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)' }} />
                 </Box>
 
+                {/* 5. 버튼 클릭 시 핸들러 연결 */}
                 <CustomButton 
                   fullWidth 
                   variant="contained" 
                   startIcon={<RocketLaunchIcon />}
+                  onClick={handleApplyClick}
                   sx={{ 
                     bgcolor: 'white', color: '#6C63FF', height: 60, borderRadius: 4, fontWeight: 900, fontSize: '1.1rem',
                     boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
@@ -215,7 +259,6 @@ const PostDetailPage = () => {
                 </CustomButton>
               </Paper>
 
-              {/* 작성자 간략 정보 카드 */}
               <Paper elevation={0} sx={{ p: 4, borderRadius: 4, border: '1px solid #EEEEEE' }}>
                 <Typography variant="caption" sx={{ fontWeight: 900, color: '#D1D5DB', display: 'block', mb: 3, letterSpacing: '0.05em' }}>PROJECT OWNER</Typography>
                 <Stack direction="row" spacing={2.5} alignItems="center">
