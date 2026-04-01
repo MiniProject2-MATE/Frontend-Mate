@@ -319,8 +319,8 @@ const PostWritePage = () => {
               </Paper>
 
               <Stack direction="row" justifyContent="center" spacing={2} sx={{ pt: 2 }}>
-                <CustomButton variant="outlined" onClick={() => navigate(-1)} sx={{ px: 6, height: 56, borderColor: '#D1D5DB', color: '#6B7280' }}>취소</CustomButton>
-                <CustomButton variant="contained" onClick={handleSubmit} sx={{ px: 6, height: 56, bgcolor: '#6C63FF', fontWeight: 900 }}>🚀 모집글 등록하기</CustomButton>
+                <CustomButton variant="primary" onClick={handleSubmit} sx={{ px: 6, height: 56, fontWeight: 900 }}>🚀 모집글 등록하기</CustomButton>
+                <CustomButton variant="secondary" onClick={() => navigate(-1)} sx={{ px: 6, height: 56 }}>취소</CustomButton>
               </Stack>
             </Stack>
           </Box>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Container, Box, Typography, Paper, Divider, 
   Stack, Chip, Avatar, Table, TableBody, 
@@ -27,6 +27,7 @@ import boardApi from '../api/boardApi';
 
 const BoardPage = () => {
   const { id } = useParams();
+  const navigate = useNavigate(); // 페이지 이동을 위해 추가
   const [isLoading, setIsLoading] = useState(true);
   const [posts, setPosts] = useState([]);
   const [projectInfo, setProjectInfo] = useState({ title: "프로젝트 게시판", members: [] });
@@ -179,7 +180,9 @@ const BoardPage = () => {
             </Typography>
           </Box>
           <CustomButton 
-            variant="outlined" component={Link} to={`/posts/${id}`} endIcon={<ChevronRightIcon />}
+            variant="outlined" 
+            onClick={() => navigate(`/posts/${id}`)} // navigate로 명시적 변경
+            endIcon={<ChevronRightIcon />}
             sx={{ borderRadius: 3, px: 4, height: 48, fontWeight: 800, bgcolor: 'white' }}
           >
             원본 모집글 상세 보기
