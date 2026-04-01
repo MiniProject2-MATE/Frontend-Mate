@@ -6,6 +6,8 @@ import theme from '@/styles/theme';
 import MainLayout from '@/component/layout/MainLayout';
 import ProtectedRoute from '@/component/common/ProtectedRoute';
 import GuestRoute from '@/component/common/GuestRoute';
+
+// Pages
 import MainPage from '@/pages/MainPage.jsx';
 import PostDetailPage from '@/pages/PostDetailPage.jsx';
 import LoginPage from '@/pages/LoginPage.jsx';
@@ -22,6 +24,7 @@ import AdminUsersPage from '@/pages/AdminUsersPage.jsx';
 import ErrorPage from '@/pages/ErrorPage.jsx';
 import FindEmailPage from '@/pages/FindEmailPage.jsx';
 import FindPasswordPage from '@/pages/FindPasswordPage.jsx';
+import PostApplyPage from '@/pages/PostApplyPage.jsx'; // 1. 임포트 추가
 
 function App() {
   return (
@@ -35,6 +38,7 @@ function App() {
             <Route path="/posts/:id" element={<PostDetailPage />} />
             <Route path="/find-email" element={<FindEmailPage />} />
             <Route path="/find-password" element={<FindPasswordPage />} />
+
             {/* 2. 로그인 및 회원가입 */}
             <Route path="/login" element={
               <GuestRoute><LoginPage /></GuestRoute>
@@ -42,6 +46,7 @@ function App() {
             <Route path="/register" element={
               <GuestRoute><RegisterPage /></GuestRoute>
             } />
+
             {/* 3. 로그인 필요 페이지 */}
             <Route path="/posts/new" element={
               <ProtectedRoute><PostWritePage /></ProtectedRoute>
@@ -52,6 +57,11 @@ function App() {
             <Route path="/posts/:id/board" element={
               <ProtectedRoute><BoardPage /></ProtectedRoute>
             } />
+            {/* 2. 지원하기 페이지를 ProtectedRoute 내부로 이동 */}
+            <Route path="/posts/:id/apply" element={
+              <ProtectedRoute><PostApplyPage /></ProtectedRoute>
+            } />
+            
             <Route path="/mypage" element={
               <ProtectedRoute><MyPage /></ProtectedRoute>
             } />
@@ -61,6 +71,7 @@ function App() {
             <Route path="/mypage/applies" element={
               <ProtectedRoute><MyAppliesPage /></ProtectedRoute>
             } />
+
             {/* 4. ADMIN 전용 페이지 */}
             <Route path="/admin" element={
               <ProtectedRoute requireRole="ADMIN"><AdminPage /></ProtectedRoute>
@@ -71,7 +82,8 @@ function App() {
             <Route path="/admin/users" element={
               <ProtectedRoute requireRole="ADMIN"><AdminUsersPage /></ProtectedRoute>
             } />
-            {/* 5. 에러 페이지 */}
+
+            {/* 5. 에러 페이지 (항상 맨 아래에 위치) */}
             <Route path="*" element={<ErrorPage />} />
           </Route>
         </Routes>
@@ -79,4 +91,5 @@ function App() {
     </ThemeProvider>
   );
 }
+
 export default App;
