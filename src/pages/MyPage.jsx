@@ -22,14 +22,13 @@ import Breadcrumb from '../component/common/Breadcrumb';
 const MyPage = () => {
   const navigate = useNavigate();
   const [tabValue, setTabValue] = useState(0); // 0: 내 모집글, 1: 신청 현황, 2: 내 팀
-  const [categoryFilter, setCategoryFilter] = useState('전체'); // '전체', '프로젝트', '스터디'
+  const [categoryFilter, setCategoryFilter] = useState('전체');
   const [isLoading, setIsLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
 
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
-  // 데이터 로드
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -44,7 +43,6 @@ const MyPage = () => {
     fetchUserData();
   }, []);
 
-  // 섹션 스크롤 및 탭 이동
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
     setTimeout(() => {
@@ -58,7 +56,6 @@ const MyPage = () => {
     setCategoryFilter('전체');
   };
 
-  // 프로필 정보 수정 핸들러 (실시간 반영)
   const handleInputChange = (field) => (e) => {
     setUserInfo((prev) => ({
       ...prev,
@@ -66,7 +63,6 @@ const MyPage = () => {
     }));
   };
 
-  // 프로필 저장
   const handleSaveProfile = async () => {
     try {
       console.log("저장 시도 데이터:", userInfo);
@@ -76,19 +72,13 @@ const MyPage = () => {
     }
   };
 
-  // 통합 필터링 로직
   const getFilteredData = useCallback(() => {
     if (!userInfo) return [];
     
     let sourceData = [];
-
-    if (tabValue === 0) {
-      sourceData = userInfo.myPosts || [];
-    } else if (tabValue === 1) {
-      sourceData = userInfo.applies || [];
-    } else if (tabValue === 2) {
-      sourceData = userInfo.acceptedProjects || [];
-    }
+    if (tabValue === 0) sourceData = userInfo.myPosts || [];
+    else if (tabValue === 1) sourceData = userInfo.applies || [];
+    else if (tabValue === 2) sourceData = userInfo.acceptedProjects || [];
 
     if (categoryFilter === '전체') return sourceData;
 
@@ -172,31 +162,16 @@ const MyPage = () => {
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보
                 </Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
-                  <Box>
-                    <FormLabel text="닉네임" />
-                    <TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} />
-                  </Box>
-                  <Box>
-                    <FormLabel text="이메일 (변경 불가)" />
-                    <TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} />
-                  </Box>
-                  <Box>
-                    <FormLabel text="포지션" />
-                    <TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} />
-                  </Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}>
-                    <FormLabel text="한 줄 소개" />
-                    <TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} />
-                  </Box>
+                  <Box><FormLabel text="닉네임" /><TextField fullWidth value={userInfo.nickname || ''} onChange={handleInputChange('nickname')} sx={inputStyle} /></Box>
+                  <Box><FormLabel text="이메일" /><TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} /></Box>
+                  <Box><FormLabel text="포지션" /><TextField fullWidth value={userInfo.position || ''} onChange={handleInputChange('position')} sx={inputStyle} /></Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={userInfo.intro || ''} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
-                  <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)' }}>
-                    저장하기
-                  </Button>
+                  <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)' }}>저장하기</Button>
                 </Box>
               </Paper>
 
-              {/* 활동 내역 섹션 */}
               <Paper ref={activityRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 4, display: 'flex', alignItems: 'center' }}>
                   <Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />활동 내역
@@ -208,7 +183,6 @@ const MyPage = () => {
                   <Tab label={`내 팀 (${userInfo.acceptedProjects?.length || 0})`} sx={{ fontWeight: 900, px: 3 }} />
                 </Tabs>
 
-                {/* 카테고리 필터 */}
                 <Stack direction="row" spacing={1} sx={{ mb: 3 }}>
                   {['전체', '프로젝트', '스터디'].map((cat) => (
                     <Chip 
@@ -232,12 +206,13 @@ const MyPage = () => {
                         tabValue={tabValue}
                         onTitleClick={() => {
                           const id = item.projectId || item.id;
-                          // 0: 내 모집글 -> 팀 게시판 / 1: 신청 현황 -> 상세페이지 / 2: 내 팀 -> 팀 게시판
-                          if (tabValue === 1) {
-                            navigate(`/posts/${id}`);
-                          } else {
-                            navigate(`/posts/${id}/board`);
-                          }
+                          if (tabValue === 1) navigate(`/posts/${id}`);
+                          else navigate(`/posts/${id}/board`);
+                        }}
+                        onManageClick={() => {
+                          // [추가] 관리 버튼 클릭 시 수정 페이지로 이동
+                          const id = item.projectId || item.id;
+                          navigate(`/posts/${id}/edit`);
                         }}
                       />
                     ))
@@ -269,12 +244,12 @@ const MenuButton = ({ icon, label, count, onClick }) => (
 
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
-const ActivityItem = ({ item, tabValue, onTitleClick }) => {
+const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick }) => {
   const title = item.projectTitle || item.title;
   const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : '승인완료');
   const info = tabValue === 2 
     ? `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${item.position || '멤버'}` 
-    : `지원 분야: ${item.position} · 신청일: ${item.appliedDate}`;
+    : `지원 분야: ${item.position || '선택없음'} · 신청일: ${item.appliedDate || item.endDate}`;
 
   return (
     <Box sx={{ 
@@ -288,16 +263,12 @@ const ActivityItem = ({ item, tabValue, onTitleClick }) => {
             variant="h6" 
             onClick={onTitleClick}
             sx={{ 
-              fontWeight: 900, 
-              fontSize: '1.1rem', 
-              cursor: 'pointer',
+              fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer',
               '&:hover': { color: '#6366F1', textDecoration: 'underline' } 
             }}
           >
             {title}
           </Typography>
-          
-          {/* 내 모집글 탭(0번)이 아닐 때만 상태 칩을 표시 */}
           {tabValue !== 0 && (
             <Chip 
               label={status} size="small" 
@@ -314,12 +285,18 @@ const ActivityItem = ({ item, tabValue, onTitleClick }) => {
       
       <Stack direction="row" spacing={1}>
         {tabValue === 0 && (
-          <Button variant="contained" disableElevation sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button>
+          <Button 
+            variant="contained" 
+            disableElevation 
+            onClick={onManageClick} // [수정] 클릭 시 수정 페이지 이동 핸들러 연결
+            sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}
+          >
+            관리
+          </Button>
         )}
         {tabValue === 1 && item.status === 'PENDING' && (
           <Button variant="outlined" disabled sx={{ fontWeight: 800, borderRadius: 2, borderColor: '#E5E7EB' }}>대기 중</Button>
         )}
-        {/* 내 팀(tabValue 2)은 버튼 없이 제목 클릭만으로 이동하므로 버튼 영역 비움 */}
       </Stack>
     </Box>
   );
