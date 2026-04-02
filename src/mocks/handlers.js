@@ -51,6 +51,16 @@ const getStoredApplies = () => {
       status: "ACCEPTED",
       appliedDate: "2026-03-25",
       ownerNickname: "User_10"
+    },
+    {
+      applyId: 1000,
+      projectId: 5,
+      projectTitle: "함께 성장할 메이트를 찾습니다 5",
+      category: "PROJECT",
+      position: "백엔드",
+      status: "PENDING",
+      appliedDate: "2026-04-01",
+      ownerNickname: "User_5"
     }
   ];
 };

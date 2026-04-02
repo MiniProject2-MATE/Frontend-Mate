@@ -19,6 +19,7 @@ import Breadcrumb from '../component/common/Breadcrumb';
 import CustomButton from '../component/common/Button'; 
 import axiosInstance from '../api/axiosInstance'; 
 import { postApi } from '../api/postApi'; // [추가] postApi 임포트
+import { authApi } from '../api/authApi'; // [추가] authApi 임포트
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 
@@ -30,15 +31,27 @@ const PostDetailPage = () => {
 
   const [post, setPost] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [hasApplied, setHasApplied] = useState(false); // [추가] 지원 여부 상태
 
   useEffect(() => {
-    const fetchPostDetail = async () => {
+    const fetchData = async () => {
       setIsLoading(true);
       try {
-        // 상세 데이터 로드는 기획 문서 규격대로 /projects/:id 유지
-        const response = await axiosInstance.get(`/projects/${id}`);
-        const postData = response.data || response;
+        // 1. 상세 데이터 로드
+        const postResponse = await axiosInstance.get(`/projects/${id}`);
+        const postData = postResponse.data || postResponse;
         setPost(postData);
+
+        // 2. 로그인 상태인 경우 내 지원 내역 확인
+        if (isLoggedIn) {
+          const userResponse = await authApi.getUserInfo();
+          const userData = userResponse.data || userResponse;
+          const applies = userData.applies || [];
+          
+          // 현재 게시글 ID와 일치하는 지원 내역이 있는지 확인
+          const alreadyApplied = applies.some(apply => Number(apply.projectId) === Number(id));
+          setHasApplied(alreadyApplied);
+        }
       } catch (error) {
         console.error("데이터를 불러오지 못했습니다.", error);
         setPost(null);
@@ -47,8 +60,8 @@ const PostDetailPage = () => {
       }
     };
 
-    fetchPostDetail();
-  }, [id]);
+    fetchData();
+  }, [id, isLoggedIn]);
 
   // [수정] 게시글 삭제 핸들러 (openModal 사용)
   const handleDeletePost = () => {
@@ -262,7 +275,7 @@ const PostDetailPage = () => {
                 <CustomButton 
                   fullWidth 
                   onClick={handleApplyClick}
-                  disabled={post.status !== 'RECRUITING' || remainingCount <= 0 || isOwner}
+                  disabled={post.status !== 'RECRUITING' || remainingCount <= 0 || isOwner || hasApplied}
                   sx={{ 
                     bgcolor: 'white', color: '#6C63FF', height: 60, borderRadius: 4, fontWeight: 900, fontSize: '1.15rem',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -270,7 +283,11 @@ const PostDetailPage = () => {
                     '&:disabled': { bgcolor: 'rgba(255,255,255,0.3)', color: 'white' }
                   }}
                 >
-                  {isOwner ? '작성하신 공고입니다' : (post.status !== 'RECRUITING' ? '모집 종료' : '지금 지원하기')}
+                  {isOwner 
+                    ? '작성하신 공고입니다' 
+                    : hasApplied 
+                      ? '이미 지원한 글입니다!!' 
+                      : (post.status !== 'RECRUITING' ? '모집 종료' : '지금 지원하기')}
                 </CustomButton>
               </Paper>
 

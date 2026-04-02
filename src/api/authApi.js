@@ -17,6 +17,11 @@ export const authApi = {
   // 토큰 갱신 API (Axios Interceptor에서 주로 활용)
   refresh: async (refreshToken) => {
     return await axiosInstance.post('/auth/refresh', { refreshToken });
+  },
+
+  // [추가] 내 정보 및 지원 내역 조회 API
+  getUserInfo: async () => {
+    return await axiosInstance.get('/users/me');
   }
 };
 
