@@ -1,46 +1,70 @@
 import { http, HttpResponse } from 'msw';
 
-// 1. 공통 임시 저장소 (초기 데이터 45개)
-let mockPosts = Array.from({ length: 45 }).map((_, i) => ({
-  projectId: i + 1,
-  title: `[${i % 2 === 0 ? '프로젝트' : '스터디'}] 함께 성장할 메이트를 찾습니다 ${i + 1}`,
-  content: i % 3 === 0 
-    ? '프론트엔드와 백엔드 개발자를 찾고 있습니다. 열정적인 분들의 지원을 기다립니다!' 
-    : '코딩 테스트 대비 알고리즘 스터디원을 모집합니다. 매주 2회 오프라인 모임 예정입니다.',
-  category: i % 2 === 0 ? 'PROJECT' : 'STUDY',
-  status: i % 3 === 0 ? 'RECRUITING' : (i % 3 === 1 ? 'DEADLINE_SOON' : 'CLOSED'),
-  recruitCount: 4,
-  currentCount: Math.floor(Math.random() * 4),
-  endDate: '2026-12-31',
-  ownerNickname: i < 3 ? '테스트메이트' : `User_${i + 1}`,
-  techStacks: i % 2 === 0 ? ['React', 'TypeScript', 'Node.js'] : ['Spring Boot', 'Java', 'MySQL'],
-  onOffline: '온라인'
-}));
+// [수정] 새로고침 시에도 데이터가 유지되도록 로컬스토리지 확인 로직 추가
+const getStoredPosts = () => {
+  const saved = localStorage.getItem('mock-posts');
+  if (saved) return JSON.parse(saved);
+  
+  // 초기 데이터 45개 생성 (사용자 제공 로직 그대로 유지)
+  return Array.from({ length: 45 }).map((_, i) => ({
+    projectId: i + 1,
+    title: `[${i % 2 === 0 ? '프로젝트' : '스터디'}] 함께 성장할 메이트를 찾습니다 ${i + 1}`,
+    content: i % 3 === 0 
+      ? '프론트엔드와 백엔드 개발자를 찾고 있습니다. 열정적인 분들의 지원을 기다립니다!' 
+      : '코딩 테스트 대비 알고리즘 스터디원을 모집합니다. 매주 2회 오프라인 모임 예정입니다.',
+    category: i % 2 === 0 ? 'PROJECT' : 'STUDY',
+    status: i % 3 === 0 ? 'RECRUITING' : (i % 3 === 1 ? 'DEADLINE_SOON' : 'CLOSED'),
+    recruitCount: 4,
+    currentCount: Math.floor(Math.random() * 4),
+    endDate: '2026-12-31',
+    ownerNickname: i < 3 ? '테스트메이트' : `User_${i + 1}`,
+    techStacks: i % 2 === 0 ? ['React', 'TypeScript', 'Node.js'] : ['Spring Boot', 'Java', 'MySQL'],
+    onOffline: '온라인'
+  }));
+};
 
-// 2. 지원서 임시 저장소
-let mockApplies = [
-  {
-    applyId: 999,
-    projectId: 10,
-    projectTitle: mockPosts[9].title,
-    category: mockPosts[9].category,
-    position: "프론트엔드",
-    status: "ACCEPTED",
-    appliedDate: "2026-03-25",
-    ownerNickname: mockPosts[9].ownerNickname
-  }
-];
+const getStoredUser = () => {
+  const saved = localStorage.getItem('user-info');
+  if (saved) return JSON.parse(saved);
+  return {
+    id: 1,
+    email: 'test@test.com',
+    nickname: '테스트메이트',
+    position: 'FE',
+    intro: '안녕하세요! 함께 성장하고 싶은 개발자입니다.', 
+    techStacks: ['React', 'TypeScript', 'Node.js'],
+    phoneNumber: '01012345678',
+    profileImg: 'https://mate-s3.com/default.png',
+  };
+};
 
-// [추가] 유저 데이터 관리 변수 (로그인 및 프로필 수정 시 참조됨)
-let currentUserData = {
-  id: 1,
-  email: 'test@test.com',
-  nickname: '테스트메이트',
-  position: 'FE',
-  intro: '안녕하세요! 함께 성장하고 싶은 개발자입니다.', 
-  techStacks: ['React', 'TypeScript', 'Node.js'],
-  phoneNumber: '01012345678',
-  profileImg: 'https://mate-s3.com/default.png',
+const getStoredApplies = () => {
+  const saved = localStorage.getItem('mock-applies');
+  if (saved) return JSON.parse(saved);
+  return [
+    {
+      applyId: 999,
+      projectId: 10,
+      projectTitle: "함께 성장할 메이트를 찾습니다 10",
+      category: "STUDY",
+      position: "프론트엔드",
+      status: "ACCEPTED",
+      appliedDate: "2026-03-25",
+      ownerNickname: "User_10"
+    }
+  ];
+};
+
+// 실제 변수 할당
+let mockPosts = getStoredPosts();
+let currentUserData = getStoredUser();
+let mockApplies = getStoredApplies();
+
+// [추가] 변경 사항을 로컬스토리지에 동기화하는 함수
+const syncStorage = () => {
+  localStorage.setItem('mock-posts', JSON.stringify(mockPosts));
+  localStorage.setItem('user-info', JSON.stringify(currentUserData));
+  localStorage.setItem('mock-applies', JSON.stringify(mockApplies));
 };
 
 export const handlers = [
@@ -54,7 +78,7 @@ export const handlers = [
         data: {
           accessToken: 'mock-access-token',
           refreshToken: 'mock-refresh-token',
-          user: currentUserData // [변경] 고정 객체 대신 currentUserData 변수 참조
+          user: currentUserData 
         }
       });
     }
@@ -76,12 +100,10 @@ export const handlers = [
     const url = new URL(request.url);
     const nickname = url.searchParams.get('nickname');
 
-    // 현재 본인이 사용 중인 닉네임인 경우
     if (nickname === currentUserData.nickname) {
       return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '현재 사용 중인 닉네임입니다.' });
     }
 
-    // 다른 유저가 사용 중인지 확인
     const isTaken = mockPosts.some(p => p.ownerNickname === nickname);
     if (isTaken) {
       return HttpResponse.json({ success: true, data: { isAvailable: false }, message: '이미 사용 중인 닉네임입니다.' });
@@ -103,20 +125,18 @@ export const handlers = [
   http.get('*/api/projects', ({ request }) => {
     const url = new URL(request.url);
     const category = url.searchParams.get('category');
-    const keyword = url.searchParams.get('keyword')?.toLowerCase(); // [추가] 검색 키워드
+    const keyword = url.searchParams.get('keyword')?.toLowerCase(); 
     const page = parseInt(url.searchParams.get('page') || '0');
     const size = parseInt(url.searchParams.get('size') || '15');
     
     let filteredPosts = [...mockPosts];
 
-    // 카테고리 필터링 (한글/영문 대응)
     if (category && category !== '전체' && category !== '') {
       const categoryMap = { '프로젝트': 'PROJECT', '스터디': 'STUDY' };
       const targetCategory = categoryMap[category] || category;
       filteredPosts = filteredPosts.filter(p => p.category === targetCategory);
     }
 
-    // [추가] 키워드 검색 필터링 (제목, 내용, 기술스택 포함)
     if (keyword && keyword.trim() !== '') {
       const searchKey = keyword.trim().toLowerCase();
       filteredPosts = filteredPosts.filter(p => 
@@ -157,8 +177,9 @@ export const handlers = [
     });
   }),
 
-  // 6. 마이페이지 내 정보 조회 (API 주소 /api/users/me로 통일)
+  // 6. 마이페이지 내 정보 조회 (활동 내역 유지 로직 적용)
   http.get('*/api/users/me', () => {
+    // 현재 닉네임 기준으로 글 필터링
     const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
     const myApplies = mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname);
     const acceptedProjects = mockApplies.filter(a => a.status === 'ACCEPTED');
@@ -166,7 +187,7 @@ export const handlers = [
     return HttpResponse.json({
       success: true,
       data: {
-        ...currentUserData, // [변경] 변수 참조
+        ...currentUserData,
         postCount: myPosts.length, 
         applyCount: myApplies.length,
         myPosts: myPosts,
@@ -176,13 +197,13 @@ export const handlers = [
     });
   }),
 
-  // [추가] 7. 유저 정보 수정 API
+  // [수정] 7. 유저 정보 수정 API (닉네임 동기화 및 저장 로직 포함)
   http.put('*/api/users/me', async ({ request }) => {
     const updateData = await request.json();
+    const oldNickname = currentUserData.nickname;
     
-    // 닉네임이 변경될 경우 기존 게시글의 작성자 이름도 업데이트하는 로직
-    if (updateData.nickname && updateData.nickname !== currentUserData.nickname) {
-      const oldNickname = currentUserData.nickname;
+    // 닉네임 변경 시 게시글 작성자 명도 업데이트 (필터링 유지 위함)
+    if (updateData.nickname && updateData.nickname !== oldNickname) {
       mockPosts = mockPosts.map(p => 
         p.ownerNickname === oldNickname ? { ...p, ownerNickname: updateData.nickname } : p
       );
@@ -194,9 +215,21 @@ export const handlers = [
       ...updateData
     };
 
+    // 로컬스토리지 저장
+    syncStorage();
+
+    // 수정 후 전체 정보를 목록과 함께 반환 (프론트 데이터 소실 방지)
+    const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
+
     return HttpResponse.json({
       success: true,
-      data: currentUserData,
+      data: {
+        ...currentUserData,
+        myPosts: myPosts,
+        postCount: myPosts.length,
+        applies: mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname),
+        acceptedProjects: mockApplies.filter(a => a.status === 'ACCEPTED')
+      },
       message: '프로필 정보가 성공적으로 수정되었습니다.'
     });
   }),
@@ -316,10 +349,11 @@ export const handlers = [
       ...newPostData,
       status: 'RECRUITING',
       currentCount: 0,
-      ownerNickname: currentUserData.nickname, // [변경] 유저 변수 참조
+      ownerNickname: currentUserData.nickname, 
     };
 
     mockPosts.push(newPost);
+    syncStorage(); // 저장
 
     return HttpResponse.json({
       success: true,
@@ -335,12 +369,14 @@ export const handlers = [
     if (index !== -1) {
       mockPosts[index] = { ...mockPosts[index], ...updateData };
     }
+    syncStorage(); // 저장
     return HttpResponse.json({ success: true });
   }),
 
   http.delete('*/api/projects/:id', ({ params }) => {
     const { id } = params;
     mockPosts = mockPosts.filter(p => p.projectId !== parseInt(id));
+    syncStorage(); // 저장
     return HttpResponse.json({ success: true });
   }),
 
@@ -362,6 +398,7 @@ export const handlers = [
     };
 
     mockApplies.push(newApply);
+    syncStorage(); // 저장
 
     return HttpResponse.json({ success: true, data: newApply });
   }),
