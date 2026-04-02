@@ -9,33 +9,38 @@ export const postApi = {
 
   // 모집글 상세 조회
   getPostDetail: async (projectId) => {
+    // 상세 조회는 /projects 경로를 사용하도록 handlers.js와 일치시킴
     return await axiosInstance.get(`/projects/${projectId}`);
   },
 
   // 모집글 등록
   createPost: async (postData) => {
-    return await axiosInstance.post('/projects', postData);
+    // 생성, 수정, 삭제는 /posts 경로를 사용하는 MSW 규격에 맞춤
+    return await axiosInstance.post('/posts', postData);
   },
 
   // 모집글 수정
   updatePost: async (projectId, postData) => {
-    return await axiosInstance.put(`/projects/${projectId}`, postData);
+    // [수정] /projects -> /posts 로 변경 (네트워크 에러 해결 포인트)
+    return await axiosInstance.put(`/posts/${projectId}`, postData);
   },
 
   // 모집글 삭제
   deletePost: async (projectId) => {
-    return await axiosInstance.delete(`/projects/${projectId}`);
+    // [수정] /projects -> /posts 로 변경
+    return await axiosInstance.delete(`/posts/${projectId}`);
   },
 
   // 모집 조기 마감
   closePost: async (projectId) => {
-    return await axiosInstance.patch(`/projects/${projectId}/close`);
+    // [수정] /projects -> /posts 로 변경
+    return await axiosInstance.patch(`/posts/${projectId}/close`);
   },
 
   // 프로젝트 참여 지원
   applyToPost: async (projectId, applicationData) => {
     // applicationData: { message }
-    return await axiosInstance.post(`/projects/${projectId}/applications`, applicationData);
+    return await axiosInstance.post(`/posts/${projectId}/applications`, applicationData);
   },
 
   // 지원 취소

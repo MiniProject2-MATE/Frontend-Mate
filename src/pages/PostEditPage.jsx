@@ -14,6 +14,8 @@ import CodeIcon from '@mui/icons-material/Code';
 import DescriptionIcon from '@mui/icons-material/Description';
 import GroupAddIcon from '@mui/icons-material/GroupAdd';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
+import SaveIcon from '@mui/icons-material/Save';
+import LockClockIcon from '@mui/icons-material/LockClock';
 
 // 공통 컴포넌트
 import Breadcrumb from '../component/common/Breadcrumb';
@@ -192,11 +194,10 @@ const PostEditPage = () => {
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', lg: 'row' }, gap: 4 }}>
           
-          {/* [좌측 입력 영역] */}
           <Box sx={{ flex: 8 }}>
             <Stack spacing={4}>
               
-              {/* 기본 정보 */}
+              {/* 1. 기본 정보 섹션 */}
               <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE', borderTop: '4px solid #6C63FF' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
                   <DescriptionIcon sx={{ color: '#6C63FF' }} />
@@ -233,20 +234,23 @@ const PostEditPage = () => {
                     fullWidth 
                     value={formData.title} 
                     onChange={handleChange('title')}
+                    placeholder="함께하고 싶은 열정이 느껴지는 제목을 지어주세요!"
                     variant="outlined"
                     sx={{ 
                       '& .MuiOutlinedInput-root': { 
                         bgcolor: '#F9FAFB', 
                         borderRadius: 3,
                         fontWeight: 600,
-                        '& fieldset': { border: '1px solid #E5E7EB' }
+                        '& fieldset': { border: '1px solid #E5E7EB' },
+                        '&:hover fieldset': { borderColor: '#6C63FF' },
+                        '&.Mui-focused fieldset': { borderColor: '#6C63FF' }
                       } 
                     }} 
                   />
                 </Box>
               </Paper>
 
-              {/* 모집 조건 */}
+              {/* 2. 모집 조건 섹션 */}
               <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
                   <GroupAddIcon sx={{ color: '#6C63FF' }} />
@@ -260,6 +264,7 @@ const PostEditPage = () => {
                       <TextField 
                         fullWidth type="number"
                         value={formData.recruitCount} onChange={handleChange('recruitCount')}
+                        placeholder="본인 제외 인원 (명)"
                         sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 } }} 
                       />
                     </Box>
@@ -325,7 +330,7 @@ const PostEditPage = () => {
                         return option.title;
                       }}
                       renderInput={(params) => (
-                        <TextField {...params} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 } }} />
+                        <TextField {...params} placeholder="스택을 선택하거나 직접 입력하세요" sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 } }} />
                       )}
                       renderTags={(value, getTagProps) =>
                         value.map((option, index) => {
@@ -345,7 +350,7 @@ const PostEditPage = () => {
                 </Stack>
               </Paper>
 
-              {/* 상세 내용 */}
+              {/* 3. 상세 소개 섹션 */}
               <Paper elevation={0} sx={{ p: { xs: 3, md: 5 }, borderRadius: 4, border: '1px solid #EEEEEE' }}>
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 4 }}>
                   <CodeIcon sx={{ color: '#6C63FF' }} />
@@ -353,6 +358,7 @@ const PostEditPage = () => {
                 </Stack>
                 <TextField 
                   multiline rows={12} fullWidth value={formData.content} onChange={handleChange('content')}
+                  placeholder="프로젝트의 목적, 방식, 커리큘럼 등을 자세히 적어주세요. 🚀" 
                   sx={{ 
                     '& .MuiOutlinedInput-root': { 
                       bgcolor: '#F9FAFB', 
@@ -365,17 +371,25 @@ const PostEditPage = () => {
                 />
               </Paper>
 
+              {/* 하단 버튼 그룹 */}
               <Stack direction="row" justifyContent="center" spacing={2} sx={{ pt: 2 }}>
-                <CustomButton variant="primary" onClick={handleSubmit} sx={{ px: 4, height: 56, fontWeight: 900 }}>💾 수정완료</CustomButton>
-                <CustomButton variant="contained" onClick={handleClosePost} sx={{ px: 4, height: 56, bgcolor: '#FF9800', color: 'white', fontWeight: 900 }}>🔒 모집 조기마감</CustomButton>
-                <CustomButton variant="secondary" onClick={() => navigate(-1)} sx={{ px: 4, height: 56 }}>취소</CustomButton>
+                <CustomButton variant="primary" onClick={handleSubmit} sx={{ px: 4, height: 56, fontWeight: 900 }}>
+                  <SaveIcon sx={{ mr: 1 }} /> 수정 완료하기
+                </CustomButton>
+                <CustomButton variant="contained" onClick={handleClosePost} sx={{ px: 4, height: 56, bgcolor: '#FF9800', color: 'white', fontWeight: 900, '&:hover': { bgcolor: '#F57C00' } }}>
+                  <LockClockIcon sx={{ mr: 1 }} /> 모집 조기마감
+                </CustomButton>
+                <CustomButton variant="secondary" onClick={() => navigate(-1)} sx={{ px: 4, height: 56 }}>
+                  취소
+                </CustomButton>
               </Stack>
             </Stack>
           </Box>
 
-          {/* [우측 사이드바] */}
+          {/* 우측 사이드바 (꿀팁 & 체크리스트) */}
           <Box sx={{ flex: 4 }}>
             <Stack spacing={3} sx={{ position: 'sticky', top: '100px' }}>
+              {/* 위험 구역 섹션 */}
               <Card elevation={0} sx={{ borderRadius: 5, bgcolor: '#FFF5F5', border: '1px solid #FFEBEB' }}>
                 <CardContent sx={{ p: 4 }}>
                   <Typography sx={{ fontWeight: 900, mb: 2.5, color: '#E53E3E', display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -384,10 +398,13 @@ const PostEditPage = () => {
                   <CustomButton 
                     fullWidth variant="contained" onClick={handleDelete} 
                     startIcon={<DeleteOutlineIcon />}
-                    sx={{ bgcolor: '#EF4444', color: 'white', fontWeight: 900, height: 50, borderRadius: 3 }}
+                    sx={{ bgcolor: '#EF4444', color: 'white', fontWeight: 900, height: 50, borderRadius: 3, '&:hover': { bgcolor: '#DC2626' } }}
                   >
                     게시글 삭제
                   </CustomButton>
+                  <Typography variant="caption" sx={{ color: '#E53E3E', mt: 1, display: 'block', textAlign: 'center', fontWeight: 600 }}>
+                    삭제된 데이터는 복구할 수 없습니다.
+                  </Typography>
                 </CardContent>
               </Card>
 
@@ -396,8 +413,9 @@ const PostEditPage = () => {
                   <Typography sx={{ fontWeight: 900, mb: 3 }}>✅ 수정 체크리스트</Typography>
                   {[
                     { label: '제목 및 유형 확인', done: formData.title.trim().length > 0 },
-                    { label: '모집 조건 재검토', done: Number(formData.recruitCount) > 0 },
-                    { label: '상세 내용 업데이트', done: formData.content.trim().length > 10 }
+                    { label: '모집 조건 재검토', done: Number(formData.recruitCount) > 0 && !!formData.endDate },
+                    { label: '기술 스택 업데이트', done: formData.techStacks.length > 0 },
+                    { label: '상세 내용 검토', done: formData.content.trim().length > 10 }
                   ].map((item, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
                       <CheckCircleIcon sx={{ fontSize: 22, color: item.done ? '#22C55E' : '#E5E7EB' }} />
