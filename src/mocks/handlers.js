@@ -263,17 +263,68 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: { projectId: newId } });
   }),
 
-  // 17. 모집글 지원하기
-  http.post('*/api/posts/:id/applies', async ({ params, request }) => {
-    const applyData = await request.json();
-    const newApply = { applyId: Date.now(), projectId: parseInt(params.id), ...applyData, status: "PENDING", appliedDate: "2026-04-02", ownerNickname: "Owner" };
+  // 17. 모집글 지원하기 (경로 수정 반영: /application)
+  http.post('*/api/application', async ({ request }) => {
+    const applyData = await request.json(); // 이제 body에 projectId가 포함됨
+    const projectId = applyData.projectId;
+    const targetProject = mockPosts.find(p => p.projectId === parseInt(projectId));
+
+    const newApply = { 
+      applyId: Date.now(), 
+      projectId: parseInt(projectId), 
+      projectTitle: targetProject?.title || "지원 프로젝트",
+      ...applyData, 
+      status: "PENDING", 
+      appliedDate: new Date().toISOString().split('T')[0], 
+      ownerNickname: targetProject?.ownerNickname || "Owner" 
+    };
     mockApplies.push(newApply);
     syncStorage();
     return HttpResponse.json({ success: true, data: newApply });
   }),
 
-  // 18. 모집글 삭제 (경로 posts로 통일)
-  http.delete('*/api/posts/:id', ({ params }) => {
+  // [추가] 19. 팀 게시글 수정/삭제 핸들러
+  http.put('*/api/posts/:projectId/board/:boardPostId', async ({ params, request }) => {
+    const { boardPostId } = params;
+    const updateData = await request.json();
+    const index = mockBoardPosts.findIndex(p => p.id === parseInt(boardPostId));
+    if (index !== -1) {
+      mockBoardPosts[index] = { ...mockBoardPosts[index], ...updateData };
+      syncStorage();
+      return HttpResponse.json({ success: true, data: mockBoardPosts[index] });
+    }
+    return new HttpResponse(null, { status: 404 });
+  }),
+
+  http.delete('*/api/posts/:projectId/board/:boardPostId', ({ params }) => {
+    const { boardPostId } = params;
+    mockBoardPosts = mockBoardPosts.filter(p => p.id !== parseInt(boardPostId));
+    syncStorage();
+    return HttpResponse.json({ success: true });
+  }),
+
+  // [추가] 20. 댓글 수정/삭제 핸들러
+  http.put('*/api/posts/:projectId/board/:boardPostId/comments/:commentId', async ({ params, request }) => {
+    const { commentId } = params;
+    const { content } = await request.json();
+    const index = mockComments.findIndex(c => c.id === parseInt(commentId));
+    if (index !== -1) {
+      mockComments[index] = { ...mockComments[index], content, date: new Date().toLocaleString() + " (수정됨)" };
+      syncStorage();
+      return HttpResponse.json({ success: true, data: mockComments[index] });
+    }
+    return new HttpResponse(null, { status: 404 });
+  }),
+
+  http.delete('*/api/posts/:projectId/board/:boardPostId/comments/:commentId', ({ params }) => {
+    const { commentId } = params;
+    mockComments = mockComments.filter(c => c.id !== parseInt(commentId));
+    syncStorage();
+    return HttpResponse.json({ success: true });
+  }),
+
+  // 18. 모집글 삭제
+  http.delete('*/api/projects/:id', ({ params }) => {
     mockPosts = mockPosts.filter(p => p.projectId !== parseInt(params.id));
     syncStorage();
     return HttpResponse.json({ success: true });

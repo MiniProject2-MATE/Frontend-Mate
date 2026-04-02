@@ -27,7 +27,19 @@ const boardApi = {
     return response;
   },
 
-  // 댓글 목록 조회
+  // [추가] 게시글 수정
+  updateBoardPost: async (projectId, boardPostId, postData) => {
+    const response = await axiosInstance.put(`/posts/${projectId}/board/${boardPostId}`, postData);
+    return response;
+  },
+
+  // [추가] 게시글 삭제
+  deleteBoardPost: async (projectId, boardPostId) => {
+    const response = await axiosInstance.delete(`/posts/${projectId}/board/${boardPostId}`);
+    return response;
+  },
+
+  // 댓글 조회
   getComments: async (projectId, boardPostId) => {
     const response = await axiosInstance.get(`/posts/${projectId}/board/${boardPostId}/comments`);
     return response;
@@ -38,6 +50,18 @@ const boardApi = {
     const response = await axiosInstance.post(`/posts/${projectId}/board/${boardPostId}/comments`, { content });
     return response;
   },
-};
+
+  // [추가] 댓글 수정
+  updateComment: async (projectId, boardPostId, commentId, content) => {
+    const response = await axiosInstance.put(`/posts/${projectId}/board/${boardPostId}/comments/${commentId}`, { content });
+    return response;
+  },
+
+  // [추가] 댓글 삭제
+  deleteComment: async (projectId, boardPostId, commentId) => {
+    const response = await axiosInstance.delete(`/posts/${projectId}/board/${boardPostId}/comments/${commentId}`);
+    return response;
+  },
+  };
 
 export default boardApi;

@@ -37,10 +37,13 @@ export const postApi = {
     return await axiosInstance.patch(`/posts/${projectId}/close`);
   },
 
-  // 프로젝트 참여 지원
+  // 프로젝트 참여 지원 (경로 수정: /posts/:id/applies -> /application)
   applyToPost: async (projectId, applicationData) => {
-    // applicationData: { message }
-    return await axiosInstance.post(`/posts/${projectId}/applications`, applicationData);
+    // 백엔드 요청에 따라 독립 경로로 변경하며, body에 projectId를 포함하여 전송
+    return await axiosInstance.post('/application', {
+      projectId,
+      ...applicationData
+    });
   },
 
   // 지원 취소
