@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
-import { Container, Grid, Box, Typography, TextField, Button, Paper, Link, Alert, MenuItem, Autocomplete, Chip, Divider } from '@mui/material';
+import { Container, Grid, Box, Typography, TextField, Button, Paper, Link, Alert, MenuItem, Autocomplete, Chip, Divider, Stack } from '@mui/material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { authApi } from '../api/authApi';
+import axiosInstance from '../api/axiosInstance';
+import { useUiStore } from '../store/uiStore';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
+  const { showToast } = useUiStore();
 
   const [formData, setFormData] = useState({
     email: '',
@@ -16,6 +19,8 @@ const RegisterPage = () => {
     phoneNumber: '',
   });
 
+  const [isNicknameChecked, setIsNicknameChecked] = useState(false);
+  const [lastCheckedNickname, setLastCheckedNickname] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,10 +42,38 @@ const RegisterPage = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    if (name === 'nickname') {
+      setIsNicknameChecked(false);
+    }
   };
 
   const handleTechStacksChange = (event, newValue) => {
     setFormData(prev => ({ ...prev, techStacks: newValue }));
+  };
+
+  const handleCheckNickname = async () => {
+    if (!formData.nickname.trim()) {
+      showToast('닉네임을 입력해주세요.', 'warning');
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(`/auth/check-nickname?nickname=${formData.nickname}`);
+      const { isAvailable } = response;
+      
+      if (isAvailable) {
+        showToast('사용 가능한 닉네임입니다!', 'success');
+        setIsNicknameChecked(true);
+        setLastCheckedNickname(formData.nickname);
+      } else {
+        showToast('이미 사용 중인 닉네임입니다.', 'error');
+        setIsNicknameChecked(false);
+      }
+    } catch (error) {
+      console.error("중복 확인 실패:", error);
+      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+    }
   };
 
   const validate = () => {
@@ -51,6 +84,10 @@ const RegisterPage = () => {
     }
     if (password !== confirmPassword) {
       setError('비밀번호가 일치하지 않습니다.');
+      return false;
+    }
+    if (!isNicknameChecked || nickname !== lastCheckedNickname) {
+      setError('닉네임 중복 확인이 필요합니다.');
       return false;
     }
     return true;
@@ -133,7 +170,32 @@ const RegisterPage = () => {
 
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>닉네임 *</Typography>
-              <TextField fullWidth name="nickname" placeholder="사용할 닉네임" value={formData.nickname} onChange={handleChange} sx={inputStyle} />
+              <Stack direction="row" spacing={1}>
+                <TextField 
+                  fullWidth 
+                  name="nickname" 
+                  placeholder="사용할 닉네임" 
+                  value={formData.nickname} 
+                  onChange={handleChange} 
+                  sx={inputStyle} 
+                />
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCheckNickname}
+                  disabled={isNicknameChecked && formData.nickname === lastCheckedNickname}
+                  sx={{ 
+                    whiteSpace: 'nowrap', 
+                    px: 3, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    borderColor: isNicknameChecked ? '#10B981' : 'primary.main',
+                    color: isNicknameChecked ? '#10B981' : 'primary.main',
+                    '&:hover': { borderColor: 'primary.dark' }
+                  }}
+                >
+                  {isNicknameChecked ? '확인됨' : '중복 확인'}
+                </Button>
+              </Stack>
             </Box>
 
             <Box sx={{ mb: 3 }}>

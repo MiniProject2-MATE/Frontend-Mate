@@ -77,7 +77,7 @@ const LoginPage = () => {
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>이메일</Typography>
               <TextField
-                fullWidth placeholder="test@test.com"
+                fullWidth placeholder="email@example.com"
                 value={email} onChange={(e) => setEmail(e.target.value)}
                 sx={{ 
                   '& .MuiOutlinedInput-root': { 
@@ -95,7 +95,7 @@ const LoginPage = () => {
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>비밀번호</Typography>
               <TextField
                 fullWidth type={showPassword ? 'text' : 'password'}
-                placeholder="1234" value={password}
+                placeholder="비밀번호를 입력하세요" value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 InputProps={{
                   endAdornment: (
