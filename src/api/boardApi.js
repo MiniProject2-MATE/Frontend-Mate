@@ -1,9 +1,9 @@
 import axiosInstance from './axiosInstance';
 
 const boardApi = {
-  // 프로젝트 상세 정보 조회 (제목, 멤버 등)
+  // [수정] 프로젝트 상세 정보 조회 (handlers.js의 규격인 /projects로 변경)
   getProjectDetail: async (projectId) => {
-    const response = await axiosInstance.get(`/posts/${projectId}`);
+    const response = await axiosInstance.get(`/projects/${projectId}`);
     return response;
   },
 
