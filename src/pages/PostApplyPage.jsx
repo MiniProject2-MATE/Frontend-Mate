@@ -41,7 +41,7 @@ const PostApplyPage = () => {
       setIsLoading(true);
       try {
         // handlers.js의 14번 핸들러를 호출하여 공고 상세 정보 및 중복 지원 여부 확인
-        const data = await axiosInstance.get(`/posts/${id}`);
+        const data = await axiosInstance.get(`/projects/${id}`);
         
         if (data) {
           setPostInfo({
