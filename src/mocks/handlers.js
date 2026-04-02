@@ -55,7 +55,6 @@ const getStoredApplies = () => {
   ];
 };
 
-// [추가] 팀 게시판 데이터 로컬스토리지 연동 (버그 수정: i -> pid)
 const getStoredBoardPosts = () => {
   const saved = localStorage.getItem('mock-board-posts');
   if (saved) return JSON.parse(saved);
@@ -86,7 +85,6 @@ const getStoredBoardPosts = () => {
   return initialBoardPosts;
 };
 
-// [추가] 댓글 데이터 로컬스토리지 연동
 const getStoredComments = () => {
   const saved = localStorage.getItem('mock-comments');
   if (saved) return JSON.parse(saved);
@@ -95,14 +93,12 @@ const getStoredComments = () => {
   ];
 };
 
-// --- 실제 변수 할당 ---
 let mockPosts = getStoredPosts();
 let currentUserData = getStoredUser();
 let mockApplies = getStoredApplies();
 let mockBoardPosts = getStoredBoardPosts();
 let mockComments = getStoredComments();
 
-// [추가] 변경 사항을 로컬스토리지에 동기화하는 함수
 const syncStorage = () => {
   localStorage.setItem('mock-posts', JSON.stringify(mockPosts));
   localStorage.setItem('user-info', JSON.stringify(currentUserData));
@@ -112,10 +108,9 @@ const syncStorage = () => {
 };
 
 export const handlers = [
-  // 1. 로그인 API 모킹
+  // 1. 로그인
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = await request.json();
-
     if (email === 'test@test.com' && password === '1234') {
       return HttpResponse.json({
         success: true,
@@ -126,41 +121,20 @@ export const handlers = [
         }
       });
     }
-
-    return new HttpResponse(
-      JSON.stringify({
-        success: false,
-        error: { code: 'AUTH_001', message: '이메일 또는 비밀번호가 올바르지 않습니다.' }
-      }),
-      { status: 401 }
-    );
+    return new HttpResponse(JSON.stringify({ success: false, error: { code: 'AUTH_001', message: '이메일 또는 비밀번호가 올바르지 않습니다.' } }), { status: 401 });
   }),
 
   // 2. 닉네임 중복 확인
   http.get('*/api/auth/check-nickname', ({ request }) => {
     const url = new URL(request.url);
     const nickname = url.searchParams.get('nickname');
-
-    if (nickname === currentUserData.nickname) {
-      return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '현재 사용 중인 닉네임입니다.' });
-    }
-
-    const isTaken = mockPosts.some(p => p.ownerNickname === nickname);
-    if (isTaken) {
-      return HttpResponse.json({ success: true, data: { isAvailable: false }, message: '이미 사용 중인 닉네임입니다.' });
-    }
-
+    if (nickname === currentUserData.nickname) return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '현재 사용 중인 닉네임입니다.' });
+    if (mockPosts.some(p => p.ownerNickname === nickname)) return HttpResponse.json({ success: true, data: { isAvailable: false }, message: '이미 사용 중인 닉네임입니다.' });
     return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '사용 가능한 닉네임입니다.' });
   }),
 
   // 3. 회원가입
-  http.post('*/api/auth/signup', () => {
-    return HttpResponse.json({
-      success: true,
-      data: null,
-      message: '회원가입이 완료되었습니다.'
-    });
-  }),
+  http.post('*/api/auth/signup', () => HttpResponse.json({ success: true, data: null, message: '회원가입이 완료되었습니다.' })),
 
   // 4. 모집글 목록 조회
   http.get('*/api/posts', ({ request }) => {
@@ -171,219 +145,96 @@ export const handlers = [
     const size = parseInt(url.searchParams.get('size') || '15');
     
     let filteredPosts = [...mockPosts];
-
     if (category && category !== '전체' && category !== '') {
       const categoryMap = { '프로젝트': 'PROJECT', '스터디': 'STUDY' };
-      const targetCategory = categoryMap[category] || category;
-      filteredPosts = filteredPosts.filter(p => p.category === targetCategory);
+      filteredPosts = filteredPosts.filter(p => p.category === (categoryMap[category] || category));
     }
-
-    if (keyword && keyword.trim() !== '') {
-      const searchKey = keyword.trim().toLowerCase();
-      filteredPosts = filteredPosts.filter(p => 
-        p.title.toLowerCase().includes(searchKey) || 
-        p.content.toLowerCase().includes(searchKey) ||
-        p.techStacks.some(stack => stack.toLowerCase().includes(searchKey))
-      );
+    if (keyword) {
+      filteredPosts = filteredPosts.filter(p => p.title.toLowerCase().includes(keyword) || p.content.toLowerCase().includes(keyword));
     }
-
     const totalElements = filteredPosts.length;
-    const totalPages = Math.ceil(totalElements / size);
     const start = page * size;
-    const end = start + size;
-    const paginatedPosts = filteredPosts.slice(start, end);
-
     return HttpResponse.json({
       success: true,
       data: {
-        content: paginatedPosts,
-        page: { size, number: page, totalElements, totalPages }
+        content: filteredPosts.slice(start, start + size),
+        page: { size, number: page, totalElements, totalPages: Math.ceil(totalElements / size) }
       }
     });
   }),
 
   // 5. 토큰 갱신
-  http.post('*/api/auth/refresh', () => {
-    return HttpResponse.json({
-      success: true,
-      data: { accessToken: 'new-mock-access-token', refreshToken: 'new-mock-refresh-token' }
-    });
-  }),
+  http.post('*/api/auth/refresh', () => HttpResponse.json({ success: true, data: { accessToken: 'new-token', refreshToken: 'new-refresh' } })),
 
-  // 6. 마이페이지 내 정보 조회
+  // 6. 마이페이지 정보
   http.get('*/api/users/me', () => {
     const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
     const myApplies = mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname);
-    const acceptedProjects = mockApplies.filter(a => a.status === 'ACCEPTED');
-
     return HttpResponse.json({
       success: true,
-      data: {
-        ...currentUserData,
-        postCount: myPosts.length, 
-        applyCount: myApplies.length,
-        myPosts: myPosts,
-        applies: myApplies,
-        acceptedProjects: acceptedProjects
-      }
+      data: { ...currentUserData, postCount: myPosts.length, applyCount: myApplies.length, myPosts, applies: myApplies, acceptedProjects: mockApplies.filter(a => a.status === 'ACCEPTED') }
     });
   }),
 
   // 7. 유저 정보 수정
   http.put('*/api/users/me', async ({ request }) => {
     const updateData = await request.json();
-    const oldNickname = currentUserData.nickname;
-    
-    if (updateData.nickname && updateData.nickname !== oldNickname) {
-      mockPosts = mockPosts.map(p => 
-        p.ownerNickname === oldNickname ? { ...p, ownerNickname: updateData.nickname } : p
-      );
-    }
-
     currentUserData = { ...currentUserData, ...updateData };
     syncStorage();
-
-    const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
-
-    return HttpResponse.json({
-      success: true,
-      data: {
-        ...currentUserData,
-        myPosts: myPosts,
-        postCount: myPosts.length,
-        applies: mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname),
-        acceptedProjects: mockApplies.filter(a => a.status === 'ACCEPTED')
-      },
-      message: '프로필 정보가 성공적으로 수정되었습니다.'
-    });
+    return HttpResponse.json({ success: true, data: currentUserData });
   }),
 
-  // --- 팀 게시판 (Board) API ---
-
-  // 10. 게시판 목록 조회
-  http.get('*/api/posts/:projectId/board', ({ request, params }) => {
-    const { projectId } = params;
-    const url = new URL(request.url);
-    const page = parseInt(url.searchParams.get('page') || '0');
-    const size = parseInt(url.searchParams.get('size') || '10');
-
-    const projectBoardPosts = mockBoardPosts.filter(p => p.projectId === parseInt(projectId))
-      .sort((a, b) => b.id - a.id);
-
-    const totalElements = projectBoardPosts.length;
-    const totalPages = Math.ceil(totalElements / size);
-    const start = page * size;
-    const end = start + size;
-
-    return HttpResponse.json({
-      success: true,
-      data: {
-        content: projectBoardPosts.slice(start, end),
-        page: { size, number: page, totalElements, totalPages }
-      }
-    });
+  // 8. 아이디 찾기 (복구)
+  http.post('*/api/auth/find-email', async ({ request }) => {
+    const { phoneNumber } = await request.json();
+    if (phoneNumber === '01012345678') return HttpResponse.json({ success: true, data: { email: 'te**@test.com' } });
+    return new HttpResponse(JSON.stringify({ success: false, error: { message: '정보를 찾을 수 없습니다.' } }), { status: 404 });
   }),
 
-  // 11. 게시판 상세 조회
-  http.get('*/api/posts/:projectId/board/:boardPostId', ({ params }) => {
-    const { boardPostId } = params;
-    const post = mockBoardPosts.find(p => p.id === parseInt(boardPostId));
-    if (!post) return new HttpResponse(null, { status: 404 });
-    return HttpResponse.json({ success: true, data: post });
+  // 9. 비밀번호 찾기 (복구)
+  http.post('*/api/auth/find-password', async ({ request }) => {
+    const { email, phoneNumber } = await request.json();
+    if (email === 'test@test.com' && phoneNumber === '01012345678') return HttpResponse.json({ success: true, message: '임시 비밀번호가 발급되었습니다.' });
+    return new HttpResponse(JSON.stringify({ success: false, error: { message: '정보가 일치하지 않습니다.' } }), { status: 400 });
   }),
 
-  // 12. 게시판 작성
+  // 10~14. 팀 게시판 관련
+  http.get('*/api/posts/:projectId/board', ({ params }) => HttpResponse.json({ success: true, data: { content: mockBoardPosts.filter(p => p.projectId === parseInt(params.projectId)), page: { number: 0, size: 10, totalElements: 2, totalPages: 1 } } })),
+  http.get('*/api/posts/:projectId/board/:boardPostId', ({ params }) => HttpResponse.json({ success: true, data: mockBoardPosts.find(p => p.id === parseInt(params.boardPostId)) })),
   http.post('*/api/posts/:projectId/board', async ({ params, request }) => {
-    const { projectId } = params;
     const data = await request.json();
-    const newId = Date.now();
-    
-    const newBoardPost = {
-      id: newId,
-      projectId: parseInt(projectId),
-      type: data.type || "GENERAL",
-      title: data.title,
-      content: data.content,
-      author: currentUserData.nickname,
-      date: new Date().toLocaleDateString(),
-      views: 0
-    };
-
-    mockBoardPosts.push(newBoardPost);
+    const newPost = { id: Date.now(), projectId: parseInt(params.projectId), ...data, author: currentUserData.nickname, date: "2026.04.01", views: 0 };
+    mockBoardPosts.push(newPost);
     syncStorage();
-
-    return HttpResponse.json({ success: true, data: newBoardPost });
+    return HttpResponse.json({ success: true, data: newPost });
   }),
-
-  // 13. 댓글 조회
-  http.get('*/api/posts/:projectId/board/:boardPostId/comments', ({ params }) => {
-    const { boardPostId } = params;
-    const comments = mockComments.filter(c => c.boardPostId === parseInt(boardPostId));
-    return HttpResponse.json({ success: true, data: comments });
-  }),
-
-  // 14. 댓글 작성
+  http.get('*/api/posts/:projectId/board/:boardPostId/comments', ({ params }) => HttpResponse.json({ success: true, data: mockComments.filter(c => c.boardPostId === parseInt(params.boardPostId)) })),
   http.post('*/api/posts/:projectId/board/:boardPostId/comments', async ({ params, request }) => {
-    const { boardPostId } = params;
     const { content } = await request.json();
-    
-    const newComment = {
-      id: Date.now(),
-      boardPostId: parseInt(boardPostId),
-      author: currentUserData.nickname,
-      content,
-      date: new Date().toLocaleString()
-    };
-
+    const newComment = { id: Date.now(), boardPostId: parseInt(params.boardPostId), author: currentUserData.nickname, content, date: "2026.04.02" };
     mockComments.push(newComment);
     syncStorage();
-
     return HttpResponse.json({ success: true, data: newComment });
   }),
 
-  // --- 모집글 상세 ---
+  // 15. 모집글 상세
   http.get('*/api/posts/:id', ({ params }) => {
-    const { id } = params;
-    const post = mockPosts.find(p => p.projectId === parseInt(id));
-
+    const post = mockPosts.find(p => p.projectId === parseInt(params.id));
     if (!post) return new HttpResponse(null, { status: 404 });
-
-    return HttpResponse.json({
-      success: true,
-      data: {
-        ...post,
-        alreadyApplied: mockApplies.some(a => a.projectId === parseInt(id)),
-        owner: {
-          nickname: post.ownerNickname,
-          position: post.techStacks[0] === 'React' ? 'FE' : 'BE',
-        },
-        members: [
-          { nickname: post.ownerNickname, position: post.techStacks[0] === 'React' ? 'FE' : 'BE', role: "OWNER" },
-          { nickname: "메이트1", position: "BE", role: "MEMBER" }
-        ]
-      }
-    });
+    return HttpResponse.json({ success: true, data: { ...post, owner: { nickname: post.ownerNickname, position: "FE" }, members: [{ nickname: post.ownerNickname, role: "OWNER" }] } });
   }),
 
+  // 16~18. 지원 및 관리
   http.post('*/api/posts/:id/applies', async ({ params, request }) => {
-    const { id } = params;
-    const applyData = await request.json();
-    const targetProject = mockPosts.find(p => p.projectId === parseInt(id));
-
-    const newApply = {
-      applyId: Date.now(),
-      projectId: parseInt(id),
-      projectTitle: targetProject?.title || "알 수 없는 프로젝트",
-      category: targetProject?.category || "프로젝트",
-      position: applyData.position,
-      status: "PENDING",
-      appliedDate: new Date().toISOString().split('T')[0],
-      ownerNickname: targetProject?.ownerNickname || "알 수 없음"
-    };
-
+    const data = await request.json();
+    const newApply = { applyId: Date.now(), projectId: parseInt(params.id), projectTitle: "지원 프로젝트", status: "PENDING", appliedDate: "2026-04-02", ownerNickname: "Owner" };
     mockApplies.push(newApply);
     syncStorage();
-
     return HttpResponse.json({ success: true, data: newApply });
+  }),
+  http.delete('*/api/posts/:id', ({ params }) => {
+    mockPosts = mockPosts.filter(p => p.projectId !== parseInt(params.id));
+    syncStorage();
+    return HttpResponse.json({ success: true });
   }),
 ];
