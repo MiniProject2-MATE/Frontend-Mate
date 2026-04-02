@@ -118,7 +118,7 @@ const FindPasswordPage = () => {
                 <Box>
                   <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>이메일(아이디)</Typography>
                   <TextField
-                    fullWidth placeholder="user@mate.com"
+                    fullWidth placeholder="email@example.com"
                     value={email} onChange={(e) => { setEmail(e.target.value); setEmailError(''); }}
                     error={!!emailError} helperText={emailError}
                     sx={inputStyle}
