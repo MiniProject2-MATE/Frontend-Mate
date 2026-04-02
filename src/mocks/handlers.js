@@ -124,6 +124,24 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '사용 가능한 닉네임입니다.' });
   }),
 
+  // [추가] 2-2. 전화번호 중복 확인
+  http.get('*/api/users/check-phone', ({ request }) => {
+    const url = new URL(request.url);
+    const phoneNumber = url.searchParams.get('phoneNumber');
+    
+    // 본인 번호면 가능
+    if (phoneNumber === currentUserData.phoneNumber) {
+      return HttpResponse.json({ success: true, data: { isAvailable: true } });
+    }
+    
+    // 다른 유저가 사용 중인지 체크 (여기선 예시로 특정 번호 중복 처리)
+    if (phoneNumber === '01011112222') {
+      return HttpResponse.json({ success: true, data: { isAvailable: false }, message: '이미 등록된 전화번호입니다.' });
+    }
+    
+    return HttpResponse.json({ success: true, data: { isAvailable: true } });
+  }),
+
   // 3. 회원가입
   http.post('*/api/auth/signup', () => HttpResponse.json({ success: true, data: null, message: '회원가입이 완료되었습니다.' })),
 

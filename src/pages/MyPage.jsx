@@ -45,6 +45,10 @@ const MyPage = () => {
   const [isNicknameChecked, setIsNicknameChecked] = useState(true); 
   const [lastCheckedNickname, setLastCheckedNickname] = useState('');
 
+  // [추가] 전화번호 중복 체크 관련 상태
+  const [isPhoneChecked, setIsPhoneChecked] = useState(true);
+  const [lastCheckedPhone, setLastCheckedPhone] = useState('');
+
   // 비밀번호 관련 상태
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -109,11 +113,18 @@ const MyPage = () => {
   const handleInputChange = (field) => (e) => {
     const value = e.target.value;
     
-    // [추가] 전화번호의 경우 숫자만 입력 가능하도록 제한 (선택 사항)
+    // [추가] 전화번호의 경우 숫자만 입력 가능하도록 제한
     if (field === 'phoneNumber') {
       const onlyNums = value.replace(/[^0-9]/g, '');
-      if (onlyNums.length > 11) return; // 최대 11자
+      if (onlyNums.length > 11) return;
       setFormData(prev => ({ ...prev, [field]: onlyNums }));
+      
+      // 기존 번호와 다르면 중복 체크 리셋
+      if (userInfo && onlyNums !== userInfo.phoneNumber) {
+        setIsPhoneChecked(false);
+      } else {
+        setIsPhoneChecked(true);
+      }
       return;
     }
 
@@ -164,12 +175,43 @@ const MyPage = () => {
     }
   };
 
+  // [신규] 전화번호 중복 확인 핸들러
+  const handleCheckPhone = async () => {
+    if (!formData.phoneNumber.trim() || formData.phoneNumber.length < 10) {
+      showToast('유효한 전화번호를 입력해주세요.', 'warning');
+      return;
+    }
+
+    if (formData.phoneNumber === userInfo.phoneNumber) {
+      showToast('현재 등록된 본인의 번호입니다.', 'info');
+      setIsPhoneChecked(true);
+      setLastCheckedPhone(formData.phoneNumber);
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(`/users/check-phone?phoneNumber=${formData.phoneNumber}`);
+      const { isAvailable } = response;
+
+      if (isAvailable) {
+        showToast('사용 가능한 전화번호입니다.', 'success');
+        setIsPhoneChecked(true);
+        setLastCheckedPhone(formData.phoneNumber);
+      } else {
+        showToast('이미 등록된 전화번호입니다.', 'error');
+        setIsPhoneChecked(false);
+      }
+    } catch (error) {
+      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+    }
+  };
+
   const handleSaveProfile = async () => {
     // 1. 변경 사항 체크
     const isProfileUnchanged = 
       formData.nickname === userInfo.nickname &&
       formData.position === userInfo.position &&
-      formData.phoneNumber === userInfo.phoneNumber && // [추가]
+      formData.phoneNumber === userInfo.phoneNumber &&
       formData.intro === userInfo.intro;
     
     const isPasswordEmpty = !password && !confirmPassword;
@@ -179,10 +221,17 @@ const MyPage = () => {
       return;
     }
 
-    // 2. 닉네임 중복 확인 여부 체크 (닉네임이 변경된 경우만)
+    // 2. 중복 확인 여부 체크
     if (formData.nickname !== userInfo.nickname) {
       if (!isNicknameChecked || formData.nickname !== lastCheckedNickname) {
         showToast('닉네임 중복 확인이 필요합니다.', 'warning');
+        return;
+      }
+    }
+
+    if (formData.phoneNumber !== userInfo.phoneNumber) {
+      if (!isPhoneChecked || formData.phoneNumber !== lastCheckedPhone) {
+        showToast('전화번호 중복 확인이 필요합니다.', 'warning');
         return;
       }
     }
@@ -203,7 +252,7 @@ const MyPage = () => {
       const updatePayload = {
         nickname: formData.nickname,
         position: formData.position,
-        phoneNumber: formData.phoneNumber, // [추가]
+        phoneNumber: formData.phoneNumber,
         intro: formData.intro,
         // 비밀번호가 입력된 경우에만 포함
         ...(password && { password })
@@ -410,13 +459,31 @@ const MyPage = () => {
                   </Box>
                   <Box>
                     <FormLabel text="전화번호" />
-                    <TextField 
-                      fullWidth 
-                      value={formData.phoneNumber} 
-                      onChange={handleInputChange('phoneNumber')} 
-                      placeholder="숫자만 입력 (예: 01012345678)"
-                      sx={inputStyle} 
-                    />
+                    <Stack direction="row" spacing={1}>
+                      <TextField 
+                        fullWidth 
+                        value={formData.phoneNumber} 
+                        onChange={handleInputChange('phoneNumber')} 
+                        placeholder="숫자만 입력 (예: 01012345678)"
+                        sx={inputStyle} 
+                      />
+                      <Button 
+                        variant="outlined" 
+                        onClick={handleCheckPhone}
+                        disabled={isPhoneChecked && formData.phoneNumber === (lastCheckedPhone || userInfo?.phoneNumber)}
+                        sx={{ 
+                          whiteSpace: 'nowrap', 
+                          px: 3, 
+                          borderRadius: 3, 
+                          fontWeight: 800,
+                          borderColor: isPhoneChecked ? '#10B981' : '#6366F1',
+                          color: isPhoneChecked ? '#10B981' : '#6366F1',
+                          '&:hover': { borderColor: '#4F46E5' }
+                        }}
+                      >
+                        {isPhoneChecked ? '확인됨' : '중복 확인'}
+                      </Button>
+                    </Stack>
                   </Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="한 줄 소개" />
