@@ -3,12 +3,12 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box, Container, Typography, Paper, TextField, Button,
   Radio, RadioGroup, FormControlLabel, FormControl,
-  Stack, IconButton, Divider, LinearProgress, FormLabel,
-  Alert, AlertTitle
+  Stack, IconButton, Divider, LinearProgress, Avatar
 } from '@mui/material';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 
 import axiosInstance from '../api/axiosInstance'; 
 import { useAuthStore } from '../store/authStore';
@@ -40,15 +40,13 @@ const PostApplyPage = () => {
     const fetchPostData = async () => {
       setIsLoading(true);
       try {
-        // handlers.js의 14번 핸들러를 호출하여 공고 상세 정보 및 중복 지원 여부 확인
-        const data = await axiosInstance.get(`/projects/${id}`);
+        const response = await axiosInstance.get(`/projects/${id}`);
+        const data = response.data || response;
         
         if (data) {
           setPostInfo({
             title: data.title,
-            // handlers.js의 ownerNickname과 현재 로그인 유저의 닉네임 비교
             isOwner: user?.nickname === data.ownerNickname,
-            // handlers.js의 alreadyApplied 필드로 중복 지원 상태 확인
             isApplied: data.alreadyApplied || false,
             status: data.status
           });
@@ -70,17 +68,12 @@ const PostApplyPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // 방어 로직: 제출 중이거나, 이미 지원했거나, 본인 글인 경우 차단
     if (isSubmitting || postInfo.isApplied || postInfo.isOwner) return;
 
     setIsSubmitting(true);
     try {
-      // handlers.js의 15번 핸들러(POST)를 호출하여 mockApplies 배열에 데이터 추가
       await axiosInstance.post(`/posts/${id}/applies`, formData);
-      
       alert("지원이 성공적으로 완료되었습니다!");
-      // 지원 내역을 바로 확인할 수 있도록 마이페이지로 이동
       navigate('/mypage'); 
     } catch (error) {
       console.error("제출 오류:", error);
@@ -90,100 +83,119 @@ const PostApplyPage = () => {
     }
   };
 
-  if (isLoading) return <Box sx={{ mt: 20 }}><LinearProgress /></Box>;
+  if (isLoading) return <Box sx={{ width: '100%', mt: '100px' }}><LinearProgress /></Box>;
 
-  // [본인 글 지원 차단 화면]
-  if (postInfo.isOwner) {
-    return (
-      <Container maxWidth="sm" sx={{ mt: 15 }}>
-        <Alert severity="error" variant="outlined" sx={{ borderRadius: 4, p: 3 }}>
-          <AlertTitle sx={{ fontWeight: 900, fontSize: '1.2rem' }}>접근 제한</AlertTitle>
-          <Typography sx={{ fontWeight: 600, mb: 2 }}>
-            본인이 작성한 공고에는 지원할 수 없습니다. <br />
-            모집 현황은 <strong>내 모집글 관리</strong>에서 확인해 주세요.
-          </Typography>
-          <Button 
-            fullWidth 
-            variant="contained" 
-            onClick={() => navigate(-1)} 
-            sx={{ mt: 2, borderRadius: 2, fontWeight: 800, bgcolor: '#6366F1' }}
-          >
-            이전 페이지로 돌아가기
-          </Button>
-        </Alert>
-      </Container>
-    );
-  }
+  // 섹션 제목 컴포넌트
+  const SectionTitle = ({ number, title, required }) => (
+    <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2.5 }}>
+      <Avatar sx={{ width: 30, height: 30, bgcolor: '#6366F1', fontSize: '0.95rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)' }}>
+        {number}
+      </Avatar>
+      <Typography sx={{ fontWeight: 900, color: '#111827', fontSize: '1.15rem', letterSpacing: '-0.01em' }}>
+        {title} {required && <Box component="span" sx={{ color: '#ef5350', ml: 0.5, fontWeight: 900 }}>*</Box>}
+      </Typography>
+    </Stack>
+  );
 
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
       <Container maxWidth="md">
         {/* 상단 네비게이션 */}
-        <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 4 }}>
-          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: 'white', border: '1px solid #E5E7EB' }}>
-            <ArrowBackIosNewIcon sx={{ fontSize: 18 }} />
+        <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
+          <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: 'white', border: '1px solid #E5E7EB', '&:hover': { bgcolor: '#F3F4F6', borderColor: '#D1D5DB' } }}>
+            <ArrowBackIosNewIcon sx={{ fontSize: 14, color: '#4B5563' }} />
           </IconButton>
           <Breadcrumb items={[{ label: '홈', path: '/' }, { label: '상세보기', path: `/posts/${id}` }, { label: '지원하기' }]} />
         </Stack>
 
-        {/* 중복 지원 안내 알림 */}
-        {postInfo.isApplied && (
-          <Alert severity="warning" icon={<CheckCircleIcon />} sx={{ mb: 4, borderRadius: 4, fontWeight: 700 }}>
-            이미 지원한 프로젝트입니다. 마이페이지에서 지원 현황을 확인하실 수 있습니다.
-          </Alert>
-        )}
-
-        <Paper elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
-          <Box sx={{ mb: 6 }}>
-            <Typography variant="overline" sx={{ color: 'primary.main', fontWeight: 900, letterSpacing: 2, display: 'block', mb: 1 }}>
-              APPLY FOR PROJECT
+        <Paper elevation={0} sx={{ p: { xs: 4, md: 7 }, borderRadius: 8, border: '1px solid #F0F0F0', bgcolor: 'white', boxShadow: '0 20px 40px rgba(0,0,0,0.02)' }}>
+          <Box sx={{ mb: 6, textAlign: 'center' }}>
+            <AssignmentIcon sx={{ color: '#6366F1', fontSize: 44, mb: 2, filter: 'drop-shadow(0 4px 6px rgba(99, 102, 241, 0.3))' }} />
+            <Typography variant="overline" sx={{ color: '#6366F1', fontWeight: 900, letterSpacing: 3, display: 'block', mb: 1, fontSize: '0.8rem' }}>
+              PROJECT APPLICATION
             </Typography>
-            <Box sx={{ p: 3, bgcolor: '#F8F9FF', borderRadius: 4, border: '1px solid #E0E7FF' }}>
-              <Typography variant="body2" sx={{ color: '#6366F1', fontWeight: 800, mb: 0.5 }}>🚀 지원 중인 공고</Typography>
-              <Typography variant="h5" sx={{ fontWeight: 800, color: '#111827' }}>{postInfo.title}</Typography>
+            <Typography variant="h4" sx={{ fontWeight: 900, color: '#111827', mb: 4, letterSpacing: '-0.02em' }}>지원서 작성</Typography>
+            
+            <Box sx={{ p: 3, bgcolor: '#F5F7FF', borderRadius: 5, border: '1px dashed #C7D2FE', width: '100%', maxWidth: '600px', mx: 'auto' }}>
+              <Typography variant="body2" sx={{ color: '#6366F1', fontWeight: 800, mb: 1 }}>🚀 현재 지원 중인 공고</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 900, color: '#1F2937', lineHeight: 1.4 }}>{postInfo.title.replace(/\[.*?\]/g, '').trim()}</Typography>
             </Box>
           </Box>
 
-          <Stack component="form" spacing={5} onSubmit={handleSubmit}>
+          <Stack component="form" spacing={7} onSubmit={handleSubmit}>
             {/* 1. 지원 분야 선택 */}
-            <FormControl required disabled={postInfo.isApplied}>
-              <FormLabel sx={{ fontWeight: 800, color: '#111827', mb: 2 }}>1. 지원 분야 선택 (필수)</FormLabel>
-              <RadioGroup row value={formData.position} onChange={handleChange('position')}>
-                {['프론트엔드', '백엔드', '디자이너', '기획자', '기타'].map((pos) => (
-                  <FormControlLabel 
-                    key={pos} 
-                    value={pos} 
-                    control={<Radio />} 
-                    label={<Typography sx={{ fontWeight: 600 }}>{pos}</Typography>} 
-                  />
-                ))}
+            <FormControl required disabled={postInfo.isApplied} sx={{ width: '100%' }}>
+              <SectionTitle number="1" title="어떤 분야에 지원하시나요?" required />
+              <RadioGroup row value={formData.position} onChange={handleChange('position')} sx={{ gap: 2, justifyContent: 'center' }}>
+                {['프론트엔드', '백엔드', '디자이너', '기획자', '기타'].map((pos) => {
+                  const isSelected = formData.position === pos;
+                  return (
+                    <FormControlLabel 
+                      key={pos} 
+                      value={pos} 
+                      control={<Radio sx={{ display: 'none' }} />} 
+                      label={
+                        <Box sx={{ 
+                          px: 3.5, py: 1.8, borderRadius: 4, border: '2px solid',
+                          fontSize: '1rem', fontWeight: 800, letterSpacing: '-0.01em',
+                          transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          bgcolor: 'white', 
+                          color: '#4B5563', 
+                          borderColor: '#E5E7EB',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                          '&:hover': { bgcolor: '#F9FAFB', borderColor: '#D1D5DB' },
+                          ...(isSelected && {
+                            bgcolor: '#6366F1',
+                            color: 'white',
+                            borderColor: '#6366F1',
+                            boxShadow: '0 8px 20px rgba(99, 102, 241, 0.3)',
+                            transform: 'translateY(-2px)'
+                          }),
+                          ...(postInfo.isApplied && {
+                            bgcolor: '#F3F4F6',
+                            color: '#9CA3AF',
+                            borderColor: '#E5E7EB',
+                            cursor: 'not-allowed',
+                            boxShadow: 'none',
+                            '&:hover': { bgcolor: '#F3F4F6' }
+                          })
+                        }}>
+                          {pos}
+                        </Box>
+                      }
+                      sx={{ m: 0 }}
+                    />
+                  );
+                })}
               </RadioGroup>
             </FormControl>
 
-            <Divider />
+            <Divider sx={{ borderColor: '#F0F0F0' }} />
 
             {/* 2. 자기소개 및 지원 동기 */}
             <Box>
-              <FormLabel sx={{ fontWeight: 800, color: '#111827', mb: 2, display: 'block' }}>2. 자기소개 및 지원 동기 (필수)</FormLabel>
+              <SectionTitle number="2" title="자기소개 및 지원 동기" required />
               <TextField
-                fullWidth multiline rows={6}
+                fullWidth multiline rows={8}
                 disabled={postInfo.isApplied}
-                placeholder="함께하고 싶은 이유와 본인의 강점을 적어주세요. (최소 20자)"
+                placeholder="함께하고 싶은 이유와 본인의 강점을 자유롭게 적어주세요. (경험, 열정, 협업 스타일 등)"
                 value={formData.content}
                 onChange={handleChange('content')}
-                helperText={`${formData.content.length} / 500 (최소 20자 작성)`}
-                FormHelperTextProps={{ sx: { textAlign: 'right', fontWeight: 600, color: formData.content.length < 20 ? 'error.main' : 'text.secondary' } }}
+                helperText={`${formData.content.length} / 500자 (최소 20자)`}
+                FormHelperTextProps={{ sx: { textAlign: 'right', fontWeight: 700, fontSize: '0.85rem', color: formData.content.length < 20 ? '#ef5350' : '#9CA3AF', mt: 1 } }}
                 sx={inputStyle}
               />
             </Box>
 
             {/* 3. 포트폴리오 링크 */}
             <Box>
-              <FormLabel sx={{ fontWeight: 800, color: '#111827', mb: 2, display: 'block' }}>3. 포트폴리오 또는 참고 링크 (선택)</FormLabel>
+              <SectionTitle number="3" title="참고 링크" />
               <TextField
                 fullWidth
                 disabled={postInfo.isApplied}
-                placeholder="https://github.com/my-repo/portfolio"
+                placeholder="깃허브, 블로그, 포트폴리오 사이트 주소 (https://...)"
                 value={formData.link}
                 onChange={handleChange('link')}
                 sx={inputStyle}
@@ -192,11 +204,11 @@ const PostApplyPage = () => {
 
             {/* 4. 연락처 */}
             <Box>
-              <FormLabel sx={{ fontWeight: 800, color: '#111827', mb: 2, display: 'block' }}>4. 오픈채팅 또는 연락처 (필수)</FormLabel>
+              <SectionTitle number="4" title="소통 채널" required />
               <TextField
                 fullWidth
                 disabled={postInfo.isApplied}
-                placeholder="https://open.kakao.com/o/sXXXXXX"
+                placeholder="카카오톡 아이디 또는 오픈채팅방 링크"
                 value={formData.contact}
                 onChange={handleChange('contact')}
                 sx={inputStyle}
@@ -204,12 +216,12 @@ const PostApplyPage = () => {
             </Box>
 
             {/* 하단 액션 버튼 */}
-            <Stack direction="row" spacing={2} justifyContent="flex-end" sx={{ pt: 4 }}>
+            <Stack direction="row" spacing={2.5} justifyContent="center" sx={{ pt: 3 }}>
               <Button 
                 variant="outlined" 
                 size="large" 
                 onClick={() => navigate(-1)}
-                sx={{ px: 5, py: 1.5, borderRadius: 3, fontWeight: 800, color: '#6B7280', borderColor: '#E5E7EB' }}
+                sx={{ px: 7, py: 2.2, borderRadius: 5, fontWeight: 800, fontSize: '1rem', color: '#6B7280', borderColor: '#E5E7EB', '&:hover': { border: '1px solid #9CA3AF', bgcolor: '#F9FAFB' } }}
               >
                 취소
               </Button>
@@ -220,10 +232,12 @@ const PostApplyPage = () => {
                 disabled={isSubmitting || postInfo.isApplied || formData.content.length < 20 || !formData.position || !formData.contact}
                 startIcon={postInfo.isApplied ? <CheckCircleIcon /> : <SendIcon />}
                 sx={{ 
-                  px: 5, py: 1.5, borderRadius: 3, fontWeight: 900, 
+                  px: 9, py: 2.2, borderRadius: 5, fontWeight: 900, fontSize: '1.1rem',
                   bgcolor: postInfo.isApplied ? '#10B981' : '#6366F1',
-                  boxShadow: '0 8px 20px rgba(99, 102, 241, 0.2)',
-                  '&:hover': { bgcolor: postInfo.isApplied ? '#059669' : '#4F46E5' }
+                  boxShadow: '0 12px 24px rgba(99, 102, 241, 0.25)',
+                  transition: '0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': { bgcolor: postInfo.isApplied ? '#059669' : '#4F46E5', transform: 'translateY(-3px)', boxShadow: '0 15px 30px rgba(99, 102, 241, 0.35)' },
+                  '&:disabled': { bgcolor: '#E5E7EB', color: '#9CA3AF', boxShadow: 'none' }
                 }}
               >
                 {postInfo.isApplied ? '이미 지원 완료' : (isSubmitting ? '제출 중...' : '지원서 제출하기')}
@@ -236,17 +250,34 @@ const PostApplyPage = () => {
   );
 };
 
+// [수정 핵심] 입력 필드 스타일 - 내부 여백(Padding) 추가 및 텍스트 넘침 방지
 const inputStyle = {
   '& .MuiOutlinedInput-root': {
     bgcolor: '#F9FAFB',
-    borderRadius: 3,
-    fontSize: '0.95rem',
+    borderRadius: 5,
+    fontSize: '1rem',
     fontWeight: 600,
-    '& fieldset': { borderColor: '#E5E7EB' },
-    '&.Mui-disabled': { bgcolor: '#F3F4F6', color: '#9CA3AF' },
-    '&:hover fieldset': { borderColor: '#6366F1' },
+    color: '#1F2937',
+    transition: '0.2s all',
+    // 텍스트 넘침 방지 및 줄바꿈 허용
+    wordBreak: 'break-all',
+    // 테두리 밖으로 나가지 않도록 내부 여백 설정
+    padding: '20px 35px', 
+    '& fieldset': { borderColor: '#E5E7EB', transition: '0.2s' },
+    '&:hover fieldset': { borderColor: '#C7D2FE' },
     '&.Mui-focused fieldset': { borderWidth: '2px', borderColor: '#6366F1' },
-    '&.Mui-focused': { bgcolor: 'white' }
+    '&.Mui-focused': { bgcolor: 'white', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.05)' },
+    '&.Mui-disabled': { bgcolor: '#F3F4F6', color: '#9CA3AF' }
+  },
+  // TextField의 실제 input 요소에 적용된 기본 여백을 제거하고 root의 padding을 따르게 함
+  '& .MuiOutlinedInput-input': {
+    padding: '4px 0px', 
+  },
+  '& .MuiInputBase-input::placeholder': {
+    fontSize: '0.95rem',
+    fontWeight: 500,
+    color: '#9CA3AF',
+    opacity: 1
   }
 };
 
