@@ -219,14 +219,6 @@ const PostApplyPage = () => {
             {/* 하단 액션 버튼 */}
             <Stack direction="row" spacing={2.5} justifyContent="center" sx={{ pt: 3 }}>
               <Button 
-                variant="outlined" 
-                size="large" 
-                onClick={() => navigate(-1)}
-                sx={{ px: 7, py: 2.2, borderRadius: 5, fontWeight: 800, fontSize: '1rem', color: '#6B7280', borderColor: '#E5E7EB', '&:hover': { border: '1px solid #9CA3AF', bgcolor: '#F9FAFB' } }}
-              >
-                취소
-              </Button>
-              <Button 
                 type="submit" 
                 variant="contained" 
                 size="large" 
@@ -242,6 +234,14 @@ const PostApplyPage = () => {
                 }}
               >
                 {postInfo.isApplied ? '이미 지원 완료' : (isSubmitting ? '제출 중...' : '지원서 제출하기')}
+              </Button>
+              <Button 
+                variant="outlined" 
+                size="large" 
+                onClick={() => navigate(-1)}
+                sx={{ px: 7, py: 2.2, borderRadius: 5, fontWeight: 800, fontSize: '1rem', color: '#6B7280', borderColor: '#E5E7EB', '&:hover': { border: '1px solid #9CA3AF', bgcolor: '#F9FAFB' } }}
+              >
+                취소
               </Button>
             </Stack>
           </Stack>
