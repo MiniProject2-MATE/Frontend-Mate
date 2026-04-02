@@ -305,73 +305,241 @@ const BoardPage = () => {
       </Container>
 
       {/* 게시글 작성 모달 */}
-      <Dialog open={isWriteOpen} onClose={() => setIsWriteOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: 5 } }}>
-        <DialogTitle sx={{ fontWeight: 900, pt: 4, px: 4 }}>새 게시글 작성</DialogTitle>
-        <DialogContent sx={{ px: 4 }}>
-          <Stack spacing={3} sx={{ mt: 1 }}>
-            <TextField 
-              fullWidth label="제목" value={newPost.title} 
-              onChange={(e) => setNewPost({...newPost, title: e.target.value})}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
-            />
-            <TextField 
-              fullWidth multiline rows={8} label="내용" value={newPost.content} 
-              onChange={(e) => setNewPost({...newPost, content: e.target.value})}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 3 } }}
-            />
+      <Dialog 
+        open={isWriteOpen} 
+        onClose={() => setIsWriteOpen(false)} 
+        fullWidth 
+        maxWidth="sm" 
+        PaperProps={{ 
+          sx: { 
+            borderRadius: '24px', 
+            boxShadow: '0 25px 50px -12px rgba(108, 99, 255, 0.2)',
+            background: '#FFFFFF',
+            overflow: 'hidden'
+          } 
+        }}
+      >
+        <DialogTitle sx={{ p: 4, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 900, color: '#111827', letterSpacing: '-0.03em' }}>
+            새로운 소식 작성
+          </Typography>
+          <IconButton onClick={() => setIsWriteOpen(false)} sx={{ color: '#9CA3AF' }}>
+            <CloseIcon fontSize="small" />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent 
+          sx={{ 
+            px: 4, py: 2,
+            '&::-webkit-scrollbar': { width: '6px' },
+            '&::-webkit-scrollbar-track': { background: 'transparent' },
+            '&::-webkit-scrollbar-thumb': { background: '#E5E7EB', borderRadius: '10px' },
+            '&::-webkit-scrollbar-thumb:hover': { background: '#D1D5DB' }
+          }}
+        >
+          <Stack spacing={4} sx={{ mt: 1 }}>
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 800, color: '#6C63FF', mb: 2, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Category</Typography>
+              <Stack direction="row" spacing={1.5}>
+                {[
+                  { label: '일반', value: 'GENERAL', color: '#6B7280', bg: '#F3F4F6' },
+                  { label: '공지', value: 'NOTICE', color: '#E11D48', bg: '#FFF1F2' },
+                  { label: '질문', value: 'QUESTION', color: '#2563EB', bg: '#EFF6FF' }
+                ].map((cat) => (
+                  <Box
+                    key={cat.value}
+                    onClick={() => setNewPost({...newPost, type: cat.value})}
+                    sx={{
+                      px: 3, py: 1, borderRadius: '10px', cursor: 'pointer', transition: '0.2s',
+                      fontSize: '0.9rem', fontWeight: 900, border: '2px solid',
+                      borderColor: newPost.type === cat.value ? cat.color : 'transparent',
+                      bgcolor: newPost.type === cat.value ? cat.bg : '#F9FAFB',
+                      color: newPost.type === cat.value ? cat.color : '#9CA3AF',
+                      '&:hover': { bgcolor: cat.bg, color: cat.color }
+                    }}
+                  >
+                    {cat.label}
+                  </Box>
+                ))}
+              </Stack>
+            </Box>
+
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 800, color: '#6C63FF', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Title</Typography>
+              <TextField 
+                fullWidth 
+                placeholder="제목을 입력해 주세요" 
+                variant="standard"
+                value={newPost.title} 
+                onChange={(e) => setNewPost({...newPost, title: e.target.value})}
+                InputProps={{ 
+                  disableUnderline: true,
+                  sx: { fontSize: '1.25rem', fontWeight: 800, color: '#111827', '&::placeholder': { color: '#D1D5DB', opacity: 1 } }
+                }}
+              />
+              <Box sx={{ height: '2px', width: '100%', bgcolor: '#F3F4F6', mt: 1, position: 'relative', '&::after': { content: '""', position: 'absolute', left: 0, bottom: 0, width: '0%', height: '100%', bgcolor: '#6C63FF', transition: '0.3s' }, '&:focus-within::after': { width: '100%' } }} />
+            </Box>
+            
+            <Box>
+              <Typography variant="caption" sx={{ fontWeight: 800, color: '#6C63FF', mb: 1.5, display: 'block', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Content</Typography>
+              <TextField 
+                fullWidth 
+                multiline 
+                rows={10} 
+                placeholder="팀원들과 어떤 이야기를 나누고 싶나요?" 
+                variant="outlined"
+                value={newPost.content} 
+                onChange={(e) => setNewPost({...newPost, content: e.target.value})}
+                sx={{ 
+                  '& .MuiOutlinedInput-root': { 
+                    borderRadius: '16px', bgcolor: '#F9FAFB', p: 2.5, fontSize: '1rem', lineHeight: 1.7,
+                    '& fieldset': { borderColor: 'transparent' },
+                    '&:hover fieldset': { borderColor: '#E5E7EB' },
+                    '&.Mui-focused fieldset': { borderColor: '#6C63FF', borderWidth: '2px' }
+                  } 
+                }}
+              />
+            </Box>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ p: 4 }}>
-          <CustomButton onClick={() => setIsWriteOpen(false)} sx={{ color: '#9CA3AF' }}>취소</CustomButton>
-          <CustomButton onClick={handleCreatePost} variant="contained">등록하기</CustomButton>
+
+        <DialogActions sx={{ p: 4, pt: 0, display: 'flex', gap: 2 }}>
+          <CustomButton 
+            onClick={handleCreatePost} 
+            variant="contained" 
+            sx={{ 
+              flex: 2, height: '56px', borderRadius: '16px', fontWeight: 900, fontSize: '1.05rem',
+              bgcolor: '#6C63FF', color: '#FFFFFF', // 글자색 흰색으로 명시
+              boxShadow: '0 10px 20px -5px rgba(108, 99, 255, 0.4)',
+              '&:hover': { bgcolor: '#5A52E5', boxShadow: '0 15px 25px -5px rgba(108, 99, 255, 0.5)' }
+            }}
+          >
+            등록하기
+          </CustomButton>
+          <CustomButton 
+            onClick={() => setIsWriteOpen(false)} 
+            sx={{ 
+              flex: 1, height: '56px', borderRadius: '16px', fontWeight: 800, color: '#6B7280', 
+              bgcolor: '#F3F4F6', '&:hover': { bgcolor: '#E5E7EB' } 
+            }}
+          >
+            취소
+          </CustomButton>
         </DialogActions>
       </Dialog>
 
       {/* 게시글 상세 모달 */}
-      <Dialog open={isDetailOpen} onClose={() => setIsDetailOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: 5 } }}>
+      <Dialog 
+        open={isDetailOpen} 
+        onClose={() => setIsDetailOpen(false)} 
+        fullWidth 
+        maxWidth="md" 
+        PaperProps={{ 
+          sx: { 
+            borderRadius: '28px', 
+            bgcolor: '#FFFFFF',
+            boxShadow: '0 50px 100px -20px rgba(0,0,0,0.2)',
+            overflow: 'hidden'
+          } 
+        }}
+      >
         {selectedPost && (
           <>
-            <DialogTitle sx={{ p: 4 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <Stack spacing={1.5}>
-                  <Chip label={selectedPost.type} size="small" color="primary" sx={{ fontWeight: 900, borderRadius: 1.5 }} />
-                  <Typography variant="h4" sx={{ fontWeight: 900 }}>{selectedPost.title}</Typography>
-                </Stack>
-                <IconButton onClick={() => setIsDetailOpen(false)} sx={{ bgcolor: '#F3F4F6' }}><CloseIcon /></IconButton>
-              </Box>
-            </DialogTitle>
-            <DialogContent sx={{ px: 4, pb: 4 }}>
-              <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Stack direction="row" spacing={2} alignItems="center">
-                  <Avatar sx={{ width: 40, height: 40, bgcolor: '#6C63FF' }}>{selectedPost.author.charAt(0)}</Avatar>
-                  <Box>
-                    <Typography sx={{ fontWeight: 800 }}>{selectedPost.author}</Typography>
-                    <Typography variant="caption" sx={{ color: '#9CA3AF' }}>{selectedPost.date}</Typography>
-                  </Box>
-                </Stack>
-                <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <VisibilityIcon sx={{ fontSize: 16 }} /> {selectedPost.views}
+            <Box sx={{ p: 5, pb: 0, position: 'relative' }}>
+              <IconButton 
+                onClick={() => setIsDetailOpen(false)} 
+                sx={{ position: 'absolute', right: 24, top: 24, bgcolor: '#F3F4F6', '&:hover': { bgcolor: '#E5E7EB' } }}
+              >
+                <CloseIcon fontSize="small" />
+              </IconButton>
+
+              <Box sx={{ mb: 4 }}>
+                <Chip 
+                  label={selectedPost.type === 'NOTICE' ? '📢 공지사항' : '💬 일반'} 
+                  sx={{ 
+                    fontWeight: 900, borderRadius: '8px', mb: 2.5, px: 1, height: '32px',
+                    bgcolor: selectedPost.type === 'NOTICE' ? '#FFF1F2' : '#F3F4F6',
+                    color: selectedPost.type === 'NOTICE' ? '#E11D48' : '#4B5563',
+                  }} 
+                />
+                <Typography variant="h3" sx={{ fontWeight: 900, color: '#111827', lineHeight: 1.3, letterSpacing: '-0.04em' }}>
+                  {selectedPost.title}
                 </Typography>
               </Box>
-              <Paper elevation={0} sx={{ bgcolor: '#F9FAFB', p: 4, borderRadius: 4, mb: 6 }}>
-                <Typography sx={{ whiteSpace: 'pre-line', lineHeight: 1.8 }}>{selectedPost.content}</Typography>
-              </Paper>
-              <Divider sx={{ my: 6 }} />
-              <Typography variant="h6" sx={{ fontWeight: 900, mb: 4 }}>댓글 {comments.length}</Typography>
+
+              <Stack direction="row" spacing={2} alignItems="center" sx={{ pb: 4, borderBottom: '1px solid #F3F4F6' }}>
+                <Avatar sx={{ width: 48, height: 48, bgcolor: '#6C63FF', border: '3px solid #F3F4F6', boxShadow: '0 4px 12px rgba(108,99,255,0.2)' }}>
+                  {selectedPost.author.charAt(0)}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#111827', lineHeight: 1 }}>{selectedPost.author}</Typography>
+                  <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{selectedPost.date} · 조회 {selectedPost.views}</Typography>
+                </Box>
+              </Stack>
+            </Box>
+            
+            <DialogContent 
+              sx={{ 
+                px: 5, py: 4, maxHeight: '60vh',
+                '&::-webkit-scrollbar': { width: '5px' },
+                '&::-webkit-scrollbar-track': { background: 'transparent' },
+                '&::-webkit-scrollbar-thumb': { background: '#E5E7EB', borderRadius: '10px' }
+              }}
+            >
+              <Box sx={{ minHeight: '150px', mb: 8 }}>
+                <Typography sx={{ whiteSpace: 'pre-line', lineHeight: 2, color: '#374151', fontSize: '1.125rem', fontWeight: 500, letterSpacing: '-0.01em' }}>
+                  {selectedPost.content}
+                </Typography>
+              </Box>
+
+              <Divider sx={{ mb: 6, borderStyle: 'dashed' }} />
+              
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 4, gap: 1.5 }}>
+                <Typography variant="h5" sx={{ fontWeight: 900, color: '#111827' }}>댓글</Typography>
+                <Chip label={comments.length} size="small" sx={{ bgcolor: '#6C63FF', color: 'white', fontWeight: 900, fontSize: '0.8rem' }} />
+              </Box>
+
               <Stack spacing={3} sx={{ mb: 6 }}>
                 {comments.map((comment) => <CommentItem key={comment.id} comment={comment} />)}
               </Stack>
-              <Box sx={{ bgcolor: '#F3F4F6', p: 3, borderRadius: 4 }}>
-                <TextField 
-                  fullWidth multiline rows={3} placeholder="댓글을 남겨주세요." variant="standard"
-                  InputProps={{ disableUnderline: true }} value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)} sx={{ mb: 2 }}
-                />
-                <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <CustomButton variant="contained" onClick={handleCreateComment}>댓글 등록</CustomButton>
-                </Box>
-              </Box>
             </DialogContent>
+
+            <Box sx={{ p: 4, bgcolor: '#F9FAFB', borderTop: '1px solid #F3F4F6' }}>
+              <Paper 
+                elevation={0}
+                sx={{ 
+                  display: 'flex', alignItems: 'center', p: 1, pr: 1.5, borderRadius: '16px', 
+                  bgcolor: '#FFFFFF', border: '1px solid #E5E7EB', transition: '0.3s',
+                  '&:focus-within': { borderColor: '#6C63FF', boxShadow: '0 0 0 4px rgba(108, 99, 255, 0.1)' }
+                }}
+              >
+                <TextField 
+                  fullWidth 
+                  placeholder="댓글을 입력하세요..." 
+                  variant="standard"
+                  InputProps={{ disableUnderline: true, sx: { px: 2, fontSize: '0.95rem', fontWeight: 500 } }} 
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                />
+                <CustomButton 
+                  variant="contained" 
+                  onClick={handleCreateComment}
+                  sx={{ 
+                    minWidth: '85px', // 너비를 조금 더 넉넉하게 조정
+                    height: '42px', 
+                    borderRadius: '12px', 
+                    fontWeight: 900,
+                    bgcolor: '#6C63FF', 
+                    color: '#FFFFFF', // 글자색 흰색으로 명시
+                    whiteSpace: 'nowrap', // 글자 꺾임 방지
+                    boxShadow: 'none', 
+                    '&:hover': { bgcolor: '#5A52E5', boxShadow: '0 4px 12px rgba(108,99,255,0.3)' }
+                  }}
+                >
+                  댓글 등록
+                </CustomButton>
+              </Paper>
+            </Box>
           </>
         )}
       </Dialog>
