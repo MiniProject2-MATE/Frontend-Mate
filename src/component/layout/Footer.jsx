@@ -15,24 +15,12 @@ const Footer = () => {
     >
       <Container maxWidth={false} sx={{ px: 0 }}>
         <Box sx={{ 
-          display: 'flex', 
-          flexDirection: { xs: 'column', sm: 'row' }, 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          gap: 3
+          textAlign: 'center'
         }}>
-          <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', mb: 1, fontSize: 22 }}>mate</Typography>
-            <Typography variant="body2" color="text.muted" sx={{ fontSize: 15 }}>
-              ⓒ 2026 MATE. Connecting Creative Mates.
-            </Typography>
-          </Box>
-          <Box sx={{ display: 'flex', gap: { xs: 4, sm: 6 } }}>
-            <Link href="#" variant="body2" sx={{ color: 'text.secondary', textDecoration: 'none', fontWeight: 600, fontSize: 15, '&:hover': { color: 'primary.main' } }}>About</Link>
-            <Link href="#" variant="body2" sx={{ color: 'text.secondary', textDecoration: 'none', fontWeight: 600, fontSize: 15, '&:hover': { color: 'primary.main' } }}>Terms</Link>
-            <Link href="#" variant="body2" sx={{ color: 'text.secondary', textDecoration: 'none', fontWeight: 600, fontSize: 15, '&:hover': { color: 'primary.main' } }}>Privacy</Link>
-            <Link href="#" variant="body2" sx={{ color: 'text.secondary', textDecoration: 'none', fontWeight: 600, fontSize: 15, '&:hover': { color: 'primary.main' } }}>Contact</Link>
-          </Box>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', mb: 1, fontSize: 22 }}>mate</Typography>
+          <Typography variant="body2" color="text.muted" sx={{ fontSize: 15 }}>
+            ⓒ 2026 MATE. Connecting Creative Mates.
+          </Typography>
         </Box>
       </Container>
     </Box>
