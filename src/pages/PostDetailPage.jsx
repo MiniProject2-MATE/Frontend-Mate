@@ -11,6 +11,8 @@ import PersonIcon from '@mui/icons-material/Person';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import GroupsIcon from '@mui/icons-material/Groups';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 
 // 공통 컴포넌트
 import Breadcrumb from '../component/common/Breadcrumb';
@@ -47,6 +49,20 @@ const PostDetailPage = () => {
     fetchPostDetail();
   }, [id]);
 
+  // [추가] 게시글 삭제 핸들러
+  const handleDeletePost = async () => {
+    if (!window.confirm("정말로 이 게시글을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.")) return;
+
+    try {
+      await axiosInstance.delete(`/projects/${id}`);
+      showToast('게시글이 삭제되었습니다.', 'success');
+      navigate('/'); // 삭제 후 메인으로 이동
+    } catch (error) {
+      console.error("삭제 실패:", error);
+      showToast('게시글 삭제 중 오류가 발생했습니다.', 'error');
+    }
+  };
+
   const handleApplyClick = () => {
     if (!isLoggedIn) {
       showToast('로그인이 필요한 서비스입니다.', 'warning');
@@ -74,6 +90,9 @@ const PostDetailPage = () => {
 
   // [수정] 제목에서 [스터디], [프로젝트] 태그 제거 로직
   const cleanTitle = post.title.replace(/\[.*?\]/g, '').trim();
+
+  // [추가] 본인 글 여부 확인
+  const isOwner = user?.nickname === (post?.owner?.nickname || post?.ownerNickname);
 
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
@@ -213,7 +232,7 @@ const PostDetailPage = () => {
                 <CustomButton 
                   fullWidth 
                   onClick={handleApplyClick}
-                  disabled={post.status !== 'RECRUITING' || remainingCount <= 0}
+                  disabled={post.status !== 'RECRUITING' || remainingCount <= 0 || isOwner}
                   sx={{ 
                     bgcolor: 'white', color: '#6C63FF', height: 60, borderRadius: 4, fontWeight: 900, fontSize: '1.15rem',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -221,14 +240,14 @@ const PostDetailPage = () => {
                     '&:disabled': { bgcolor: 'rgba(255,255,255,0.3)', color: 'white' }
                   }}
                 >
-                  {post.status !== 'RECRUITING' ? '모집 종료' : '지금 지원하기'}
+                  {isOwner ? '작성하신 공고입니다' : (post.status !== 'RECRUITING' ? '모집 종료' : '지금 지원하기')}
                 </CustomButton>
               </Paper>
 
               {/* 방장 정보 카드 */}
               <Paper elevation={0} sx={{ p: 4, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="body2" sx={{ color: '#9CA3AF', fontWeight: 900, mb: 3, letterSpacing: '0.05em' }}>PROJECT OWNER</Typography>
-                <Stack direction="row" spacing={2.5} alignItems="center">
+                <Stack direction="row" spacing={2.5} alignItems="center" sx={{ mb: isOwner ? 3 : 0 }}>
                   <Avatar sx={{ width: 64, height: 64, bgcolor: '#6C63FF', fontSize: '1.5rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(108,99,255,0.2)' }}>
                     {(post.owner?.nickname || post.ownerNickname)?.[0].toUpperCase()}
                   </Avatar>
@@ -246,6 +265,30 @@ const PostDetailPage = () => {
                     />
                   </Box>
                 </Stack>
+
+                {/* [추가] 본인 글일 경우 수정/삭제 버튼 노출 */}
+                {isOwner && (
+                  <Stack direction="row" spacing={1.5} sx={{ pt: 2, borderTop: '1px solid #F3F4F6' }}>
+                    <CustomButton 
+                      variant="secondary" 
+                      fullWidth 
+                      startIcon={<EditIcon />}
+                      onClick={() => navigate(`/posts/${id}/edit`)}
+                      sx={{ height: 48, borderRadius: 3, fontWeight: 800 }}
+                    >
+                      수정
+                    </CustomButton>
+                    <CustomButton 
+                      variant="outline" 
+                      fullWidth 
+                      startIcon={<DeleteOutlineIcon />}
+                      onClick={handleDeletePost}
+                      sx={{ height: 48, borderRadius: 3, fontWeight: 800, color: '#EF4444', borderColor: '#FEE2E2', '&:hover': { bgcolor: '#FEF2F2', borderColor: '#EF4444' } }}
+                    >
+                      삭제
+                    </CustomButton>
+                  </Stack>
+                )}
               </Paper>
 
             </Stack>
