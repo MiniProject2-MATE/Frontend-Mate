@@ -10,9 +10,9 @@ import SendIcon from '@mui/icons-material/Send';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 
-import axiosInstance from '../api/axiosInstance'; 
 import { useAuthStore } from '../store/authStore';
 import Breadcrumb from '../component/common/Breadcrumb';
+import postApi from '../api/postApi'; // [추가] postApi 사용
 
 const PostApplyPage = () => {
   const { id } = useParams(); 
@@ -40,8 +40,8 @@ const PostApplyPage = () => {
     const fetchPostData = async () => {
       setIsLoading(true);
       try {
-        const response = await axiosInstance.get(`/projects/${id}`);
-        const data = response.data || response;
+        // [수정] postApi 사용
+        const data = await postApi.getPostDetail(id);
         
         if (data) {
           setPostInfo({
@@ -72,7 +72,8 @@ const PostApplyPage = () => {
 
     setIsSubmitting(true);
     try {
-      await axiosInstance.post(`/posts/${id}/applies`, formData);
+      // [수정] postApi.applyToPost를 통해 백엔드 요청인 /api/application 호출
+      await postApi.applyToPost(id, formData);
       alert("지원이 성공적으로 완료되었습니다!");
       navigate('/mypage'); 
     } catch (error) {
