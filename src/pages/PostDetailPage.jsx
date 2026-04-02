@@ -168,39 +168,61 @@ const PostDetailPage = () => {
                   ))}
                 </Stack>
 
-                {/* [디자인 업그레이드] 정보 카드 섹션 */}
-                <Grid container spacing={3} sx={{ mb: 2 }}>
+                {/* [디자인 업그레이드] 정보 카드 섹션 - 균등한 삼등분 배치 */}
+                <Stack direction="row" spacing={2} sx={{ mb: 4, width: '100%' }}>
                   {[
                     { icon: <GroupsIcon />, label: '모집 인원', value: `${recruitCount}명`, color: '#6366F1', bgColor: '#EEF2FF' },
                     { icon: <LocationOnIcon />, label: '진행 방식', value: post.onOffline || '온라인', color: '#10B981', bgColor: '#ECFDF5' },
                     { icon: <CalendarMonthIcon />, label: '모집 마감', value: post.endDate, color: '#F59E0B', bgColor: '#FFFBEB' },
                   ].map((info, index) => (
-                    <Grid item xs={12} sm={4} key={index}>
+                    <Box key={index} sx={{ 
+                      flex: 1,
+                      p: { xs: 2, sm: 3 }, 
+                      borderRadius: 5, 
+                      bgcolor: '#F9FAFB', 
+                      border: '1px solid #F3F4F6',
+                      textAlign: 'center', 
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: '0.3s',
+                      '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 24px rgba(0,0,0,0.06)', bgcolor: 'white' }
+                    }}>
                       <Box sx={{ 
-                        p: 3, 
-                        borderRadius: 5, 
-                        bgcolor: 'white', 
-                        border: '1px solid #F3F4F6',
-                        textAlign: 'center', 
-                        transition: '0.3s',
-                        '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 24px rgba(0,0,0,0.06)' }
+                        width: { xs: 40, sm: 54 }, 
+                        height: { xs: 40, sm: 54 }, 
+                        borderRadius: { xs: '12px', sm: '18px' }, 
+                        bgcolor: info.bgColor, 
+                        color: info.color, 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center', 
+                        mb: 1.5 
                       }}>
-                        <Box sx={{ 
-                          width: 54, height: 54, borderRadius: '18px', bgcolor: info.bgColor, color: info.color, 
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 
-                        }}>
-                          {React.cloneElement(info.icon, { sx: { fontSize: 28 } })}
-                        </Box>
-                        <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 800, display: 'block', mb: 0.5, letterSpacing: '0.02em' }}>
-                          {info.label}
-                        </Typography>
-                        <Typography variant="h6" sx={{ fontWeight: 900, color: '#1F2937' }}>
-                          {info.value}
-                        </Typography>
+                        {React.cloneElement(info.icon, { sx: { fontSize: { xs: 20, sm: 28 } } })}
                       </Box>
-                    </Grid>
+                      <Typography variant="caption" sx={{ 
+                        color: '#6B7280', 
+                        fontWeight: 800, 
+                        display: 'block', 
+                        mb: 0.5, 
+                        letterSpacing: '0.02em',
+                        fontSize: { xs: '0.65rem', sm: '0.75rem' }
+                      }}>
+                        {info.label}
+                      </Typography>
+                      <Typography sx={{ 
+                        fontWeight: 900, 
+                        color: '#1F2937',
+                        fontSize: { xs: '0.85rem', sm: '1.1rem' },
+                        lineHeight: 1.2
+                      }}>
+                        {info.value}
+                      </Typography>
+                    </Box>
                   ))}
-                </Grid>
+                </Stack>
               </Paper>
 
               <Paper elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
