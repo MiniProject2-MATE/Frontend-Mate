@@ -173,12 +173,39 @@ export const handlers = [
     });
   }),
 
-  // 7. 유저 정보 수정
+  // 7. 유저 정보 수정 (데이터 소실 방지를 위해 전체 활동 내역 포함 반환)
   http.put('*/api/users/me', async ({ request }) => {
     const updateData = await request.json();
+    const oldNickname = currentUserData.nickname;
+
+    // 닉네임 변경 시 기존에 썼던 글들의 작성자 명도 함께 변경 (필터링 유지)
+    if (updateData.nickname && updateData.nickname !== oldNickname) {
+      mockPosts = mockPosts.map(p => 
+        p.ownerNickname === oldNickname ? { ...p, ownerNickname: updateData.nickname } : p
+      );
+    }
+
+    // 기본 정보 업데이트
     currentUserData = { ...currentUserData, ...updateData };
     syncStorage();
-    return HttpResponse.json({ success: true, data: currentUserData });
+
+    // 마이페이지 UI 유지를 위해 활동 내역 다시 계산
+    const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
+    const myApplies = mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname);
+    const acceptedProjects = mockApplies.filter(a => a.status === 'ACCEPTED');
+
+    return HttpResponse.json({ 
+      success: true, 
+      data: {
+        ...currentUserData,
+        postCount: myPosts.length,
+        applyCount: myApplies.length,
+        myPosts,
+        applies: myApplies,
+        acceptedProjects
+      },
+      message: '프로필이 성공적으로 수정되었습니다.'
+    });
   }),
 
   // 8. 아이디 찾기

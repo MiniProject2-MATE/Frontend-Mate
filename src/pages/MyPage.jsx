@@ -37,6 +37,7 @@ const MyPage = () => {
   const [formData, setFormData] = useState({
     nickname: '',
     position: '',
+    phoneNumber: '', // [추가] 전화번호 상태
     intro: ''
   });
 
@@ -69,6 +70,7 @@ const MyPage = () => {
         setFormData({ // 입력용
           nickname: data.nickname || '',
           position: data.position || '',
+          phoneNumber: data.phoneNumber || '', // [추가] 데이터 반영
           intro: data.intro || ''
         });
         updateUser(data);
@@ -79,6 +81,7 @@ const MyPage = () => {
           setFormData({
             nickname: authUser.nickname || '',
             position: authUser.position || '',
+            phoneNumber: authUser.phoneNumber || '',
             intro: authUser.intro || ''
           });
         }
@@ -105,6 +108,15 @@ const MyPage = () => {
 
   const handleInputChange = (field) => (e) => {
     const value = e.target.value;
+    
+    // [추가] 전화번호의 경우 숫자만 입력 가능하도록 제한 (선택 사항)
+    if (field === 'phoneNumber') {
+      const onlyNums = value.replace(/[^0-9]/g, '');
+      if (onlyNums.length > 11) return; // 최대 11자
+      setFormData(prev => ({ ...prev, [field]: onlyNums }));
+      return;
+    }
+
     setFormData((prev) => ({
       ...prev,
       [field]: value
@@ -157,6 +169,7 @@ const MyPage = () => {
     const isProfileUnchanged = 
       formData.nickname === userInfo.nickname &&
       formData.position === userInfo.position &&
+      formData.phoneNumber === userInfo.phoneNumber && // [추가]
       formData.intro === userInfo.intro;
     
     const isPasswordEmpty = !password && !confirmPassword;
@@ -190,6 +203,7 @@ const MyPage = () => {
       const updatePayload = {
         nickname: formData.nickname,
         position: formData.position,
+        phoneNumber: formData.phoneNumber, // [추가]
         intro: formData.intro,
         // 비밀번호가 입력된 경우에만 포함
         ...(password && { password })
@@ -393,6 +407,16 @@ const MyPage = () => {
                         </MenuItem>
                       ))}
                     </TextField>
+                  </Box>
+                  <Box>
+                    <FormLabel text="전화번호" />
+                    <TextField 
+                      fullWidth 
+                      value={formData.phoneNumber} 
+                      onChange={handleInputChange('phoneNumber')} 
+                      placeholder="숫자만 입력 (예: 01012345678)"
+                      sx={inputStyle} 
+                    />
                   </Box>
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="한 줄 소개" />
