@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, TextField, Stack, Divider, 
   FormLabel, IconButton, Chip, Card, CardContent, 
@@ -35,6 +35,11 @@ const TECH_STACK_OPTIONS = [
 const PostWritePage = () => {
   const navigate = useNavigate();
   const { showToast } = useUiStore();
+
+  // [추가] 페이지 진입 시 스크롤을 최상단으로 이동
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
 
   // 오늘 날짜 기준 데이터 생성
   const currentYear = new Date().getFullYear();
