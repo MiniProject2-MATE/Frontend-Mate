@@ -11,6 +11,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 
 import { useAuthStore } from '../store/authStore';
+import { useUiStore } from '../store/uiStore';
 import Breadcrumb from '../component/common/Breadcrumb';
 import postApi from '../api/postApi'; // [추가] postApi 사용
 
@@ -18,6 +19,7 @@ const PostApplyPage = () => {
   const { id } = useParams(); 
   const navigate = useNavigate();
   const { user } = useAuthStore(); 
+  const { showToast } = useUiStore();
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,11 +76,11 @@ const PostApplyPage = () => {
     try {
       // [수정] postApi.applyToPost를 통해 백엔드 요청인 /api/application 호출
       await postApi.applyToPost(id, formData);
-      alert("지원이 성공적으로 완료되었습니다!");
+      showToast('지원이 성공적으로 완료되었습니다!', 'success');
       navigate('/mypage'); 
     } catch (error) {
       console.error("제출 오류:", error);
-      alert("제출 중 오류가 발생했습니다. 다시 시도해주세요.");
+      showToast('제출 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
     } finally {
       setIsSubmitting(false);
     }
