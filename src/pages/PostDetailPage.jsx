@@ -18,6 +18,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import Breadcrumb from '../component/common/Breadcrumb';
 import CustomButton from '../component/common/Button'; 
 import axiosInstance from '../api/axiosInstance'; 
+import { postApi } from '../api/postApi'; // [추가] postApi 임포트
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 
@@ -34,7 +35,7 @@ const PostDetailPage = () => {
     const fetchPostDetail = async () => {
       setIsLoading(true);
       try {
-        // [수정] postApi 규격에 맞춰 /api/projects/:id 호출
+        // 상세 데이터 로드는 기획 문서 규격대로 /projects/:id 유지
         const response = await axiosInstance.get(`/projects/${id}`);
         const postData = response.data || response;
         setPost(postData);
@@ -49,12 +50,13 @@ const PostDetailPage = () => {
     fetchPostDetail();
   }, [id]);
 
-  // [추가] 게시글 삭제 핸들러
+  // [수정] 게시글 삭제 핸들러 (postApi 사용으로 경로 통일)
   const handleDeletePost = async () => {
     if (!window.confirm("정말로 이 게시글을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.")) return;
 
     try {
-      await axiosInstance.delete(`/projects/${id}`);
+      // postApi.deletePost(id)를 호출해야 handlers.js와 일치하는 /api/posts/:id로 요청이 갑니다.
+      await postApi.deletePost(id);
       showToast('게시글이 삭제되었습니다.', 'success');
       navigate('/'); // 삭제 후 메인으로 이동
     } catch (error) {
@@ -88,10 +90,10 @@ const PostDetailPage = () => {
   const progress = (currentCount / recruitCount) * 100;
   const remainingCount = recruitCount - currentCount;
 
-  // [수정] 제목에서 [스터디], [프로젝트] 태그 제거 로직
+  // 제목에서 [스터디], [프로젝트] 태그 제거 로직
   const cleanTitle = post.title.replace(/\[.*?\]/g, '').trim();
 
-  // [추가] 본인 글 여부 확인
+  // 본인 글 여부 확인
   const isOwner = user?.nickname === (post?.owner?.nickname || post?.ownerNickname);
 
   return (
