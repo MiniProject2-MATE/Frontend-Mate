@@ -26,7 +26,7 @@ const PostDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuthStore();
-  const { showToast } = useUiStore();
+  const { showToast, openModal } = useUiStore();
 
   const [post, setPost] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -50,19 +50,25 @@ const PostDetailPage = () => {
     fetchPostDetail();
   }, [id]);
 
-  // [수정] 게시글 삭제 핸들러 (postApi 사용으로 경로 통일)
-  const handleDeletePost = async () => {
-    if (!window.confirm("정말로 이 게시글을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.")) return;
-
-    try {
-      // postApi.deletePost(id)를 호출해야 handlers.js와 일치하는 /api/posts/:id로 요청이 갑니다.
-      await postApi.deletePost(id);
-      showToast('게시글이 삭제되었습니다.', 'success');
-      navigate('/'); // 삭제 후 메인으로 이동
-    } catch (error) {
-      console.error("삭제 실패:", error);
-      showToast('게시글 삭제 중 오류가 발생했습니다.', 'error');
-    }
+  // [수정] 게시글 삭제 핸들러 (openModal 사용)
+  const handleDeletePost = () => {
+    openModal('confirm', {
+      title: '게시글 삭제',
+      message: '정말로 이 게시글을 삭제하시겠습니까? 삭제 후에는 복구할 수 없습니다.',
+      confirmText: '삭제하기',
+      color: 'error',
+      onConfirm: async () => {
+        try {
+          // postApi.deletePost(id)를 호출해야 handlers.js와 일치하는 /api/posts/:id로 요청이 갑니다.
+          await postApi.deletePost(id);
+          showToast('게시글이 삭제되었습니다.', 'success');
+          navigate('/'); // 삭제 후 메인으로 이동
+        } catch (error) {
+          console.error("삭제 실패:", error);
+          showToast('게시글 삭제 중 오류가 발생했습니다.', 'error');
+        }
+      }
+    });
   };
 
   const handleApplyClick = () => {
