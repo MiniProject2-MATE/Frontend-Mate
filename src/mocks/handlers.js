@@ -1,6 +1,6 @@
 import { http, HttpResponse } from 'msw';
 
-// --- 로컬스토리지 연동 및 초기 데이터 생성 로직 ---
+// --- 로컬스토리지 연동 로직 ---
 
 const getStoredPosts = () => {
   const saved = localStorage.getItem('mock-posts');
@@ -19,8 +19,7 @@ const getStoredPosts = () => {
     endDate: '2026-12-31',
     ownerNickname: i < 3 ? '테스트메이트' : `User_${i + 1}`,
     techStacks: i % 2 === 0 ? ['React', 'TypeScript', 'Node.js'] : ['Spring Boot', 'Java', 'MySQL'],
-    onOffline: '온라인',
-    viewCount: Math.floor(Math.random() * 100)
+    onOffline: '온라인'
   }));
 };
 
@@ -84,7 +83,7 @@ const getStoredComments = () => {
   ];
 };
 
-// --- 실제 데이터 변수 할당 ---
+// --- 실제 데이터 할당 ---
 let mockPosts = getStoredPosts();
 let currentUserData = getStoredUser();
 let mockApplies = getStoredApplies();
@@ -125,10 +124,28 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: { isAvailable: true }, message: '사용 가능한 닉네임입니다.' });
   }),
 
+  // [추가] 2-2. 전화번호 중복 확인
+  http.get('*/api/users/check-phone', ({ request }) => {
+    const url = new URL(request.url);
+    const phoneNumber = url.searchParams.get('phoneNumber');
+    
+    // 본인 번호면 가능
+    if (phoneNumber === currentUserData.phoneNumber) {
+      return HttpResponse.json({ success: true, data: { isAvailable: true } });
+    }
+    
+    // 다른 유저가 사용 중인지 체크 (여기선 예시로 특정 번호 중복 처리)
+    if (phoneNumber === '01011112222') {
+      return HttpResponse.json({ success: true, data: { isAvailable: false }, message: '이미 등록된 전화번호입니다.' });
+    }
+    
+    return HttpResponse.json({ success: true, data: { isAvailable: true } });
+  }),
+
   // 3. 회원가입
   http.post('*/api/auth/signup', () => HttpResponse.json({ success: true, data: null, message: '회원가입이 완료되었습니다.' })),
 
-  // 4. 모집글 목록 조회 (메인 페이지용)
+  // 4. 모집글 목록 조회 (메인 페이지용 - /projects 경로 복구)
   http.get('*/api/projects', ({ request }) => {
     const url = new URL(request.url);
     const category = url.searchParams.get('category');
@@ -142,9 +159,7 @@ export const handlers = [
       filteredPosts = filteredPosts.filter(p => p.category === (categoryMap[category] || category));
     }
     if (keyword) {
-      filteredPosts = filteredPosts.filter(p => 
-        p.title.toLowerCase().includes(keyword) || p.content.toLowerCase().includes(keyword)
-      );
+      filteredPosts = filteredPosts.filter(p => p.title.toLowerCase().includes(keyword) || p.content.toLowerCase().includes(keyword));
     }
     const totalElements = filteredPosts.length;
     return HttpResponse.json({
@@ -176,22 +191,26 @@ export const handlers = [
     });
   }),
 
-  // 7. 유저 정보 수정
+  // 7. 유저 정보 수정 (데이터 소실 방지를 위해 전체 활동 내역 포함 반환)
   http.put('*/api/users/me', async ({ request }) => {
     const updateData = await request.json();
     const oldNickname = currentUserData.nickname;
 
+    // 닉네임 변경 시 기존에 썼던 글들의 작성자 명도 함께 변경 (필터링 유지)
     if (updateData.nickname && updateData.nickname !== oldNickname) {
       mockPosts = mockPosts.map(p => 
         p.ownerNickname === oldNickname ? { ...p, ownerNickname: updateData.nickname } : p
       );
     }
 
+    // 기본 정보 업데이트
     currentUserData = { ...currentUserData, ...updateData };
     syncStorage();
 
+    // 마이페이지 UI 유지를 위해 활동 내역 다시 계산
     const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
     const myApplies = mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname);
+    const acceptedProjects = mockApplies.filter(a => a.status === 'ACCEPTED');
 
     return HttpResponse.json({ 
       success: true, 
@@ -201,7 +220,7 @@ export const handlers = [
         applyCount: myApplies.length,
         myPosts,
         applies: myApplies,
-        acceptedProjects: mockApplies.filter(a => a.status === 'ACCEPTED')
+        acceptedProjects
       },
       message: '프로필이 성공적으로 수정되었습니다.'
     });
@@ -279,7 +298,7 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: newComment });
   }),
 
-  // 15. 모집글 상세 정보
+  // 15. 모집글 상세 정보 (메인 카드 클릭 시)
   http.get('*/api/projects/:id', ({ params }) => {
     const post = mockPosts.find(p => p.projectId === parseInt(params.id));
     if (!post) return new HttpResponse(null, { status: 404 });
@@ -287,7 +306,6 @@ export const handlers = [
       success: true, 
       data: { 
         ...post, 
-        alreadyApplied: mockApplies.some(a => a.projectId === parseInt(params.id)),
         owner: { nickname: post.ownerNickname, position: "FE" }, 
         members: [
           { nickname: post.ownerNickname, position: "FE", role: "OWNER" },
@@ -310,33 +328,13 @@ export const handlers = [
   // 17. 모집글 지원하기
   http.post('*/api/posts/:id/applies', async ({ params, request }) => {
     const applyData = await request.json();
-    const targetProject = mockPosts.find(p => p.projectId === parseInt(params.id));
-    const newApply = { 
-      applyId: Date.now(), 
-      projectId: parseInt(params.id), 
-      projectTitle: targetProject?.title || "알 수 없는 프로젝트",
-      ...applyData, 
-      status: "PENDING", 
-      appliedDate: "2026-04-02", 
-      ownerNickname: targetProject?.ownerNickname || "Owner" 
-    };
+    const newApply = { applyId: Date.now(), projectId: parseInt(params.id), ...applyData, status: "PENDING", appliedDate: "2026-04-02", ownerNickname: "Owner" };
     mockApplies.push(newApply);
     syncStorage();
     return HttpResponse.json({ success: true, data: newApply });
   }),
 
-  // 18. 모집글 수정
-  http.put('*/api/projects/:id', async ({ params, request }) => {
-    const updateData = await request.json();
-    const index = mockPosts.findIndex(p => p.projectId === parseInt(params.id));
-    if (index !== -1) {
-      mockPosts[index] = { ...mockPosts[index], ...updateData };
-      syncStorage();
-    }
-    return HttpResponse.json({ success: true });
-  }),
-
-  // 19. 모집글 삭제
+  // 18. 모집글 삭제
   http.delete('*/api/projects/:id', ({ params }) => {
     mockPosts = mockPosts.filter(p => p.projectId !== parseInt(params.id));
     syncStorage();
