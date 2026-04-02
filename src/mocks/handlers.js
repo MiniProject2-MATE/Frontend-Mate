@@ -323,9 +323,10 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // 18. 모집글 삭제
-  http.delete('*/api/projects/:id', ({ params }) => {
-    mockPosts = mockPosts.filter(p => p.projectId !== parseInt(params.id));
+  // 18. 모집글 삭제 (경로 통일: /api/posts/:id)
+  http.delete('*/api/posts/:id', ({ params }) => {
+    const { id } = params;
+    mockPosts = mockPosts.filter(p => p.projectId !== parseInt(id));
     syncStorage();
     return HttpResponse.json({ success: true });
   }),
