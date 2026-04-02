@@ -32,6 +32,7 @@ const PostDetailPage = () => {
     const fetchPostDetail = async () => {
       setIsLoading(true);
       try {
+        // [수정] postApi 규격에 맞춰 /api/projects/:id 호출
         const response = await axiosInstance.get(`/projects/${id}`);
         const postData = response.data || response;
         setPost(postData);
@@ -71,7 +72,7 @@ const PostDetailPage = () => {
   const progress = (currentCount / recruitCount) * 100;
   const remainingCount = recruitCount - currentCount;
 
-  // [추가] 제목에서 [스터디], [프로젝트] 태그 제거 로직
+  // [수정] 제목에서 [스터디], [프로젝트] 태그 제거 로직
   const cleanTitle = post.title.replace(/\[.*?\]/g, '').trim();
 
   return (
@@ -109,7 +110,7 @@ const PostDetailPage = () => {
                   />
                 </Box>
 
-                {/* 태그가 제거된 제목 출력 */}
+                {/* 태그가 제거된 제목 중앙 출력 */}
                 <Typography variant="h3" sx={{ 
                   fontWeight: 900, 
                   mb: 4, 
@@ -140,7 +141,7 @@ const PostDetailPage = () => {
                   ))}
                 </Stack>
 
-                {/* [디자인 업그레이드 단락] 정보 카드 섹션 */}
+                {/* [디자인 업그레이드] 정보 카드 섹션 */}
                 <Grid container spacing={3} sx={{ mb: 2 }}>
                   {[
                     { icon: <GroupsIcon />, label: '모집 인원', value: `${recruitCount}명`, color: '#6366F1', bgColor: '#EEF2FF' },
@@ -157,12 +158,10 @@ const PostDetailPage = () => {
                         transition: '0.3s',
                         '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 24px rgba(0,0,0,0.06)' }
                       }}>
-                        {/* 아이콘 원형 배경 */}
                         <Box sx={{ 
                           width: 54, height: 54, borderRadius: '18px', bgcolor: info.bgColor, color: info.color, 
                           display: 'flex', alignItems: 'center', justifyContent: 'center', mx: 'auto', mb: 2 
                         }}>
-                          {/* 아이콘 크기 살짝 키움 */}
                           {React.cloneElement(info.icon, { sx: { fontSize: 28 } })}
                         </Box>
                         <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 800, display: 'block', mb: 0.5, letterSpacing: '0.02em' }}>
@@ -193,6 +192,7 @@ const PostDetailPage = () => {
           <Box sx={{ flex: 4 }}>
             <Stack spacing={3} sx={{ position: 'sticky', top: '100px' }}>
               
+              {/* 모집 현황 카드 */}
               <Paper elevation={0} sx={{ 
                 p: 4, borderRadius: 6, 
                 background: 'linear-gradient(135deg, #6C63FF 0%, #4834D4 100%)', color: 'white',
@@ -225,6 +225,7 @@ const PostDetailPage = () => {
                 </CustomButton>
               </Paper>
 
+              {/* 방장 정보 카드 */}
               <Paper elevation={0} sx={{ p: 4, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="body2" sx={{ color: '#9CA3AF', fontWeight: 900, mb: 3, letterSpacing: '0.05em' }}>PROJECT OWNER</Typography>
                 <Stack direction="row" spacing={2.5} alignItems="center">

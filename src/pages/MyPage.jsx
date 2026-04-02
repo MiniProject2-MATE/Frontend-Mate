@@ -32,24 +32,19 @@ const MyPage = () => {
   const [categoryFilter, setCategoryFilter] = useState('전체');
   const [isLoading, setIsLoading] = useState(true);
 
-  // userInfo는 서버에서 받은 "확정된 데이터", formData는 사용자가 "입력 중인 데이터"
   const [userInfo, setUserInfo] = useState(null);
   const [formData, setFormData] = useState({
     nickname: '',
     position: '',
-    phoneNumber: '', // [추가] 전화번호 상태
+    phoneNumber: '',
     intro: ''
   });
 
-  // 닉네임 중복 체크 관련 상태
   const [isNicknameChecked, setIsNicknameChecked] = useState(true); 
   const [lastCheckedNickname, setLastCheckedNickname] = useState('');
-
-  // [추가] 전화번호 중복 체크 관련 상태
   const [isPhoneChecked, setIsPhoneChecked] = useState(true);
   const [lastCheckedPhone, setLastCheckedPhone] = useState('');
 
-  // 비밀번호 관련 상태
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -70,11 +65,11 @@ const MyPage = () => {
     const fetchUserData = async () => {
       try {
         const data = await axiosInstance.get('/users/me');
-        setUserInfo(data); // 표시용
-        setFormData({ // 입력용
+        setUserInfo(data);
+        setFormData({
           nickname: data.nickname || '',
           position: data.position || '',
-          phoneNumber: data.phoneNumber || '', // [추가] 데이터 반영
+          phoneNumber: data.phoneNumber || '',
           intro: data.intro || ''
         });
         updateUser(data);
@@ -94,8 +89,7 @@ const MyPage = () => {
       }
     };
     fetchUserData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // 의존성 배열 비움 (입력창 리셋 방지)
+  }, []);
 
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
@@ -112,56 +106,35 @@ const MyPage = () => {
 
   const handleInputChange = (field) => (e) => {
     const value = e.target.value;
-    
-    // [추가] 전화번호의 경우 숫자만 입력 가능하도록 제한
     if (field === 'phoneNumber') {
       const onlyNums = value.replace(/[^0-9]/g, '');
       if (onlyNums.length > 11) return;
       setFormData(prev => ({ ...prev, [field]: onlyNums }));
-      
-      // 기존 번호와 다르면 중복 체크 리셋
-      if (userInfo && onlyNums !== userInfo.phoneNumber) {
-        setIsPhoneChecked(false);
-      } else {
-        setIsPhoneChecked(true);
-      }
+      if (userInfo && onlyNums !== userInfo.phoneNumber) setIsPhoneChecked(false);
+      else setIsPhoneChecked(true);
       return;
     }
-
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value
-    }));
-
-    // 닉네임이 바뀌면 중복 체크 상태 리셋 (기존 서버 닉네임과 다를 경우에만)
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (field === 'nickname') {
-      if (userInfo && value !== userInfo.nickname) {
-        setIsNicknameChecked(false);
-      } else {
-        setIsNicknameChecked(true);
-      }
+      if (userInfo && value !== userInfo.nickname) setIsNicknameChecked(false);
+      else setIsNicknameChecked(true);
     }
   };
 
-  // [신규] 닉네임 중복 확인 핸들러
   const handleCheckNickname = async () => {
     if (!formData.nickname.trim()) {
       showToast('닉네임을 입력해주세요.', 'warning');
       return;
     }
-    
     if (formData.nickname === userInfo.nickname) {
       showToast('현재 사용 중인 본인의 닉네임입니다.', 'info');
       setIsNicknameChecked(true);
       setLastCheckedNickname(formData.nickname);
       return;
     }
-
     try {
       const response = await axiosInstance.get(`/auth/check-nickname?nickname=${formData.nickname}`);
-      const { isAvailable } = response;
-      
-      if (isAvailable) {
+      if (response.isAvailable) {
         showToast('사용 가능한 닉네임입니다!', 'success');
         setIsNicknameChecked(true);
         setLastCheckedNickname(formData.nickname);
@@ -169,31 +142,25 @@ const MyPage = () => {
         showToast('이미 사용 중인 닉네임입니다.', 'error');
         setIsNicknameChecked(false);
       }
-    } catch (error) {
-      console.error("중복 확인 실패:", error);
+    } catch {
       showToast('중복 확인 중 오류가 발생했습니다.', 'error');
     }
   };
 
-  // [신규] 전화번호 중복 확인 핸들러
   const handleCheckPhone = async () => {
     if (!formData.phoneNumber.trim() || formData.phoneNumber.length < 10) {
       showToast('유효한 전화번호를 입력해주세요.', 'warning');
       return;
     }
-
     if (formData.phoneNumber === userInfo.phoneNumber) {
       showToast('현재 등록된 본인의 번호입니다.', 'info');
       setIsPhoneChecked(true);
       setLastCheckedPhone(formData.phoneNumber);
       return;
     }
-
     try {
       const response = await axiosInstance.get(`/users/check-phone?phoneNumber=${formData.phoneNumber}`);
-      const { isAvailable } = response;
-
-      if (isAvailable) {
+      if (response.isAvailable) {
         showToast('사용 가능한 전화번호입니다.', 'success');
         setIsPhoneChecked(true);
         setLastCheckedPhone(formData.phoneNumber);
@@ -201,13 +168,12 @@ const MyPage = () => {
         showToast('이미 등록된 전화번호입니다.', 'error');
         setIsPhoneChecked(false);
       }
-    } catch (error) {
+    } catch {
       showToast('중복 확인 중 오류가 발생했습니다.', 'error');
     }
   };
 
   const handleSaveProfile = async () => {
-    // 1. 변경 사항 체크
     const isProfileUnchanged = 
       formData.nickname === userInfo.nickname &&
       formData.position === userInfo.position &&
@@ -215,28 +181,18 @@ const MyPage = () => {
       formData.intro === userInfo.intro;
     
     const isPasswordEmpty = !password && !confirmPassword;
-
     if (isProfileUnchanged && isPasswordEmpty) {
       showToast('변경된 정보가 없습니다!', 'info');
       return;
     }
-
-    // 2. 중복 확인 여부 체크
-    if (formData.nickname !== userInfo.nickname) {
-      if (!isNicknameChecked || formData.nickname !== lastCheckedNickname) {
-        showToast('닉네임 중복 확인이 필요합니다.', 'warning');
-        return;
-      }
+    if (formData.nickname !== userInfo.nickname && (!isNicknameChecked || formData.nickname !== lastCheckedNickname)) {
+      showToast('닉네임 중복 확인이 필요합니다.', 'warning');
+      return;
     }
-
-    if (formData.phoneNumber !== userInfo.phoneNumber) {
-      if (!isPhoneChecked || formData.phoneNumber !== lastCheckedPhone) {
-        showToast('전화번호 중복 확인이 필요합니다.', 'warning');
-        return;
-      }
+    if (formData.phoneNumber !== userInfo.phoneNumber && (!isPhoneChecked || formData.phoneNumber !== lastCheckedPhone)) {
+      showToast('전화번호 중복 확인이 필요합니다.', 'warning');
+      return;
     }
-
-    // 3. 비밀번호 변경 시도 시 유효성 검사
     if (password || confirmPassword) {
       if (password !== confirmPassword) {
         showToast('비밀번호가 일치하지 않습니다.', 'error');
@@ -247,44 +203,33 @@ const MyPage = () => {
         return;
       }
     }
-
     try {
       const updatePayload = {
         nickname: formData.nickname,
         position: formData.position,
         phoneNumber: formData.phoneNumber,
         intro: formData.intro,
-        // 비밀번호가 입력된 경우에만 포함
         ...(password && { password })
       };
-      
       const response = await axiosInstance.put('/users/me', updatePayload);
-      
-      // API 성공 시에만 화면 데이터(userInfo)와 전역 상태(updateUser) 업데이트
       setUserInfo(response); 
       updateUser(response); 
-      
       showToast('프로필 정보가 성공적으로 저장되었습니다!', 'success');
-      
-      // 비밀번호 필드 초기화
       setPassword('');
       setConfirmPassword('');
-    } catch (error) {
-      console.error("저장 실패:", error);
+    } catch {
       showToast('저장 중 오류가 발생했습니다.', 'error');
     }
   };
 
   const getFilteredData = useCallback(() => {
     if (!userInfo) return [];
-    
     let sourceData = [];
     if (tabValue === 0) sourceData = userInfo.myPosts || [];
     else if (tabValue === 1) sourceData = userInfo.applies || [];
     else if (tabValue === 2) sourceData = userInfo.acceptedProjects || [];
 
     if (categoryFilter === '전체') return sourceData;
-
     return sourceData.filter(item => {
       const title = item?.projectTitle || item?.title || "";
       const category = item?.category || "";
@@ -310,7 +255,6 @@ const MyPage = () => {
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 5, mt: 4, alignItems: 'flex-start' }}>
           
-          {/* [좌측 사이드바] */}
           <Box sx={{ width: { xs: '100%', md: '320px' }, flexShrink: 0, position: { md: 'sticky' }, top: '100px' }}>
             <Stack spacing={3}>
               <Paper elevation={0} sx={{ borderRadius: 6, overflow: 'hidden', border: '1px solid #EEEEEE', bgcolor: 'white' }}>
@@ -357,7 +301,6 @@ const MyPage = () => {
             </Stack>
           </Box>
 
-          {/* [우측 메인 콘텐츠] */}
           <Box sx={{ flex: 1, width: '100%' }}>
             <Stack spacing={4}>
               <Paper ref={profileRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
@@ -368,25 +311,11 @@ const MyPage = () => {
                   <Box>
                     <FormLabel text="닉네임" />
                     <Stack direction="row" spacing={1}>
-                      <TextField 
-                        fullWidth 
-                        value={formData.nickname} 
-                        onChange={handleInputChange('nickname')} 
-                        sx={inputStyle} 
-                      />
+                      <TextField fullWidth value={formData.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} />
                       <Button 
-                        variant="outlined" 
-                        onClick={handleCheckNickname}
+                        variant="outlined" onClick={handleCheckNickname}
                         disabled={isNicknameChecked && formData.nickname === (lastCheckedNickname || userInfo?.nickname)}
-                        sx={{ 
-                          whiteSpace: 'nowrap', 
-                          px: 3, 
-                          borderRadius: 3, 
-                          fontWeight: 800,
-                          borderColor: isNicknameChecked ? '#10B981' : '#6366F1',
-                          color: isNicknameChecked ? '#10B981' : '#6366F1',
-                          '&:hover': { borderColor: '#4F46E5' }
-                        }}
+                        sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800, borderColor: isNicknameChecked ? '#10B981' : '#6366F1', color: isNicknameChecked ? '#10B981' : '#6366F1' }}
                       >
                         {isNicknameChecked ? '확인됨' : '중복 확인'}
                       </Button>
@@ -397,89 +326,39 @@ const MyPage = () => {
                     <TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} />
                   </Box>
                   
-                  {/* 비밀번호 입력 필드 */}
                   <Box>
                     <FormLabel text="비밀번호 변경" />
                     <TextField 
-                      fullWidth 
-                      type={showPassword ? 'text' : 'password'}
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="새 비밀번호 입력"
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                              {showPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
+                      fullWidth type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="새 비밀번호 입력"
+                      InputProps={{ endAdornment: ( <InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> )}}
                       sx={inputStyle} 
                     />
                   </Box>
                   <Box>
                     <FormLabel text="비밀번호 확인" />
                     <TextField 
-                      fullWidth 
-                      type={showConfirmPassword ? 'text' : 'password'}
-                      value={confirmPassword}
-                      onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="비밀번호 확인 입력"
+                      fullWidth type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="비밀번호 확인 입력"
                       error={password !== confirmPassword && confirmPassword !== ''}
                       helperText={password !== confirmPassword && confirmPassword !== '' ? '비밀번호가 일치하지 않습니다.' : ''}
-                      InputProps={{
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
-                              {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                            </IconButton>
-                          </InputAdornment>
-                        ),
-                      }}
+                      InputProps={{ endAdornment: ( <InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">{showConfirmPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> )}}
                       sx={inputStyle} 
                     />
                   </Box>
 
                   <Box>
                     <FormLabel text="포지션" />
-                    <TextField 
-                      select
-                      fullWidth 
-                      value={formData.position} 
-                      onChange={handleInputChange('position')} 
-                      sx={inputStyle}
-                    >
-                      {POSITION_OPTIONS.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
-                        </MenuItem>
-                      ))}
+                    <TextField select fullWidth value={formData.position} onChange={handleInputChange('position')} sx={inputStyle}>
+                      {POSITION_OPTIONS.map((option) => ( <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem> ))}
                     </TextField>
                   </Box>
                   <Box>
                     <FormLabel text="전화번호" />
                     <Stack direction="row" spacing={1}>
-                      <TextField 
-                        fullWidth 
-                        value={formData.phoneNumber} 
-                        onChange={handleInputChange('phoneNumber')} 
-                        placeholder="숫자만 입력 (예: 01012345678)"
-                        sx={inputStyle} 
-                      />
+                      <TextField fullWidth value={formData.phoneNumber} onChange={handleInputChange('phoneNumber')} placeholder="숫자만 입력" sx={inputStyle} />
                       <Button 
-                        variant="outlined" 
-                        onClick={handleCheckPhone}
+                        variant="outlined" onClick={handleCheckPhone}
                         disabled={isPhoneChecked && formData.phoneNumber === (lastCheckedPhone || userInfo?.phoneNumber)}
-                        sx={{ 
-                          whiteSpace: 'nowrap', 
-                          px: 3, 
-                          borderRadius: 3, 
-                          fontWeight: 800,
-                          borderColor: isPhoneChecked ? '#10B981' : '#6366F1',
-                          color: isPhoneChecked ? '#10B981' : '#6366F1',
-                          '&:hover': { borderColor: '#4F46E5' }
-                        }}
+                        sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800, borderColor: isPhoneChecked ? '#10B981' : '#6366F1', color: isPhoneChecked ? '#10B981' : '#6366F1' }}
                       >
                         {isPhoneChecked ? '확인됨' : '중복 확인'}
                       </Button>
@@ -491,7 +370,7 @@ const MyPage = () => {
                   </Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}>
-                  <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1', boxShadow: '0 4px 14px rgba(99, 102, 241, 0.4)' }}>저장하기</Button>
+                  <Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1' }}>저장하기</Button>
                 </Box>
               </Paper>
 
@@ -510,12 +389,7 @@ const MyPage = () => {
                   {['전체', '프로젝트', '스터디'].map((cat) => (
                     <Chip 
                       key={cat} label={cat} onClick={() => setCategoryFilter(cat)}
-                      sx={{ 
-                        fontWeight: 800, px: 1,
-                        bgcolor: categoryFilter === cat ? '#6366F1' : '#F3F4F6',
-                        color: categoryFilter === cat ? 'white' : '#6B7280',
-                        '&:hover': { bgcolor: categoryFilter === cat ? '#4F46E5' : '#E5E7EB' }
-                      }} 
+                      sx={{ fontWeight: 800, px: 1, bgcolor: categoryFilter === cat ? '#6366F1' : '#F3F4F6', color: categoryFilter === cat ? 'white' : '#6B7280' }} 
                     />
                   ))}
                 </Stack>
@@ -528,12 +402,20 @@ const MyPage = () => {
                         item={item}
                         tabValue={tabValue}
                         onTitleClick={() => {
-                          const id = item.projectId || item.id;
-                          if (tabValue === 1) navigate(`/posts/${id}`);
-                          else navigate(`/posts/${id}/board`);
+                          // [중요 수정 부분] 
+                          // 1. projectId가 있으면 그것을 사용, 없으면 id를 사용 (MSW 데이터 구조 호환)
+                          const targetId = item.projectId || item.id;
+                          
+                          // 2. 탭에 따른 이동 분기 처리
+                          if (tabValue === 1) {
+                            // 신청 현황 탭: 해당 글의 상세 정보 페이지로 이동
+                            navigate(`/posts/${targetId}`);
+                          } else {
+                            // 내 모집글(0) 및 내 팀(2) 탭: 팀 게시판으로 이동
+                            navigate(`/posts/${targetId}/board`);
+                          }
                         }}
                         onManageClick={() => {
-                          // [추가] 관리 버튼 클릭 시 수정 페이지로 이동
                           const id = item.projectId || item.id;
                           navigate(`/posts/${id}/edit`);
                         }}
@@ -541,9 +423,7 @@ const MyPage = () => {
                     ))
                   ) : (
                     <Box sx={{ py: 6, textAlign: 'center', bgcolor: '#F9FAFB', borderRadius: 4 }}>
-                      <Typography color="text.secondary" sx={{ fontWeight: 600 }}>
-                        {categoryFilter} 내역이 없습니다.
-                      </Typography>
+                      <Typography color="text.secondary" sx={{ fontWeight: 600 }}>{categoryFilter} 내역이 없습니다.</Typography>
                     </Box>
                   )}
                 </Stack>
@@ -584,7 +464,7 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick }) => {
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
           <Typography 
             variant="h6" 
-            onClick={onTitleClick}
+            onClick={onTitleClick} // 수정된 핸들러 연결
             sx={{ 
               fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer',
               '&:hover': { color: '#6366F1', textDecoration: 'underline' } 
@@ -611,7 +491,7 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick }) => {
           <Button 
             variant="contained" 
             disableElevation 
-            onClick={onManageClick} // [수정] 클릭 시 수정 페이지 이동 핸들러 연결
+            onClick={onManageClick}
             sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}
           >
             관리

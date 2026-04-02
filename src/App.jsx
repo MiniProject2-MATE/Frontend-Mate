@@ -72,17 +72,6 @@ function App() {
               <ProtectedRoute><MyAppliesPage /></ProtectedRoute>
             } />
 
-            {/* 4. ADMIN 전용 페이지 */}
-            <Route path="/admin" element={
-              <ProtectedRoute requireRole="ADMIN"><AdminPage /></ProtectedRoute>
-            } />
-            <Route path="/admin/posts" element={
-              <ProtectedRoute requireRole="ADMIN"><AdminPostsPage /></ProtectedRoute>
-            } />
-            <Route path="/admin/users" element={
-              <ProtectedRoute requireRole="ADMIN"><AdminUsersPage /></ProtectedRoute>
-            } />
-
             {/* 5. 에러 페이지 (항상 맨 아래에 위치) */}
             <Route path="*" element={<ErrorPage />} />
           </Route>
