@@ -21,6 +21,8 @@ const RegisterPage = () => {
 
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
   const [lastCheckedNickname, setLastCheckedNickname] = useState('');
+  const [isPhoneChecked, setIsPhoneChecked] = useState(false);
+  const [lastCheckedPhone, setLastCheckedPhone] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -41,6 +43,15 @@ const RegisterPage = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    if (name === 'phoneNumber') {
+      const onlyNums = value.replace(/[^0-9]/g, '');
+      if (onlyNums.length > 11) return;
+      setFormData(prev => ({ ...prev, [name]: onlyNums }));
+      setIsPhoneChecked(false);
+      return;
+    }
+
     setFormData(prev => ({ ...prev, [name]: value }));
     
     if (name === 'nickname') {
@@ -76,6 +87,30 @@ const RegisterPage = () => {
     }
   };
 
+  const handleCheckPhone = async () => {
+    if (!formData.phoneNumber.trim() || formData.phoneNumber.length < 10) {
+      showToast('유효한 전화번호를 입력해주세요.', 'warning');
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(`/users/check-phone?phoneNumber=${formData.phoneNumber}`);
+      const { isAvailable } = response;
+
+      if (isAvailable) {
+        showToast('사용 가능한 전화번호입니다.', 'success');
+        setIsPhoneChecked(true);
+        setLastCheckedPhone(formData.phoneNumber);
+      } else {
+        showToast('이미 등록된 전화번호입니다.', 'error');
+        setIsPhoneChecked(false);
+      }
+    } catch (error) {
+      console.error("중복 확인 실패:", error);
+      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+    }
+  };
+
   const validate = () => {
     const { email, password, confirmPassword, nickname, position, techStacks, phoneNumber } = formData;
     if (!email || !password || !nickname || !position || techStacks.length === 0 || !phoneNumber) {
@@ -88,6 +123,10 @@ const RegisterPage = () => {
     }
     if (!isNicknameChecked || nickname !== lastCheckedNickname) {
       setError('닉네임 중복 확인이 필요합니다.');
+      return false;
+    }
+    if (!isPhoneChecked || phoneNumber !== lastCheckedPhone) {
+      setError('전화번호 중복 확인이 필요합니다.');
       return false;
     }
     return true;
@@ -200,7 +239,32 @@ const RegisterPage = () => {
 
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>휴대폰 번호 *</Typography>
-              <TextField fullWidth name="phoneNumber" placeholder="01012345678" value={formData.phoneNumber} onChange={handleChange} sx={inputStyle} />
+              <Stack direction="row" spacing={1}>
+                <TextField 
+                  fullWidth 
+                  name="phoneNumber" 
+                  placeholder="01012345678" 
+                  value={formData.phoneNumber} 
+                  onChange={handleChange} 
+                  sx={inputStyle} 
+                />
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCheckPhone}
+                  disabled={isPhoneChecked && formData.phoneNumber === lastCheckedPhone}
+                  sx={{ 
+                    whiteSpace: 'nowrap', 
+                    px: 3, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    borderColor: isPhoneChecked ? '#10B981' : 'primary.main',
+                    color: isPhoneChecked ? '#10B981' : 'primary.main',
+                    '&:hover': { borderColor: 'primary.dark' }
+                  }}
+                >
+                  {isPhoneChecked ? '확인됨' : '중복 확인'}
+                </Button>
+              </Stack>
             </Box>
 
             <Box sx={{ mb: 3 }}>
