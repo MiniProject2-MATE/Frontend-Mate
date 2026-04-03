@@ -32,10 +32,12 @@ const PostEditPage = () => {
   const { showToast, openModal } = useUiStore();
 
   // 오늘 날짜 기준 데이터 생성
-  const currentYear = new Date().getFullYear();
-  const years = Array.from({ length: 11 }, (_, i) => currentYear - 5 + i);
-  const months = Array.from({ length: 12 }, (_, i) => i + 1);
-  const days = Array.from({ length: 31 }, (_, i) => i + 1);
+  const today = new Date();
+  const currentYear = today.getFullYear();
+  const currentMonth = today.getMonth() + 1;
+  const currentDay = today.getDate();
+
+  const years = Array.from({ length: 11 }, (_, i) => currentYear + i);
 
   // 1. 상태 관리
   const [formData, setFormData] = useState({
@@ -45,7 +47,9 @@ const PostEditPage = () => {
     techStacks: [],
     endDate: '', // YYYY-MM-DD
     onOffline: '온라인',
-    content: ''
+    content: '',
+    status: 'RECRUITING', 
+    currentCount: 0 
   });
 
   // 날짜 선택용 로컬 상태
@@ -54,6 +58,27 @@ const PostEditPage = () => {
     month: '',
     day: ''
   });
+
+  // 선택된 년도에 따른 가용 월 계산
+  const availableMonths = dateParts.year === currentYear
+    ? Array.from({ length: 12 - currentMonth + 1 }, (_, i) => currentMonth + i)
+    : Array.from({ length: 12 }, (_, i) => i + 1);
+
+  // 선택된 년/월에 따른 가용 일 계산
+  const getDaysInMonth = (year, month) => new Date(year, month, 0).getDate();
+  const getAvailableDays = () => {
+    const selYear = parseInt(dateParts.year);
+    const selMonth = parseInt(dateParts.month);
+    if (!selYear || !selMonth) return Array.from({ length: 31 }, (_, i) => i + 1);
+    
+    const totalDays = getDaysInMonth(selYear, selMonth);
+    if (selYear === currentYear && selMonth === currentMonth) {
+      return Array.from({ length: totalDays - currentDay + 1 }, (_, i) => currentDay + i);
+    }
+    return Array.from({ length: totalDays }, (_, i) => i + 1);
+  };
+
+  const availableDays = getAvailableDays();
 
   const [isLoading, setIsLoading] = useState(true);
 
@@ -71,7 +96,9 @@ const PostEditPage = () => {
           techStacks: post.techStacks || [],
           endDate: post.endDate || '',
           onOffline: post.onOffline || '온라인',
-          content: post.content || ''
+          content: post.content || '',
+          status: post.status || 'RECRUITING', 
+          currentCount: post.currentCount || 0
         });
 
         // 날짜 파싱 (YYYY-MM-DD)
@@ -91,17 +118,40 @@ const PostEditPage = () => {
 
   // 2. 입력 핸들러
   const handleChange = (field) => (e) => {
-    setFormData({ ...formData, [field]: e.target.value });
+    let value = e.target.value;
+    if (field === 'recruitCount' && value !== '') {
+      value = Math.max(1, parseInt(value) || 1);
+    }
+    setFormData({ ...formData, [field]: value });
   };
 
   const handleDateChange = (part) => (e) => {
     const newVal = e.target.value;
     const newDateParts = { ...dateParts, [part]: newVal };
+    
+    if (part === 'year') {
+      if (parseInt(newVal) === currentYear && dateParts.month && parseInt(dateParts.month) < currentMonth) {
+        newDateParts.month = '';
+        newDateParts.day = '';
+      }
+    } else if (part === 'month') {
+      if (newDateParts.year && newVal) {
+        const maxDays = getDaysInMonth(parseInt(newDateParts.year), parseInt(newVal));
+        if (parseInt(newDateParts.year) === currentYear && parseInt(newVal) === currentMonth && dateParts.day && parseInt(dateParts.day) < currentDay) {
+          newDateParts.day = '';
+        } else if (dateParts.day && parseInt(dateParts.day) > maxDays) {
+          newDateParts.day = '';
+        }
+      }
+    }
+
     setDateParts(newDateParts);
 
     if (newDateParts.year && newDateParts.month && newDateParts.day) {
       const formattedDate = `${newDateParts.year}-${String(newDateParts.month).padStart(2, '0')}-${String(newDateParts.day).padStart(2, '0')}`;
       setFormData(prev => ({ ...prev, endDate: formattedDate }));
+    } else {
+      setFormData(prev => ({ ...prev, endDate: '' }));
     }
   };
 
@@ -114,7 +164,6 @@ const PostEditPage = () => {
     setFormData({ ...formData, techStacks: processedValue });
   };
 
-  // 4. 저장 버튼 클릭 시
   const handleSubmit = async () => {
     if (!formData.title || !formData.recruitCount || formData.techStacks.length === 0 || !formData.content || !formData.endDate) {
       showToast('모든 필수 항목(*)을 입력해주세요.', 'warning');
@@ -137,7 +186,7 @@ const PostEditPage = () => {
   const handleClosePost = () => {
     openModal('confirm', {
       title: '모집 조기 마감',
-      message: '정말 이 모집글을 조기 마감하시겠습니까? 마감 후에는 다시 모집 중 상태로 되돌릴 수 없습니다.',
+      message: '정말 이 모집글을 조기 마감하시겠습니까? 마감 후에는 재모집 조건을 충족해야 다시 열 수 있습니다.',
       confirmText: '마감하기',
       color: 'primary',
       onConfirm: async () => {
@@ -151,6 +200,50 @@ const PostEditPage = () => {
         }
       }
     });
+  };
+
+  const handleReopenPost = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(formData.endDate);
+
+    if (Number(formData.recruitCount) <= formData.currentCount) {
+      showToast(`현재 참여 인원(${formData.currentCount}명)보다 모집 인원이 많아야 합니다.`, 'warning');
+      return;
+    }
+
+    if (targetDate < today) {
+      showToast('마감 일자를 오늘 이후로 설정해주세요.', 'warning');
+      return;
+    }
+
+    openModal('confirm', {
+      title: '재모집 시작',
+      message: '모집을 다시 시작하시겠습니까?',
+      confirmText: '재모집하기',
+      color: 'primary',
+      onConfirm: async () => {
+        try {
+          await postApi.updatePost(id, {
+            ...formData,
+            recruitCount: Number(formData.recruitCount)
+          });
+          await postApi.reopenPost(id);
+          showToast('재모집이 시작되었습니다!', 'success');
+          navigate(`/posts/${id}`);
+        } catch (error) {
+          console.error('재모집 실패:', error);
+          showToast('재모집 처리 중 오류가 발생했습니다.', 'error');
+        }
+      }
+    });
+  };
+
+  const isReopenDisabled = () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const targetDate = new Date(formData.endDate);
+    return Number(formData.recruitCount) <= formData.currentCount || targetDate < today;
   };
 
   const handleDelete = () => {
@@ -257,7 +350,17 @@ const PostEditPage = () => {
                         fullWidth type="number"
                         value={formData.recruitCount} onChange={handleChange('recruitCount')}
                         placeholder="본인 제외 인원 (명)"
-                        sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 } }} 
+                        inputProps={{ min: 1 }}
+                        sx={{ 
+                          '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3 },
+                          '& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button': {
+                            WebkitAppearance: 'none',
+                            margin: 0,
+                          },
+                          '& input[type=number]': {
+                            MozAppearance: 'textfield',
+                          },
+                        }} 
                       />
                     </Box>
                     <Box sx={{ flex: 1.3 }}>
@@ -269,11 +372,11 @@ const PostEditPage = () => {
                         </TextField>
                         <TextField select fullWidth value={dateParts.month} onChange={handleDateChange('month')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
                           <MenuItem value="" disabled>월</MenuItem>
-                          {months.map(m => <MenuItem key={m} value={m}>{m}월</MenuItem>)}
+                          {availableMonths.map(m => <MenuItem key={m} value={m}>{m}월</MenuItem>)}
                         </TextField>
                         <TextField select fullWidth value={dateParts.day} onChange={handleDateChange('day')} sx={{ '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600 } }} SelectProps={{ displayEmpty: true }}>
                           <MenuItem value="" disabled>일</MenuItem>
-                          {days.map(d => <MenuItem key={d} value={d}>{d}일</MenuItem>)}
+                          {availableDays.map(d => <MenuItem key={d} value={d}>{d}일</MenuItem>)}
                         </TextField>
                       </Stack>
                     </Box>
@@ -368,9 +471,30 @@ const PostEditPage = () => {
                 <CustomButton variant="primary" onClick={handleSubmit} sx={{ px: 4, height: 56, fontWeight: 900 }}>
                   <SaveIcon sx={{ mr: 1 }} /> 수정 완료하기
                 </CustomButton>
-                <CustomButton variant="contained" onClick={handleClosePost} sx={{ px: 4, height: 56, bgcolor: '#FF9800', color: 'white', fontWeight: 900, '&:hover': { bgcolor: '#F57C00' } }}>
-                  <LockClockIcon sx={{ mr: 1 }} /> 모집 조기마감
-                </CustomButton>
+                
+                {formData.status === 'RECRUITING' ? (
+                  <CustomButton 
+                    variant="contained" 
+                    onClick={handleClosePost} 
+                    sx={{ px: 4, height: 56, bgcolor: '#FF9800', color: 'white', fontWeight: 900, '&:hover': { bgcolor: '#F57C00' } }}
+                  >
+                    <LockClockIcon sx={{ mr: 1 }} /> 모집 조기마감
+                  </CustomButton>
+                ) : (
+                  <CustomButton 
+                    variant="contained" 
+                    onClick={handleReopenPost}
+                    disabled={isReopenDisabled()}
+                    sx={{ 
+                      px: 4, height: 56, bgcolor: '#22C55E', color: 'white', fontWeight: 900, 
+                      '&:hover': { bgcolor: '#16A34A' },
+                      '&:disabled': { bgcolor: '#E5E7EB', color: '#9CA3AF' }
+                    }}
+                  >
+                    <CheckCircleIcon sx={{ mr: 1 }} /> 재모집 시작하기
+                  </CustomButton>
+                )}
+
                 <CustomButton variant="secondary" onClick={() => navigate(-1)} sx={{ px: 4, height: 56 }}>
                   취소
                 </CustomButton>
@@ -407,7 +531,7 @@ const PostEditPage = () => {
                     { label: '제목 및 유형 확인', done: formData.title.trim().length > 0 },
                     { label: '모집 조건 재검토', done: Number(formData.recruitCount) > 0 && !!formData.endDate },
                     { label: '기술 스택 업데이트', done: formData.techStacks.length > 0 },
-                    { label: '상세 내용 검토', done: formData.content.trim().length > 10 }
+                    { label: '상세 내용 검토', done: formData.content.trim().length > 0 }
                   ].map((item, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
                       <CheckCircleIcon sx={{ fontSize: 22, color: item.done ? '#22C55E' : '#E5E7EB' }} />

@@ -36,6 +36,12 @@ export const postApi = {
     return await axiosInstance.patch(`/projects/${projectId}/close`);
   },
 
+  // 재모집 시작
+  reopenPost: async (projectId) => {
+    // 설계서 규격 외 추가: PATCH /api/projects/{id}/reopen
+    return await axiosInstance.patch(`/projects/${projectId}/reopen`);
+  },
+
   // 프로젝트 참여 지원 (설계서 규격: POST /api/applications)
   applyToPost: async (projectId, applicationData) => {
     return await axiosInstance.post('/applications', {

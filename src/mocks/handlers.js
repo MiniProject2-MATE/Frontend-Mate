@@ -567,6 +567,30 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
+  // 모집 조기 마감
+  http.patch('*/api/projects/:id/close', ({ params }) => {
+    const { id } = params;
+    const post = db.posts.find(p => p.projectId === parseInt(id));
+    if (post) {
+      post.status = 'CLOSED';
+      saveDB(db);
+      return HttpResponse.json({ success: true, data: { projectId: id, status: 'CLOSED' } });
+    }
+    return new HttpResponse(null, { status: 404 });
+  }),
+
+  // 재모집 시작
+  http.patch('*/api/projects/:id/reopen', ({ params }) => {
+    const { id } = params;
+    const post = db.posts.find(p => p.projectId === parseInt(id));
+    if (post) {
+      post.status = 'RECRUITING';
+      saveDB(db);
+      return HttpResponse.json({ success: true, data: { projectId: id, status: 'RECRUITING' } });
+    }
+    return new HttpResponse(null, { status: 404 });
+  }),
+
   // 모집글 수정
   http.patch('*/api/projects/:id', async ({ params, request }) => {
     const { id } = params;
