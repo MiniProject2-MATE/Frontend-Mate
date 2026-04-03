@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppBar, Toolbar, Typography, Button, Box, IconButton, Drawer, List, ListItem, ListItemText, Container, useMediaQuery, useTheme } from '@mui/material';
+import { AppBar, Toolbar, Typography, Button, Box, IconButton, Drawer, List, ListItem, ListItemText, Container, useMediaQuery, useTheme, ListItemButton } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
@@ -33,8 +33,6 @@ const Header = () => {
       navigate('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // 서버 호출이 실패하더라도 클라이언트 상태는 초기화하여 
-      // 사용자가 다시 로그인할 수 있도록 처리하는 것이 일반적입니다.
       logout();
       navigate('/');
       showToast('로그아웃 중 오류가 발생했지만 세션이 종료되었습니다.', 'info');
@@ -43,7 +41,6 @@ const Header = () => {
     }
   };
 
-  // Explore 경로에 해시(#) 추가
   const menuItems = [
     { label: 'Explore', path: '/#new-opportunities' },
     { label: 'Create', path: '/posts/new' },
@@ -59,7 +56,6 @@ const Header = () => {
         navigate('/posts/new');
       }
     }
-    // Explore 클릭 시에도 모바일 드로어 닫기
     if (mobileOpen) setMobileOpen(false);
   };
 
@@ -72,33 +68,41 @@ const Header = () => {
       </Typography>
       <List>
         {filteredMenuItems.map((item) => (
-          <ListItem 
-            button 
-            key={item.label} 
-            component={Link} 
-            to={item.path}
-            onClick={handleMenuClick(item)}
-            selected={location.pathname + location.hash === item.path}
-          >
-            <ListItemText primary={item.label} />
+          <ListItem key={item.label} disablePadding>
+            <ListItemButton 
+              component={Link} 
+              to={item.path}
+              onClick={handleMenuClick(item)}
+              selected={location.pathname + location.hash === item.path}
+            >
+              <ListItemText primary={item.label} />
+            </ListItemButton>
           </ListItem>
         ))}
         {isLoggedIn ? (
           <>
-            <ListItem button component={Link} to="/mypage" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary="마이페이지" />
+            <ListItem disablePadding>
+              <ListItemButton component={Link} to="/mypage" onClick={() => setMobileOpen(false)}>
+                <ListItemText primary="마이페이지" />
+              </ListItemButton>
             </ListItem>
-            <ListItem button onClick={handleLogout}>
-              <ListItemText primary="로그아웃" />
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleLogout}>
+                <ListItemText primary="로그아웃" />
+              </ListItemButton>
             </ListItem>
           </>
         ) : (
           <>
-            <ListItem button component={Link} to="/login" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary="로그인" />
+            <ListItem disablePadding>
+              <ListItemButton component={Link} to="/login" onClick={() => setMobileOpen(false)}>
+                <ListItemText primary="로그인" />
+              </ListItemButton>
             </ListItem>
-            <ListItem button component={Link} to="/register" onClick={() => setMobileOpen(false)}>
-              <ListItemText primary="Get Started" />
+            <ListItem disablePadding>
+              <ListItemButton component={Link} to="/register" onClick={() => setMobileOpen(false)}>
+                <ListItemText primary="Get Started" />
+              </ListItemButton>
             </ListItem>
           </>
         )}

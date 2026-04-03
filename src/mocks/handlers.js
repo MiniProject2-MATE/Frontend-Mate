@@ -1,7 +1,6 @@
 import { http, HttpResponse } from 'msw';
 
 // --- 로컬스토리지 연동 로직 ---
-
 const getStoredPosts = () => {
   const saved = localStorage.getItem('mock-posts');
   if (saved) return JSON.parse(saved);
@@ -27,7 +26,7 @@ const getStoredUser = () => {
   const saved = localStorage.getItem('user-info');
   if (saved) return JSON.parse(saved);
   return {
-    userId: 1, // id -> userId
+    userId: 1,
     email: 'test@test.com',
     nickname: '테스트메이트',
     position: 'FE',
@@ -93,7 +92,6 @@ const getStoredComments = () => {
   ];
 };
 
-// --- 실제 데이터 할당 ---
 let mockPosts = getStoredPosts();
 let currentUserData = getStoredUser();
 let mockApplies = getStoredApplies();
@@ -109,9 +107,30 @@ const syncStorage = () => {
 };
 
 export const handlers = [
-  // 1. 로그인
+  // 1. 로그인 핸들러 (회원가입 데이터와 연동하도록 수정)
   http.post('*/api/auth/login', async ({ request }) => {
     const { email, password } = await request.json();
+    
+    // 로컬스토리지에서 가입된 유저 리스트를 가져옴
+    const storedUsers = JSON.parse(localStorage.getItem('mock-users') || '[]');
+    const user = storedUsers.find(u => u.email === email && u.password === password);
+
+    // 1단계: 가입된 유저 정보가 있는지 확인
+    if (user) {
+      // 세션 유지를 위해 현재 유저 정보 동기화
+      currentUserData = user;
+      syncStorage();
+      return HttpResponse.json({
+        success: true,
+        data: {
+          accessToken: 'mock-access-token',
+          refreshToken: 'mock-refresh-token',
+          user: user 
+        }
+      });
+    }
+
+    // 2단계: 기본 테스트 계정 확인
     if (email === 'test@test.com' && password === '1234') {
       return HttpResponse.json({
         success: true,
@@ -122,7 +141,12 @@ export const handlers = [
         }
       });
     }
-    return new HttpResponse(JSON.stringify({ success: false, error: { code: 'AUTH_001', message: '이메일 또는 비밀번호가 올바르지 않습니다.' } }), { status: 401 });
+
+    // 일치하는 정보가 없으면 에러 반환
+    return new HttpResponse(JSON.stringify({ 
+      success: false, 
+      error: { code: 'AUTH_001', message: '이메일 또는 비밀번호가 올바르지 않습니다.' } 
+    }), { status: 401 });
   }),
 
   // 2. 닉네임 중복 확인
@@ -143,8 +167,29 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: { isAvailable: true } });
   }),
 
-  // 3. 회원가입
-  http.post('*/api/auth/signup', () => HttpResponse.json({ success: true, data: null, message: '회원가입이 완료되었습니다.' })),
+  // 3. 회원가입 (데이터 저장 로직 추가)
+  http.post('*/api/auth/register', async ({ request }) => {
+    const formData = await request.formData();
+    const dataStr = formData.get('data');
+    const userData = JSON.parse(await dataStr.text());
+
+    // 기존 유저 리스트 가져오기 및 추가
+    const storedUsers = JSON.parse(localStorage.getItem('mock-users') || '[]');
+    const newUser = {
+      ...userData,
+      userId: Date.now(),
+      profileImageUrl: 'https://mate-s3.com/default-profile.png'
+    };
+    
+    storedUsers.push(newUser);
+    localStorage.setItem('mock-users', JSON.stringify(storedUsers));
+
+    return HttpResponse.json({ 
+      success: true, 
+      data: newUser, 
+      message: '회원가입이 완료되었습니다.' 
+    }, { status: 201 });
+  }),
 
   // 4. 모집글 목록 조회
   http.get('*/api/projects', ({ request }) => {
@@ -209,7 +254,6 @@ export const handlers = [
     const updateData = await request.json();
     const oldNickname = currentUserData.nickname;
     
-    // 닉네임 변경 시 관련 데이터 동기화
     if (updateData.nickname && updateData.nickname !== oldNickname) {
       mockPosts = mockPosts.map(p => p.ownerNickname === oldNickname ? { ...p, ownerNickname: updateData.nickname } : p);
     }
@@ -217,7 +261,6 @@ export const handlers = [
     currentUserData = { ...currentUserData, ...updateData };
     syncStorage();
 
-    // [핵심 수정] 수정 후 응답 시에도 활동 내역 정보를 포함하여 반환 (UI 데이터 유지 목적)
     const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
     const myApplies = mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname);
     
@@ -235,50 +278,51 @@ export const handlers = [
     });
   }),
 
-  // [수정] 4.5.5 프로필 이미지 수정 (PATCH)
-http.patch('*/api/users/profile-image', async ({ request }) => {
-  const formData = await request.formData();
-  const profileImageFile = formData.get('profileImage'); // 설계서 필드명: profileImage
+  // 4.5.5 프로필 이미지 수정 (PATCH)
+  http.patch('*/api/users/profile-image', async ({ request }) => {
+    const formData = await request.formData();
+    const profileImageFile = formData.get('profileImage');
 
-  if (!profileImageFile) {
-    return new HttpResponse(JSON.stringify({ success: false, message: "파일이 첨부되지 않았습니다." }), { status: 400 });
-  }
+    if (!profileImageFile) {
+      return new HttpResponse(JSON.stringify({ success: false, message: "파일이 첨부되지 않았습니다." }), { status: 400 });
+    }
+    
+    syncStorage(); 
+    
+    return HttpResponse.json({
+      success: true,
+      data: {
+        profileImageUrl: currentUserData.profileImageUrl
+      },
+      message: "프로필 이미지가 성공적으로 변경되었습니다."
+    });
+  }),
 
-  // [중요] 새로고침 유지 로직: 
-  // 실제 서버라면 S3 URL을 주겠지만, 여기선 클라이언트(MyPage)가 보낸 
-  // Base64 데이터를 이미 currentUserData가 들고 있다고 가정하거나, 
-  // 단순히 성공 응답만 보내고 데이터 동기화는 MyPage의 state 업데이트에 맡깁니다.
-  
-  syncStorage(); 
-  
-  return HttpResponse.json({
-    success: true,
-    data: {
-      profileImageUrl: currentUserData.profileImageUrl // 설계서 필드명 일치
-    },
-    message: "프로필 이미지가 성공적으로 변경되었습니다."
-  });
-}),
+  // 4.5.6 프로필 이미지 삭제 (DELETE)
+  http.delete('*/api/users/profile-image', () => {
+    const defaultUrl = 'https://mate-s3.com/default-profile.png';
+    currentUserData = { ...currentUserData, profileImageUrl: defaultUrl };
+    syncStorage();
 
-// [수정] 4.5.6 프로필 이미지 삭제 (DELETE)
-http.delete('*/api/users/profile-image', () => {
-  const defaultUrl = 'https://mate-s3.com/default-profile.png'; // 설계서의 기본 이미지명
-  
-  currentUserData = { ...currentUserData, profileImageUrl: defaultUrl };
-  syncStorage();
+    return HttpResponse.json({
+      success: true,
+      data: {
+        profileImageUrl: defaultUrl
+      },
+      message: "기본 프로필 이미지로 변경되었습니다."
+    });
+  }),
 
-  return HttpResponse.json({
-    success: true,
-    data: {
-      profileImageUrl: defaultUrl
-    },
-    message: "기본 프로필 이미지로 변경되었습니다."
-  });
-}),
-
-  // 8. 아이디 찾기
+  // 8. 아이디 찾기 (경로 수정 및 가입 정보 조회 로직 추가)
   http.post('*/api/auth/find-email', async ({ request }) => {
     const { phoneNumber } = await request.json();
+    const storedUsers = JSON.parse(localStorage.getItem('mock-users') || '[]');
+    const user = storedUsers.find(u => u.phoneNumber === phoneNumber);
+    
+    if (user) {
+       return HttpResponse.json({ success: true, data: { email: user.email } });
+    }
+    
     if (phoneNumber === '01012345678') return HttpResponse.json({ success: true, data: { email: 'te**@test.com' } });
     return new HttpResponse(JSON.stringify({ success: false, error: { message: '정보를 찾을 수 없습니다.' } }), { status: 404 });
   }),
@@ -350,8 +394,6 @@ http.delete('*/api/users/profile-image', () => {
     try {
       const applyData = await request.json(); 
       const postId = applyData.postId; 
-      
-      // 해당 프로젝트 찾기
       const targetProject = mockPosts.find(p => String(p.projectId) === String(postId));
 
       const newApply = { 
@@ -397,7 +439,7 @@ http.delete('*/api/users/profile-image', () => {
     return HttpResponse.json({ success: true });
   }),
 
-  // 20. 댓글 수정/삭제 핸들러 (경로 변경)
+  // 20. 댓글 수정/삭제 핸들러
   http.patch('*/api/comments/:commentId', async ({ params, request }) => {
     const { commentId } = params;
     const { content } = await request.json();
@@ -417,20 +459,18 @@ http.delete('*/api/users/profile-image', () => {
     return HttpResponse.json({ success: true });
   }),
 
-  // 18. 모집글 삭제 (경로 변경: /posts -> /projects)
+  // 18. 모집글 삭제
   http.delete('*/api/projects/:id', ({ params }) => {
     const { id } = params;
-    // [수정] 일치하지 않는 것들만 남겨야 함 (삭제 로직)
     mockPosts = mockPosts.filter(p => String(p.projectId) !== String(id));
     syncStorage();
     return HttpResponse.json({ success: true });
   }),
 
-  // 19. 모집글 수정 핸들러 (경로 변경: /posts -> /projects)
+  // 19. 모집글 수정 핸들러
   http.put('*/api/projects/:id', async ({ params, request }) => {
     const { id } = params;
     const updatedData = await request.json();
-    // [보정] findIndex 시에도 타입 안전하게 비교
     const postIndex = mockPosts.findIndex(p => String(p.projectId) === String(id));
     if (postIndex !== -1) {
       mockPosts[postIndex] = {
@@ -447,4 +487,4 @@ http.delete('*/api/users/profile-image', () => {
     }
     return new HttpResponse(JSON.stringify({ success: false, message: '게시글을 찾을 수 없습니다.' }), { status: 404 });
   }),
-    ];
+];

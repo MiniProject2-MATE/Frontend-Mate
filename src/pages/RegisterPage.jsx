@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Grid, Box, Typography, TextField, Button, Paper, Link, Alert, MenuItem, Autocomplete, Chip, Divider, Stack } from '@mui/material';
+import { Container, Box, Typography, TextField, Button, Paper, Link, Alert, MenuItem, Autocomplete, Chip, Divider, Stack } from '@mui/material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import axiosInstance from '../api/axiosInstance';
@@ -41,6 +41,16 @@ const RegisterPage = () => {
     'AWS', 'Docker', 'Kubernetes', 'MySQL', 'MongoDB'
   ];
 
+  // 닉네임 미입력 시 사용할 랜덤 닉네임 생성 함수
+  const generateRandomNickname = () => {
+    const adjectives = ['열정적인', '창의적인', '똑똑한', '친절한', '빠른'];
+    const nouns = ['메이트', '개발자', '러너', '엔지니어', '디자이너'];
+    const randomNum = Math.floor(Math.random() * 10000);
+    const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
+    const noun = nouns[Math.floor(Math.random() * nouns.length)];
+    return `${adj}${noun}${randomNum}`;
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     
@@ -65,13 +75,15 @@ const RegisterPage = () => {
 
   const handleCheckNickname = async () => {
     if (!formData.nickname.trim()) {
-      showToast('닉네임을 입력해주세요.', 'warning');
+      showToast('중복 확인을 위해 닉네임을 입력해주세요.', 'warning');
       return;
     }
 
     try {
-      const response = await axiosInstance.get(`/auth/check-nickname?nickname=${formData.nickname}`);
-      const { isAvailable } = response;
+      // Network Error 방지를 위한 에러 핸들링 강화
+      const response = await axiosInstance.get(`/auth/check-nickname?nickname=${encodeURIComponent(formData.nickname)}`);
+      // 가짜 데이터(MSW) 환경과 실제 API 환경 모두 고려
+      const isAvailable = response.data?.isAvailable ?? response.isAvailable;
       
       if (isAvailable) {
         showToast('사용 가능한 닉네임입니다!', 'success');
@@ -83,7 +95,11 @@ const RegisterPage = () => {
       }
     } catch (error) {
       console.error("중복 확인 실패:", error);
-      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+      if (!error.response) {
+        showToast('서버와 통신할 수 없습니다. 서버 상태를 확인해주세요.', 'error');
+      } else {
+        showToast('이미 사용 중이거나 유효하지 않은 닉네임입니다.', 'error');
+      }
     }
   };
 
@@ -95,7 +111,7 @@ const RegisterPage = () => {
 
     try {
       const response = await axiosInstance.get(`/users/check-phone?phoneNumber=${formData.phoneNumber}`);
-      const { isAvailable } = response;
+      const isAvailable = response.data?.isAvailable ?? response.isAvailable;
 
       if (isAvailable) {
         showToast('사용 가능한 전화번호입니다.', 'success');
@@ -107,13 +123,18 @@ const RegisterPage = () => {
       }
     } catch (error) {
       console.error("중복 확인 실패:", error);
-      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+      if (!error.response) {
+        showToast('서버 연결에 실패했습니다.', 'error');
+      } else {
+        showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+      }
     }
   };
 
   const validate = () => {
     const { email, password, confirmPassword, nickname, position, techStacks, phoneNumber } = formData;
-    if (!email || !password || !nickname || !position || techStacks.length === 0 || !phoneNumber) {
+    // nickname은 필수 항목에서 제외
+    if (!email || !password || !position || techStacks.length === 0 || !phoneNumber) {
       setError('모든 필수 항목을 입력해주세요.');
       return false;
     }
@@ -121,7 +142,8 @@ const RegisterPage = () => {
       setError('비밀번호가 일치하지 않습니다.');
       return false;
     }
-    if (!isNicknameChecked || nickname !== lastCheckedNickname) {
+    // 닉네임을 입력한 경우에만 중복 확인 체크
+    if (nickname.trim() && (!isNicknameChecked || nickname !== lastCheckedNickname)) {
       setError('닉네임 중복 확인이 필요합니다.');
       return false;
     }
@@ -138,19 +160,22 @@ const RegisterPage = () => {
     if (!validate()) return;
     setIsLoading(true);
     try {
+      // 닉네임이 비어있을 경우 랜덤 생성 로직 적용
+      const finalNickname = formData.nickname.trim() || generateRandomNickname();
+
       const userData = {
         ...formData,
+        nickname: finalNickname,
         phoneNumber: formData.phoneNumber.replace(/-/g, ''),
       };
       delete userData.confirmPassword;
       
-      // authApi.signup은 (userData, profileImage)를 받음
-      await authApi.signup(userData, null); // 현재 이미지 선택 UI가 없으므로 null 전달
+      await authApi.signup(userData, null);
       
-      showToast('환영합니다! 회원가입이 완료되었습니다.', 'success');
+      showToast(`${finalNickname}님, 환영합니다! 회원가입이 완료되었습니다.`, 'success');
       navigate('/login');
     } catch (err) {
-      setError(err.message || '회원가입에 실패했습니다.');
+      setError(err.response?.data?.message || err.message || '회원가입에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
@@ -212,12 +237,12 @@ const RegisterPage = () => {
             <Divider sx={{ my: 6 }} />
 
             <Box sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>닉네임 *</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>닉네임 (선택)</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField 
                   fullWidth 
                   name="nickname" 
-                  placeholder="사용할 닉네임" 
+                  placeholder="미입력 시 랜덤 생성" 
                   value={formData.nickname} 
                   onChange={handleChange} 
                   sx={inputStyle} 
@@ -225,7 +250,7 @@ const RegisterPage = () => {
                 <Button 
                   variant="outlined" 
                   onClick={handleCheckNickname}
-                  disabled={isNicknameChecked && formData.nickname === lastCheckedNickname}
+                  disabled={!formData.nickname.trim() || (isNicknameChecked && formData.nickname === lastCheckedNickname)}
                   sx={{ 
                     whiteSpace: 'nowrap', 
                     px: 3, 
@@ -233,7 +258,8 @@ const RegisterPage = () => {
                     fontWeight: 800,
                     borderColor: isNicknameChecked ? '#10B981' : 'primary.main',
                     color: isNicknameChecked ? '#10B981' : 'primary.main',
-                    '&:hover': { borderColor: 'primary.dark' }
+                    '&:hover': { borderColor: 'primary.dark' },
+                    '&:disabled': { borderColor: '#E5E7EB' }
                   }}
                 >
                   {isNicknameChecked ? '확인됨' : '중복 확인'}
@@ -255,7 +281,7 @@ const RegisterPage = () => {
                 <Button 
                   variant="outlined" 
                   onClick={handleCheckPhone}
-                  disabled={isPhoneChecked && formData.phoneNumber === lastCheckedPhone}
+                  disabled={!formData.phoneNumber.trim() || (isPhoneChecked && formData.phoneNumber === lastCheckedPhone)}
                   sx={{ 
                     whiteSpace: 'nowrap', 
                     px: 3, 
@@ -263,7 +289,8 @@ const RegisterPage = () => {
                     fontWeight: 800,
                     borderColor: isPhoneChecked ? '#10B981' : 'primary.main',
                     color: isPhoneChecked ? '#10B981' : 'primary.main',
-                    '&:hover': { borderColor: 'primary.dark' }
+                    '&:hover': { borderColor: 'primary.dark' },
+                    '&:disabled': { borderColor: '#E5E7EB' }
                   }}
                 >
                   {isPhoneChecked ? '확인됨' : '중복 확인'}
@@ -289,9 +316,19 @@ const RegisterPage = () => {
                 onChange={handleTechStacksChange}
                 freeSolo
                 renderTags={(value, getTagProps) =>
-                  value.map((option, index) => (
-                    <Chip variant="filled" color="primary" label={option} {...getTagProps({ index })} sx={{ borderRadius: 2, fontWeight: 700 }} />
-                  ))
+                  value.map((option, index) => {
+                    const { key, ...tagProps } = getTagProps({ index });
+                    return (
+                      <Chip 
+                        key={key} 
+                        variant="filled" 
+                        color="primary" 
+                        label={option} 
+                        {...tagProps} 
+                        sx={{ borderRadius: 2, fontWeight: 700 }} 
+                      />
+                    );
+                  })
                 }
                 renderInput={(params) => (
                   <TextField {...params} variant="outlined" placeholder="스택 선택 또는 입력" sx={inputStyle} />
