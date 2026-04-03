@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import Badge from './Badge';
 import Tag from './Tag';
 import Avatar from './Avatar';
+import { getDynamicStatus } from '../../utils/statusUtils';
 
 export default function PostCard({ post, isLoading }) {
   const navigate = useNavigate();
@@ -91,7 +92,7 @@ export default function PostCard({ post, isLoading }) {
               {calculateDDay(endDate)}
             </Typography>
           </Box>
-          <Badge status={status} />
+          <Badge status={getDynamicStatus(post)} />
         </Box>
 
         <Typography variant="h6" sx={{ 

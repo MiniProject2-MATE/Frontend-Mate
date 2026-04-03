@@ -22,6 +22,7 @@ import authApi from '../api/authApi'; // [추가] authApi 임포트
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { POSITION_OPTIONS } from '../constants/techStacks';
+import { getDynamicStatus } from '../utils/statusUtils';
 
 const PostDetailPage = () => {
   const { id } = useParams();
@@ -102,6 +103,7 @@ const PostDetailPage = () => {
   if (!post) return <Typography sx={{ mt: 20, textAlign: 'center', fontWeight: 700 }}>데이터를 찾을 수 없습니다.</Typography>;
 
   // 모집 현황 계산 로직
+  const dynamicStatus = getDynamicStatus(post);
   const recruitCount = post.recruitCount || 1;
   const currentCount = post.currentCount || 0;
   const progress = (currentCount / recruitCount) * 100;
@@ -162,8 +164,12 @@ const PostDetailPage = () => {
 
                 {/* 하단 메타 정보 */}
                 <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3, mb: 5 }}>
-                  <Typography variant="body2" sx={{ color: post.status === 'RECRUITING' ? '#22C55E' : '#EF4444', fontWeight: 900, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <span style={{ fontSize: '1.2rem' }}>●</span> {post.status === 'RECRUITING' ? '모집중' : '모집종료'}
+                  <Typography variant="body2" sx={{ 
+                    color: dynamicStatus === 'RECRUITING' ? '#22C55E' : (dynamicStatus === 'DEADLINE_SOON' ? '#F59E0B' : '#EF4444'), 
+                    fontWeight: 900, display: 'flex', alignItems: 'center', gap: 0.5 
+                  }}>
+                    <span style={{ fontSize: '1.2rem' }}>●</span> 
+                    {dynamicStatus === 'RECRUITING' ? '모집중' : (dynamicStatus === 'DEADLINE_SOON' ? '마감임박' : '모집종료')}
                   </Typography>
                   <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 700, fontSize: '0.9rem' }}>
                     <VisibilityIcon sx={{ fontSize: 18 }} /> 조회 {post.viewCount || 0}
@@ -263,7 +269,7 @@ const PostDetailPage = () => {
                   {currentCount} <span style={{ fontSize: '1.4rem', opacity: 0.8, fontWeight: 700 }}>/ {recruitCount} Joiners</span>
                 </Typography>
                 <Typography variant="body2" sx={{ mb: 3, fontWeight: 700, bgcolor: 'rgba(255,255,255,0.15)', py: 1, px: 2, borderRadius: 2, display: 'inline-block' }}>
-                  {remainingCount > 0 ? `🚀 ${remainingCount}명 더 모집 중!` : '🎉 모집이 완료되었습니다'}
+                  {dynamicStatus !== 'CLOSED' ? `🚀 ${remainingCount}명 더 모집 중!` : '🎉 모집이 완료되었습니다'}
                 </Typography>
 
                 <Box sx={{ bgcolor: 'rgba(255,255,255,0.2)', height: 10, borderRadius: 10, mb: 4, overflow: 'hidden' }}>
@@ -273,7 +279,7 @@ const PostDetailPage = () => {
                 <CustomButton 
                   fullWidth 
                   onClick={handleApplyClick}
-                  disabled={post.status !== 'RECRUITING' || remainingCount <= 0 || isOwner || hasApplied}
+                  disabled={dynamicStatus === 'CLOSED' || isOwner || hasApplied}
                   sx={{ 
                     bgcolor: 'white', color: '#6C63FF', height: 60, borderRadius: 4, fontWeight: 900, fontSize: '1.15rem',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
@@ -285,7 +291,7 @@ const PostDetailPage = () => {
                     ? '작성하신 공고입니다' 
                     : hasApplied 
                       ? '이미 지원한 글입니다!!' 
-                      : (post.status !== 'RECRUITING' ? '모집 종료' : '지금 지원하기')}
+                      : (dynamicStatus === 'CLOSED' ? '모집 종료' : '지금 지원하기')}
                 </CustomButton>
               </Paper>
 
