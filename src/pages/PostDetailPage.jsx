@@ -21,6 +21,7 @@ import postApi from '../api/postApi'; // [추가] postApi 임포트
 import authApi from '../api/authApi'; // [추가] authApi 임포트
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
+import { POSITION_OPTIONS } from '../constants/techStacks';
 
 const PostDetailPage = () => {
   const { id } = useParams();

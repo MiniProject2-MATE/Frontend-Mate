@@ -376,9 +376,9 @@ const MyPage = () => {
 
     if (categoryFilter === '전체') return sourceData;
     return sourceData.filter(item => {
-      const title = item?.projectTitle || item?.title || "";
       const category = item?.category || "";
-      return title.includes(categoryFilter) || category === categoryFilter;
+      const categoryMap = { '프로젝트': 'PROJECT', '스터디': 'STUDY' };
+      return category === categoryMap[categoryFilter];
     });
   }, [userInfo, tabValue, categoryFilter]);
 
@@ -688,6 +688,7 @@ const MenuButton = ({ icon, label, count, onClick }) => (
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
 const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onCancelClick }) => {
+  const categoryLabel = item.category === 'PROJECT' ? '[프로젝트]' : item.category === 'STUDY' ? '[스터디]' : '';
   const title = item.projectTitle || item.title;
   const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : '승인완료');
   const info = tabValue === 2 
@@ -707,6 +708,9 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onCancelCli
             onClick={onTitleClick}
             sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}
           >
+            <Box component="span" sx={{ color: item.category === 'PROJECT' ? 'primary.main' : 'warning.main', mr: 1 }}>
+              {categoryLabel}
+            </Box>
             {title}
           </Typography>
           {tabValue !== 0 && (

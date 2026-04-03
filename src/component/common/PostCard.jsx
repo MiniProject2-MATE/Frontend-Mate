@@ -11,12 +11,12 @@ export default function PostCard({ post, isLoading }) {
   // 카드 스타일 수정: 가로로 더 긴 직사각형 형태, 곡률 완화
   const cardStyle = {
     width: '100%',
-    height: 300, // 높이를 줄여 가로로 긴 직사각형 형태로 변경
+    height: 300, 
     display: 'flex', 
     flexDirection: 'column',
     cursor: 'pointer',
     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    borderRadius: 2.5, // 곡률을 16px에서 10px 정도로 완화 (MUI 4 * 2.5 = 10px)
+    borderRadius: 2.5, 
     border: '1px solid #E5E7EB',
     bgcolor: '#ffffff',
     boxSizing: 'border-box',
@@ -54,7 +54,8 @@ export default function PostCard({ post, isLoading }) {
 
   const {
     projectId,
-    id, // 호환성을 위해 유지
+    id,
+    category,
     title,
     content,
     status,
@@ -66,6 +67,7 @@ export default function PostCard({ post, isLoading }) {
   } = post;
 
   const displayId = projectId || id;
+  const categoryLabel = category === 'PROJECT' ? '[프로젝트]' : category === 'STUDY' ? '[스터디]' : '';
 
   const calculateDDay = (dateStr) => {
     if (!dateStr) return '미정';
@@ -98,18 +100,18 @@ export default function PostCard({ post, isLoading }) {
           lineHeight: 1.3, 
           mb: 1,
           display: '-webkit-box',
-          WebkitLineClamp: 1, // 제목을 1줄로 제한하여 더 깔끔하게
+          WebkitLineClamp: 1,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
           color: 'text.primary',
         }}>
-          {title}
+          {categoryLabel} {title}
         </Typography>
 
         <Typography variant="body2" sx={{ 
           color: 'text.secondary',
           display: '-webkit-box',
-          WebkitLineClamp: 2, // 본문도 2줄로 제한
+          WebkitLineClamp: 2,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
           lineHeight: 1.5,
