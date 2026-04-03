@@ -175,6 +175,14 @@ export const handlers = [
   // 5. 토큰 갱신
   http.post('*/api/auth/refresh', () => HttpResponse.json({ success: true, data: { accessToken: 'new-token', refreshToken: 'new-refresh' } })),
 
+  // 5-2. 로그아웃
+  http.post('*/api/auth/logout', () => {
+    return HttpResponse.json({ 
+      success: true, 
+      message: '성공적으로 로그아웃되었습니다.' 
+    });
+  }),
+
   // 6. 마이페이지 정보 조회
   http.get('*/api/users/me', () => {
     const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
