@@ -329,6 +329,37 @@ export const handlers = [
     });
   }),
 
+  // 모집글 등록
+  http.post('*/api/projects', async ({ request }) => {
+    if (!db.currentUser) return new HttpResponse(null, { status: 401 });
+    
+    try {
+      const newPostData = await request.json();
+      const newId = db.posts.length > 0 ? Math.max(...db.posts.map(p => p.projectId)) + 1 : 1;
+      
+      const newPost = { 
+        ...newPostData,
+        projectId: newId, 
+        status: 'RECRUITING', 
+        currentCount: 1, // 방장 본인 포함
+        ownerNickname: db.currentUser.nickname,
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      db.posts.unshift(newPost);
+      saveDB(db);
+      
+      return HttpResponse.json({ 
+        success: true, 
+        data: { projectId: newId },
+        message: '모집글이 성공적으로 등록되었습니다.'
+      }, { status: 201 });
+    } catch (error) {
+      console.error('Mock 등록 에러:', error);
+      return new HttpResponse(JSON.stringify({ success: false, message: '등록 중 오류 발생' }), { status: 500 });
+    }
+  }),
+
   // 15. 모집글 상세 정보
   http.get('*/api/projects/:id', ({ params }) => {
     const post = db.posts.find(p => p.projectId === parseInt(params.id));
