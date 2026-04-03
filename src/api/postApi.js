@@ -21,7 +21,7 @@ export const postApi = {
   // 모집글 수정
   updatePost: async (projectId, postData) => {
     // 설계서 규격: PUT /api/projects/{id}
-    return await axiosInstance.put(`/projects/${projectId}`, postData);
+    return await axiosInstance.patch(`/projects/${projectId}`, postData);
   },
 
   // 모집글 삭제

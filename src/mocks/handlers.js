@@ -519,7 +519,7 @@ export const handlers = [
   }),
 
   // 19. 모집글 수정 핸들러
-  http.put('*/api/projects/:id', async ({ params, request }) => {
+  http.patch('*/api/projects/:id', async ({ params, request }) => {
     const { id } = params;
     const updatedData = await request.json();
     const postIndex = mockPosts.findIndex(p => String(p.projectId) === String(id));
