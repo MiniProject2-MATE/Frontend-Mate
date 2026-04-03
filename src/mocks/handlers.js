@@ -313,6 +313,19 @@ export const handlers = [
     });
   }),
 
+  // [추가] 4.5.4 회원 탈퇴 (DELETE /api/users/me)
+  http.delete('*/api/users/me', () => {
+    // 1. mock-users 리스트에서 현재 유저 삭제 (닉네임 기준)
+    let storedUsers = JSON.parse(localStorage.getItem('mock-users') || '[]');
+    storedUsers = storedUsers.filter(u => u.email !== currentUserData.email);
+    localStorage.setItem('mock-users', JSON.stringify(storedUsers));
+
+    // 2. 현재 세션 및 정보 초기화
+    localStorage.removeItem('user-info');
+    
+    return new HttpResponse(null, { status: 204 });
+  }),
+
   // 8. 아이디 찾기 (경로 수정 및 가입 정보 조회 로직 추가)
   http.post('*/api/auth/find-email', async ({ request }) => {
     const { phoneNumber } = await request.json();

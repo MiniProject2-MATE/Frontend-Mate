@@ -29,7 +29,7 @@ const MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { showToast, openModal } = useUiStore();
-  const { user: authUser, updateUser } = useAuthStore();
+  const { user: authUser, updateUser, logout } = useAuthStore(); // [수정] logout 함수 가져오기
 
   const [tabValue, setTabValue] = useState(0); 
   const [categoryFilter, setCategoryFilter] = useState('전체');
@@ -308,7 +308,6 @@ const MyPage = () => {
     }
   };
 
-  // [항목 8번 추가] 신청 취소 핸들러
   const handleCancelApplication = async (applyId) => {
     openModal('confirm', {
       title: '지원 취소',
@@ -319,11 +318,32 @@ const MyPage = () => {
         try {
           await axiosInstance.delete(`/applications/${applyId}`);
           showToast('지원이 취소되었습니다.', 'success');
-          // 데이터 리로드하여 목록 갱신
           fetchUserData();
         } catch (error) {
           console.error("지원 취소 실패:", error);
           showToast('지원 취소 중 오류가 발생했습니다.', 'error');
+        }
+      }
+    });
+  };
+
+  // [항목 13번 반영] 회원 탈퇴 핸들러
+  const handleWithdrawal = () => {
+    openModal('confirm', {
+      title: '회원 탈퇴',
+      message: '정말로 탈퇴하시겠습니까? 모든 데이터가 삭제되며 복구할 수 없습니다.',
+      confirmText: '탈퇴하기',
+      color: 'error',
+      onConfirm: async () => {
+        try {
+          await axiosInstance.delete('/users/me');
+          showToast('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.', 'success');
+          // 전역 로그아웃 처리 및 메인으로 이동
+          logout();
+          navigate('/');
+        } catch (error) {
+          console.error("탈퇴 실패:", error);
+          showToast('탈퇴 처리 중 오류가 발생했습니다.', 'error');
         }
       }
     });
@@ -476,7 +496,15 @@ const MyPage = () => {
                   <MenuButton icon={<EmailIcon />} label="신청 현황" count={userInfo.applyCount} onClick={() => scrollToSection(activityRef, 1)} />
                   <MenuButton icon={<RocketLaunchIcon />} label="내 팀" count={userInfo.acceptedProjects?.length || 0} onClick={() => scrollToSection(activityRef, 2)} />
                   <Divider sx={{ my: 1.5 }} />
-                  <Button fullWidth startIcon={<LogoutIcon />} sx={{ justifyContent: 'flex-start', color: '#9CA3AF', fontWeight: 800, px: 2, py: 1.5, borderRadius: 3 }}>회원 탈퇴</Button>
+                  {/* [항목 13번 반영] 회원 탈퇴 함수 연결 */}
+                  <Button 
+                    fullWidth 
+                    startIcon={<LogoutIcon />} 
+                    onClick={handleWithdrawal}
+                    sx={{ justifyContent: 'flex-start', color: '#9CA3AF', fontWeight: 800, px: 2, py: 1.5, borderRadius: 3 }}
+                  >
+                    회원 탈퇴
+                  </Button>
                 </Stack>
               </Paper>
             </Stack>
@@ -594,7 +622,6 @@ const MyPage = () => {
                           const id = item.projectId || item.id;
                           navigate(`/posts/${id}/edit`);
                         }}
-                        // [항목 8번 반영] 취소 함수 전달
                         onCancelClick={() => handleCancelApplication(item.applyId || item.id)}
                       />
                     ))
@@ -674,7 +701,6 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onCancelCli
             관리
           </Button>
         )}
-        {/* [항목 8번 반영] PENDING 상태일 때 취소하기 버튼 노출 */}
         {tabValue === 1 && item.status === 'PENDING' && (
           <Button 
             variant="outlined" 
