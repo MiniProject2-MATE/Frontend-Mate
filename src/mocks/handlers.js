@@ -34,7 +34,7 @@ const getStoredUser = () => {
     intro: '안녕하세요! 함께 성장하고 싶은 개발자입니다.', 
     techStacks: ['React', 'TypeScript', 'Node.js'],
     phoneNumber: '01012345678',
-    profileImg: 'https://mate-s3.com/default.png',
+    profileImageUrl: 'https://mate-s3.com/default-profile.png', // API 설계에 맞춘 컬럼명
   };
 };
 
@@ -204,6 +204,47 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: currentUserData, message: '프로필이 수정되었습니다.' });
   }),
 
+  // [수정] 4.5.5 프로필 이미지 수정 (PATCH)
+http.patch('*/api/users/profile-image', async ({ request }) => {
+  const formData = await request.formData();
+  const profileImageFile = formData.get('profileImage'); // 설계서 필드명: profileImage
+
+  if (!profileImageFile) {
+    return new HttpResponse(JSON.stringify({ success: false, message: "파일이 첨부되지 않았습니다." }), { status: 400 });
+  }
+
+  // [중요] 새로고침 유지 로직: 
+  // 실제 서버라면 S3 URL을 주겠지만, 여기선 클라이언트(MyPage)가 보낸 
+  // Base64 데이터를 이미 currentUserData가 들고 있다고 가정하거나, 
+  // 단순히 성공 응답만 보내고 데이터 동기화는 MyPage의 state 업데이트에 맡깁니다.
+  
+  syncStorage(); 
+  
+  return HttpResponse.json({
+    success: true,
+    data: {
+      profileImageUrl: currentUserData.profileImageUrl // 설계서 필드명 일치
+    },
+    message: "프로필 이미지가 성공적으로 변경되었습니다."
+  });
+}),
+
+// [수정] 4.5.6 프로필 이미지 삭제 (DELETE)
+http.delete('*/api/users/profile-image', () => {
+  const defaultUrl = 'https://mate-s3.com/default-profile.png'; // 설계서의 기본 이미지명
+  
+  currentUserData = { ...currentUserData, profileImageUrl: defaultUrl };
+  syncStorage();
+
+  return HttpResponse.json({
+    success: true,
+    data: {
+      profileImageUrl: defaultUrl
+    },
+    message: "기본 프로필 이미지로 변경되었습니다."
+  });
+}),
+
   // 8. 아이디 찾기
   http.post('*/api/auth/find-email', async ({ request }) => {
     const { phoneNumber } = await request.json();
@@ -218,7 +259,7 @@ export const handlers = [
     return new HttpResponse(JSON.stringify({ success: false, error: { message: '정보가 일치하지 않습니다.' } }), { status: 400 });
   }),
 
-  // 10~14. 팀 게시판 관련 핸들러 (생략 없음)
+  // 10~14. 팀 게시판 관련 핸들러
   http.get('*/api/posts/:projectId/board', ({ params, request }) => {
     const url = new URL(request.url);
     const page = parseInt(url.searchParams.get('page') || '0');
@@ -263,7 +304,7 @@ export const handlers = [
     });
   }),
 
-  // 16. 새로운 모집글 등록 (경로 posts로 통일)
+  // 16. 새로운 모집글 등록
   http.post('*/api/posts', async ({ request }) => {
     const newPostData = await request.json();
     const newId = Date.now();
@@ -273,9 +314,9 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: { projectId: newId } });
   }),
 
-  // 17. 모집글 지원하기 (경로 수정 반영: /application)
+  // 17. 모집글 지원하기
   http.post('*/api/application', async ({ request }) => {
-    const applyData = await request.json(); // 이제 body에 projectId가 포함됨
+    const applyData = await request.json(); 
     const projectId = applyData.projectId;
     const targetProject = mockPosts.find(p => p.projectId === parseInt(projectId));
 
@@ -293,7 +334,7 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: newApply });
   }),
 
-  // [추가] 19. 팀 게시글 수정/삭제 핸들러
+  // 19. 팀 게시글 수정/삭제 핸들러
   http.put('*/api/posts/:projectId/board/:boardPostId', async ({ params, request }) => {
     const { boardPostId } = params;
     const updateData = await request.json();
@@ -313,7 +354,7 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // [추가] 20. 댓글 수정/삭제 핸들러
+  // 20. 댓글 수정/삭제 핸들러
   http.put('*/api/posts/:projectId/board/:boardPostId/comments/:commentId', async ({ params, request }) => {
     const { commentId } = params;
     const { content } = await request.json();
@@ -333,7 +374,7 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // 18. 모집글 삭제 (경로 통일: /api/posts/:id)
+  // 18. 모집글 삭제
   http.delete('*/api/posts/:id', ({ params }) => {
     const { id } = params;
     mockPosts = mockPosts.filter(p => p.projectId !== parseInt(id));
@@ -341,31 +382,24 @@ export const handlers = [
     return HttpResponse.json({ success: true });
   }),
 
-  // [신규 추가] 19. 모집글 수정 핸들러 (PUT)
+  // 19. 모집글 수정 핸들러
   http.put('*/api/posts/:id', async ({ params, request }) => {
     const { id } = params;
     const updatedData = await request.json();
-    
-    // 데이터 찾기
     const postIndex = mockPosts.findIndex(p => p.projectId === parseInt(id));
-    
     if (postIndex !== -1) {
-      // 기존 데이터와 병합
       mockPosts[postIndex] = {
         ...mockPosts[postIndex],
         ...updatedData,
-        projectId: parseInt(id) // ID는 변하지 않도록 고정
+        projectId: parseInt(id)
       };
-      
-      syncStorage(); // 로컬스토리지 저장
-      
+      syncStorage();
       return HttpResponse.json({
         success: true,
         data: mockPosts[postIndex],
         message: '성공적으로 수정되었습니다.'
       });
     }
-    
     return new HttpResponse(JSON.stringify({ success: false, message: '게시글을 찾을 수 없습니다.' }), { status: 404 });
   }),
 ];

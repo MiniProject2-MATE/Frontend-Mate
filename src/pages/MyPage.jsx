@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
-  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem
+  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem, Menu
 } from '@mui/material';
 
 // Icons
@@ -17,6 +17,8 @@ import AddIcon from '@mui/icons-material/Add';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import PhotoCameraIcon from '@mui/icons-material/PhotoCamera';
+import DeleteIcon from '@mui/icons-material/Delete';
 
 import axiosInstance from '../api/axiosInstance'; 
 import Breadcrumb from '../component/common/Breadcrumb';
@@ -49,6 +51,10 @@ const MyPage = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // 프로필 이미지 관련 상태 및 Ref
+  const [anchorEl, setAnchorEl] = useState(null);
+  const fileInputRef = useRef(null);
 
   const POSITION_OPTIONS = [
     { value: 'FE', label: '프론트엔드 (FE)' },
@@ -89,7 +95,9 @@ const MyPage = () => {
       }
     };
     fetchUserData();
-  }, []);
+    // 무한 루프 방지를 위해 의존성 배열을 비웁니다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); 
 
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
@@ -222,6 +230,74 @@ const MyPage = () => {
     }
   };
 
+  // 4.5.5 프로필 이미지 수정 핸들러
+  const handleImageChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 파일 검증: 확장자 및 크기(5MB)
+    const allowedExtensions = ['image/jpeg', 'image/jpg', 'image/png'];
+    if (!allowedExtensions.includes(file.type)) {
+      showToast('JPG, JPEG, PNG 파일만 업로드 가능합니다.', 'error');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast('파일 크기는 최대 5MB까지 허용됩니다.', 'error');
+      return;
+    }
+
+    const formDataObj = new FormData();
+    formDataObj.append('profileImage', file);
+
+    try {
+      // 1. 서버에 업로드 요청
+      const response = await axiosInstance.patch('/users/profile-image', formDataObj, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      // 2. [목업 대응 수정] 서버가 가짜 URL을 줄 경우 화면에는 사용자가 선택한 실제 이미지의 임시 URL을 보여줌
+      const previewUrl = URL.createObjectURL(file);
+
+      setUserInfo(prev => ({ ...prev, profileImageUrl: previewUrl }));
+      updateUser({ ...userInfo, profileImageUrl: previewUrl });
+      
+      showToast(response.message || '프로필 이미지가 변경되었습니다.', 'success');
+    } catch {
+      showToast('이미지 업데이트 중 오류가 발생했습니다.', 'error');
+    } finally {
+      handleMenuClose();
+    }
+  };
+
+  // 4.5.6 프로필 이미지 삭제 핸들러
+  const handleDeleteImage = async () => {
+    try {
+      const response = await axiosInstance.delete('/users/profile-image');      
+      
+      // MSW 응답 데이터 구조: response.data 안에 profileImageUrl이 들어있음
+      const defaultUrl = response.profileImageUrl; // axiosInstance 설정에 따라 response 자체가 data일 수 있음
+
+      // 1. 로컬 state 업데이트
+      setUserInfo(prev => ({ ...prev, profileImageUrl: defaultUrl }));
+
+      // 2. Auth 스토어 업데이트 (객체 형태로 전달하여 안전하게 갱신)
+      updateUser({ 
+        ...userInfo, 
+        profileImageUrl: defaultUrl 
+      });
+
+      showToast(response.message || '기본 이미지로 변경되었습니다.', 'success');
+    } catch (error) {
+      console.error("삭제 중 상세 에러:", error); // 에러 원인 파악을 위해 콘솔 출력 추가
+      showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');
+    } finally {
+      handleMenuClose();
+    }
+  };
+
+  const handleAvatarClick = (event) => setAnchorEl(event.currentTarget);
+  const handleMenuClose = () => setAnchorEl(null);
+
   const getFilteredData = useCallback(() => {
     if (!userInfo) return [];
     let sourceData = [];
@@ -260,9 +336,45 @@ const MyPage = () => {
               <Paper elevation={0} sx={{ borderRadius: 6, overflow: 'hidden', border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Box sx={{ height: 100, background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)' }} />
                 <Box sx={{ px: 3, pb: 4, textAlign: 'center', mt: -6 }}>
-                  <Avatar sx={{ width: 110, height: 110, mx: 'auto', border: '5px solid white', bgcolor: '#6366F1', fontSize: '2.5rem', fontWeight: 900 }}>
-                    {userInfo.nickname ? userInfo.nickname[0] : 'U'}
-                  </Avatar>
+                  <Box sx={{ position: 'relative', display: 'inline-block' }}>
+                    <Avatar 
+                      src={userInfo.profileImageUrl}
+                      onClick={handleAvatarClick}
+                      sx={{ 
+                        width: 110, height: 110, mx: 'auto', border: '5px solid white', bgcolor: '#6366F1', 
+                        fontSize: '2.5rem', fontWeight: 900, cursor: 'pointer',
+                        '&:hover': { opacity: 0.8, transition: '0.3s' }
+                      }}
+                    >
+                      {userInfo.nickname ? userInfo.nickname[0] : 'U'}
+                    </Avatar>
+                    <IconButton 
+                      onClick={handleAvatarClick}
+                      sx={{ 
+                        position: 'absolute', bottom: 0, right: 0, bgcolor: 'white', border: '1px solid #E5E7EB',
+                        '&:hover': { bgcolor: '#F3F4F6' }, width: 32, height: 32
+                      }}
+                    >
+                      <PhotoCameraIcon sx={{ fontSize: 18, color: '#6B7280' }} />
+                    </IconButton>
+                  </Box>
+
+                  {/* 프로필 이미지 관리 메뉴 */}
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={Boolean(anchorEl)}
+                    onClose={handleMenuClose}
+                    PaperProps={{ sx: { borderRadius: 3, mt: 1, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
+                  >
+                    <MenuItem onClick={() => fileInputRef.current.click()} sx={{ fontWeight: 700, py: 1.2, px: 2 }}>
+                      <EditIcon sx={{ fontSize: 18, mr: 1.5, color: '#6366F1' }} /> 이미지 변경
+                    </MenuItem>
+                    <MenuItem onClick={handleDeleteImage} sx={{ fontWeight: 700, py: 1.2, px: 2, color: '#EF4444' }}>
+                      <DeleteIcon sx={{ fontSize: 18, mr: 1.5 }} /> 이미지 삭제
+                    </MenuItem>
+                  </Menu>
+                  <input type="file" hidden ref={fileInputRef} accept="image/jpeg,image/png,image/jpg" onChange={handleImageChange} />
+
                   <Typography variant="h5" sx={{ fontWeight: 900, mt: 2 }}>{userInfo.nickname}</Typography>
                   <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 3 }}>
                     @{userInfo.nickname?.toLowerCase()} · {userInfo.position}
@@ -402,16 +514,10 @@ const MyPage = () => {
                         item={item}
                         tabValue={tabValue}
                         onTitleClick={() => {
-                          // [중요 수정 부분] 
-                          // 1. projectId가 있으면 그것을 사용, 없으면 id를 사용 (MSW 데이터 구조 호환)
                           const targetId = item.projectId || item.id;
-                          
-                          // 2. 탭에 따른 이동 분기 처리
                           if (tabValue === 1) {
-                            // 신청 현황 탭: 해당 글의 상세 정보 페이지로 이동
                             navigate(`/posts/${targetId}`);
                           } else {
-                            // 내 모집글(0) 및 내 팀(2) 탭: 팀 게시판으로 이동
                             navigate(`/posts/${targetId}/board`);
                           }
                         }}
@@ -464,7 +570,7 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick }) => {
         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}>
           <Typography 
             variant="h6" 
-            onClick={onTitleClick} // 수정된 핸들러 연결
+            onClick={onTitleClick}
             sx={{ 
               fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer',
               '&:hover': { color: '#6366F1', textDecoration: 'underline' } 
