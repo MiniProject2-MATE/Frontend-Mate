@@ -484,11 +484,9 @@ const PostEditPage = () => {
                   <CustomButton 
                     variant="contained" 
                     onClick={handleReopenPost}
-                    disabled={isReopenDisabled()}
                     sx={{ 
                       px: 4, height: 56, bgcolor: '#22C55E', color: 'white', fontWeight: 900, 
-                      '&:hover': { bgcolor: '#16A34A' },
-                      '&:disabled': { bgcolor: '#E5E7EB', color: '#9CA3AF' }
+                      '&:hover': { bgcolor: '#16A34A' }
                     }}
                   >
                     <CheckCircleIcon sx={{ mr: 1 }} /> 재모집 시작하기
