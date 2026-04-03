@@ -19,7 +19,7 @@ export const authApi = {
     });
     formData.append('data', dataBlob);
 
-    return await axiosInstance.post('/auth/register', formData, {
+    return await axiosInstance.post('/auth/signup', formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       }
