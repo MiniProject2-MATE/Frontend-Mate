@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // [수정] useLocation 추가
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
   Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem, Menu
@@ -27,6 +27,7 @@ import { useAuthStore } from '../store/authStore';
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const location = useLocation(); // [추가] 지원하기 페이지에서 보낸 state를 받기 위함
   const { showToast } = useUiStore();
   const { user: authUser, updateUser } = useAuthStore();
 
@@ -67,6 +68,7 @@ const MyPage = () => {
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
+  // [수정] 데이터 로딩 및 탭 이동 처리 useEffect
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -79,6 +81,21 @@ const MyPage = () => {
           intro: data.intro || ''
         });
         updateUser(data);
+
+        // [추가] 지원 완료 후 넘어온 정보가 있으면 탭 변경 및 스크롤
+        if (location.state?.activeTab !== undefined) {
+          setTabValue(location.state.activeTab); // 1번 탭(신청 현황)으로 변경
+          
+          setTimeout(() => {
+            if (activityRef.current) {
+              const offset = activityRef.current.offsetTop - 100;
+              window.scrollTo({ top: offset, behavior: 'smooth' });
+            }
+          }, 100);
+          
+          // 사용한 state 초기화 (새로고침 시 유지 안되도록)
+          window.history.replaceState({}, document.title);
+        }
       } catch (error) {
         console.error("회원 정보를 불러오지 못했습니다.", error);
         if (authUser) {
@@ -95,9 +112,8 @@ const MyPage = () => {
       }
     };
     fetchUserData();
-    // 무한 루프 방지를 위해 의존성 배열을 비웁니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, [location]); // location이 바뀔 때(이동해올 때) 감지
 
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
@@ -230,12 +246,10 @@ const MyPage = () => {
     }
   };
 
-  // 4.5.5 프로필 이미지 수정 핸들러
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 파일 검증: 확장자 및 크기(5MB)
     const allowedExtensions = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!allowedExtensions.includes(file.type)) {
       showToast('JPG, JPEG, PNG 파일만 업로드 가능합니다.', 'error');
@@ -250,17 +264,12 @@ const MyPage = () => {
     formDataObj.append('profileImage', file);
 
     try {
-      // 1. 서버에 업로드 요청
       const response = await axiosInstance.patch('/users/profile-image', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      // 2. [목업 대응 수정] 서버가 가짜 URL을 줄 경우 화면에는 사용자가 선택한 실제 이미지의 임시 URL을 보여줌
       const previewUrl = URL.createObjectURL(file);
-
       setUserInfo(prev => ({ ...prev, profileImageUrl: previewUrl }));
       updateUser({ ...userInfo, profileImageUrl: previewUrl });
-      
       showToast(response.message || '프로필 이미지가 변경되었습니다.', 'success');
     } catch {
       showToast('이미지 업데이트 중 오류가 발생했습니다.', 'error');
@@ -269,26 +278,14 @@ const MyPage = () => {
     }
   };
 
-  // 4.5.6 프로필 이미지 삭제 핸들러
   const handleDeleteImage = async () => {
     try {
       const response = await axiosInstance.delete('/users/profile-image');      
-      
-      // MSW 응답 데이터 구조: response.data 안에 profileImageUrl이 들어있음
-      const defaultUrl = response.profileImageUrl; // axiosInstance 설정에 따라 response 자체가 data일 수 있음
-
-      // 1. 로컬 state 업데이트
+      const defaultUrl = response.profileImageUrl;
       setUserInfo(prev => ({ ...prev, profileImageUrl: defaultUrl }));
-
-      // 2. Auth 스토어 업데이트 (객체 형태로 전달하여 안전하게 갱신)
-      updateUser({ 
-        ...userInfo, 
-        profileImageUrl: defaultUrl 
-      });
-
+      updateUser({ ...userInfo, profileImageUrl: defaultUrl });
       showToast(response.message || '기본 이미지로 변경되었습니다.', 'success');
-    } catch (error) {
-      console.error("삭제 중 상세 에러:", error); // 에러 원인 파악을 위해 콘솔 출력 추가
+    } catch {
       showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');
     } finally {
       handleMenuClose();
@@ -359,7 +356,6 @@ const MyPage = () => {
                     </IconButton>
                   </Box>
 
-                  {/* 프로필 이미지 관리 메뉴 */}
                   <Menu
                     anchorEl={anchorEl}
                     open={Boolean(anchorEl)}
@@ -543,7 +539,6 @@ const MyPage = () => {
 };
 
 // --- 내부 컴포넌트 ---
-
 const MenuButton = ({ icon, label, count, onClick }) => (
   <Button fullWidth startIcon={icon} onClick={onClick} sx={{ justifyContent: 'flex-start', px: 2.5, py: 1.8, borderRadius: 3, fontWeight: 800, color: '#6B7280', '&:hover': { bgcolor: '#F9FAFB', color: '#6366F1' } }}>
     <Box sx={{ flexGrow: 1, textAlign: 'left' }}>{label}</Box>

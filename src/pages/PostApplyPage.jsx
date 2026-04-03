@@ -77,7 +77,14 @@ const PostApplyPage = () => {
       // [수정] postApi.applyToPost를 통해 백엔드 요청인 /api/application 호출
       await postApi.applyToPost(id, formData);
       showToast('지원이 성공적으로 완료되었습니다!', 'success');
-      navigate('/mypage'); 
+      
+      // [핵심 수정] 마이페이지로 이동할 때 탭 인덱스(1: 신청 현황)와 스크롤 대상을 state로 전달
+      navigate('/mypage', { 
+        state: { 
+          activeTab: 1, 
+          scrollTo: 'activity' 
+        } 
+      }); 
     } catch (error) {
       console.error("제출 오류:", error);
       showToast('제출 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
@@ -253,7 +260,7 @@ const PostApplyPage = () => {
   );
 };
 
-// [수정 핵심] 입력 필드 스타일 - 내부 여백(Padding) 추가 및 텍스트 넘침 방지
+// 입력 필드 스타일
 const inputStyle = {
   '& .MuiOutlinedInput-root': {
     bgcolor: '#F9FAFB',
@@ -262,9 +269,7 @@ const inputStyle = {
     fontWeight: 600,
     color: '#1F2937',
     transition: '0.2s all',
-    // 텍스트 넘침 방지 및 줄바꿈 허용
     wordBreak: 'break-all',
-    // 테두리 밖으로 나가지 않도록 내부 여백 설정
     padding: '20px 35px', 
     '& fieldset': { borderColor: '#E5E7EB', transition: '0.2s' },
     '&:hover fieldset': { borderColor: '#C7D2FE' },
@@ -272,7 +277,6 @@ const inputStyle = {
     '&.Mui-focused': { bgcolor: 'white', boxShadow: '0 4px 12px rgba(99, 102, 241, 0.05)' },
     '&.Mui-disabled': { bgcolor: '#F3F4F6', color: '#9CA3AF' }
   },
-  // TextField의 실제 input 요소에 적용된 기본 여백을 제거하고 root의 padding을 따르게 함
   '& .MuiOutlinedInput-input': {
     padding: '4px 0px', 
   },
