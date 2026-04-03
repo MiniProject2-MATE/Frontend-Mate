@@ -382,18 +382,54 @@ const MyPage = () => {
                     </IconButton>
                   </Box>
 
-                  {/* 프로필 이미지 관리 메뉴 */}
+                  {/* 프로필 이미지 관리 메뉴 (직선형 스퀘어 디자인) */}
                   <Menu
                     anchorEl={anchorEl}
                     open={Boolean(anchorEl)}
                     onClose={handleMenuClose}
-                    PaperProps={{ sx: { borderRadius: 3, mt: 1, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' } }}
+                    elevation={0}
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                    transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                    PaperProps={{ 
+                      sx: { 
+                        borderRadius: 0, // 둥근 모서리 제거 (완전한 네모)
+                        mt: 1.5, 
+                        minWidth: 180,
+                        overflow: 'visible',
+                        filter: 'drop-shadow(0px 4px 20px rgba(0,0,0,0.1))',
+                        border: '1px solid #E5E7EB', // 더 선명한 테두리
+                        '&:before': {
+                          content: '""', display: 'block', position: 'absolute', top: 0, left: '50%',
+                          width: 10, height: 10, bgcolor: 'background.paper', transform: 'translate(-50%, -50%) rotate(45deg)', 
+                          zIndex: 0, borderLeft: '1px solid #E5E7EB', borderTop: '1px solid #E5E7EB'
+                        },
+                      } 
+                    }}
                   >
-                    <MenuItem onClick={() => fileInputRef.current.click()} sx={{ fontWeight: 700, py: 1.2, px: 2 }}>
-                      <EditIcon sx={{ fontSize: 18, mr: 1.5, color: '#6366F1' }} /> 이미지 변경
+                    <MenuItem 
+                      onClick={() => { fileInputRef.current.click(); handleMenuClose(); }} 
+                      sx={{ 
+                        fontWeight: 800, py: 1.5, px: 2.5, fontSize: '0.9rem', color: '#374151',
+                        borderRadius: 0, // 아이템 호버 시에도 각진 형태 유지
+                        transition: '0.1s',
+                        '&:hover': { bgcolor: '#F3F4F6', color: '#6366F1' }
+                      }}
+                    >
+                      <EditIcon sx={{ fontSize: 20, mr: 1.5, color: '#6366F1' }} /> 이미지 변경
                     </MenuItem>
-                    <MenuItem onClick={handleDeleteImage} sx={{ fontWeight: 700, py: 1.2, px: 2, color: '#EF4444' }}>
-                      <DeleteIcon sx={{ fontSize: 18, mr: 1.5 }} /> 이미지 삭제
+                    
+                    <Divider sx={{ my: 0, opacity: 0.8 }} />
+                    
+                    <MenuItem 
+                      onClick={handleDeleteImage} 
+                      sx={{ 
+                        fontWeight: 800, py: 1.5, px: 2.5, fontSize: '0.9rem', color: '#374151',
+                        borderRadius: 0,
+                        transition: '0.1s',
+                        '&:hover': { bgcolor: '#FEF2F2', color: '#F43F5E' }
+                      }}
+                    >
+                      <DeleteIcon sx={{ fontSize: 20, mr: 1.5, color: '#F43F5E' }} /> 이미지 삭제
                     </MenuItem>
                   </Menu>
                   <input type="file" hidden ref={fileInputRef} accept="image/jpeg,image/png,image/jpg" onChange={handleImageChange} />

@@ -193,8 +193,8 @@ const PostApplyPage = () => {
                 placeholder="함께하고 싶은 이유와 본인의 강점을 자유롭게 적어주세요. (경험, 열정, 협업 스타일 등)"
                 value={formData.content}
                 onChange={handleChange('content')}
-                helperText={`${formData.content.length} / 500자 (최소 20자)`}
-                FormHelperTextProps={{ sx: { textAlign: 'right', fontWeight: 700, fontSize: '0.85rem', color: formData.content.length < 20 ? '#ef5350' : '#9CA3AF', mt: 1 } }}
+                helperText={`${formData.content.length} / 500자 (최소 10자)`}
+                FormHelperTextProps={{ sx: { textAlign: 'right', fontWeight: 700, fontSize: '0.85rem', color: formData.content.length < 10 ? '#ef5350' : '#9CA3AF', mt: 1 } }}
                 sx={inputStyle}
               />
             </Box>
@@ -231,7 +231,7 @@ const PostApplyPage = () => {
                 type="submit" 
                 variant="contained" 
                 size="large" 
-                disabled={isSubmitting || postInfo.isApplied || formData.content.length < 20 || !formData.position || !formData.contact}
+                disabled={isSubmitting || postInfo.isApplied || formData.content.length < 10 || !formData.position || !formData.contact}
                 startIcon={postInfo.isApplied ? <CheckCircleIcon /> : <SendIcon />}
                 sx={{ 
                   px: 9, py: 2.2, borderRadius: 5, fontWeight: 900, fontSize: '1.1rem',
