@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
-  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem, Menu
+  Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem, Menu, Autocomplete
 } from '@mui/material';
 
 // Icons
@@ -40,7 +40,8 @@ const MyPage = () => {
     nickname: '',
     position: '',
     phoneNumber: '',
-    intro: ''
+    intro: '',
+    techStacks: [] // [추가] techStacks 필드 추가
   });
 
   const [isNicknameChecked, setIsNicknameChecked] = useState(true); 
@@ -65,6 +66,13 @@ const MyPage = () => {
     { value: 'ETC', label: '기타 (ETC)' }
   ];
 
+  const COMMON_TECH_STACKS = [
+    'React', 'Vue', 'TypeScript', 'JavaScript', 'Next.js',
+    'Spring Boot', 'Java', 'Node.js', 'Python', 'Go',
+    'Figma', 'Adobe XD', 'Sketch',
+    'AWS', 'Docker', 'Kubernetes', 'MySQL', 'MongoDB'
+  ];
+
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
@@ -76,7 +84,8 @@ const MyPage = () => {
         nickname: data.nickname || '',
         position: data.position || '',
         phoneNumber: data.phoneNumber || '',
-        intro: data.intro || ''
+        intro: data.intro || '',
+        techStacks: data.techStacks || [] // [추가] 데이터 로드 시 techStacks 반영
       });
       // 데이터 로드 시점의 정보를 마지막 확인된 정보로 저장
       setLastCheckedNickname(data.nickname || '');
@@ -107,7 +116,8 @@ const MyPage = () => {
           nickname: authUser.nickname || '',
           position: authUser.position || '',
           phoneNumber: authUser.phoneNumber || '',
-          intro: authUser.intro || ''
+          intro: authUser.intro || '',
+          techStacks: authUser.techStacks || []
         });
       }
     } finally {
@@ -150,6 +160,11 @@ const MyPage = () => {
       if (userInfo && value !== userInfo.nickname) setIsNicknameChecked(false);
       else setIsNicknameChecked(true);
     }
+  };
+
+  // [추가] 기술 스택 변경 핸들러
+  const handleTechStacksChange = (event, newValue) => {
+    setFormData(prev => ({ ...prev, techStacks: newValue }));
   };
 
   const handleCheckNickname = async () => {
@@ -207,11 +222,13 @@ const MyPage = () => {
   };
 
   const handleSaveProfile = async () => {
+    // [수정] 변경 감지 로직에 techStacks 추가
     const isProfileUnchanged = 
       formData.nickname === userInfo.nickname &&
       formData.position === userInfo.position &&
       formData.phoneNumber === userInfo.phoneNumber &&
-      formData.intro === userInfo.intro;
+      formData.intro === userInfo.intro &&
+      JSON.stringify(formData.techStacks) === JSON.stringify(userInfo.techStacks);
     
     const isPasswordEmpty = !password && !confirmPassword;
     if (isProfileUnchanged && isPasswordEmpty) {
@@ -237,11 +254,13 @@ const MyPage = () => {
       }
     }
     try {
+      // [항목 5번 반영] updatePayload에 techStacks 추가
       const updatePayload = {
         nickname: formData.nickname,
         position: formData.position,
         phoneNumber: formData.phoneNumber,
         intro: formData.intro,
+        techStacks: formData.techStacks,
         ...(password && { password })
       };
       const response = await axiosInstance.put('/users/me', updatePayload);
@@ -580,6 +599,37 @@ const MyPage = () => {
                       </Button>
                     </Stack>
                   </Box>
+                  
+                  {/* [항목 5번 반영] 기술 스택 입력 필드 추가 */}
+                  <Box sx={{ gridColumn: '1 / -1' }}>
+                    <FormLabel text="기술 스택" />
+                    <Autocomplete
+                      multiple
+                      options={COMMON_TECH_STACKS}
+                      value={formData.techStacks}
+                      onChange={handleTechStacksChange}
+                      freeSolo
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip 
+                              key={key} 
+                              label={option} 
+                              {...tagProps} 
+                              variant="filled" 
+                              color="primary" 
+                              sx={{ borderRadius: 2, fontWeight: 700 }} 
+                            />
+                          );
+                        })
+                      }
+                      renderInput={(params) => (
+                        <TextField {...params} variant="outlined" placeholder="기술 스택을 선택하거나 직접 입력하세요" sx={inputStyle} />
+                      )}
+                    />
+                  </Box>
+
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="한 줄 소개" />
                     <TextField fullWidth multiline rows={2} value={formData.intro} onChange={handleInputChange('intro')} sx={inputStyle} />
