@@ -46,9 +46,18 @@ const PostApplyPage = () => {
         const data = await postApi.getPostDetail(id);
         
         if (data) {
+          const isOwner = user?.nickname === data.ownerNickname;
+          
+          // [추가] 방장 본인인 경우 접근 차단
+          if (isOwner) {
+            showToast('본인이 작성한 공고에는 지원할 수 없습니다.', 'error');
+            navigate(`/posts/${id}`, { replace: true });
+            return;
+          }
+
           setPostInfo({
             title: data.title,
-            isOwner: user?.nickname === data.ownerNickname,
+            isOwner: isOwner,
             isApplied: data.alreadyApplied || false,
             status: data.status
           });
