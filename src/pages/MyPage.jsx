@@ -28,7 +28,7 @@ import { useAuthStore } from '../store/authStore';
 const MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { showToast } = useUiStore();
+  const { showToast, openModal } = useUiStore();
   const { user: authUser, updateUser } = useAuthStore();
 
   const [tabValue, setTabValue] = useState(0); 
@@ -68,49 +68,48 @@ const MyPage = () => {
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        const data = await axiosInstance.get('/users/me');
-        setUserInfo(data);
-        setFormData({
-          nickname: data.nickname || '',
-          position: data.position || '',
-          phoneNumber: data.phoneNumber || '',
-          intro: data.intro || ''
-        });
-        updateUser(data);
+  const fetchUserData = async () => {
+    try {
+      const data = await axiosInstance.get('/users/me');
+      setUserInfo(data);
+      setFormData({
+        nickname: data.nickname || '',
+        position: data.position || '',
+        phoneNumber: data.phoneNumber || '',
+        intro: data.intro || ''
+      });
+      updateUser(data);
 
-        // [추가] 지원 완료 후 넘어온 정보가 있으면 탭 변경 및 스크롤
-        if (location.state?.activeTab !== undefined) {
-          setTabValue(location.state.activeTab); // 예: 1번 탭(신청 현황)
-          
-          setTimeout(() => {
-            const targetRef = location.state.scrollTo === 'profile' ? profileRef : activityRef;
-            if (targetRef.current) {
-              const offset = targetRef.current.offsetTop - 100;
-              window.scrollTo({ top: offset, behavior: 'smooth' });
-            }
-          }, 100);
-          
-          // 사용한 state 초기화 (새로고침 시 유지 안되도록)
-          window.history.replaceState({}, document.title);
-        }
-      } catch (error) {
-        console.error("회원 정보를 불러오지 못했습니다.", error);
-        if (authUser) {
-          setUserInfo(authUser);
-          setFormData({
-            nickname: authUser.nickname || '',
-            position: authUser.position || '',
-            phoneNumber: authUser.phoneNumber || '',
-            intro: authUser.intro || ''
-          });
-        }
-      } finally {
-        setIsLoading(false);
+      if (location.state?.activeTab !== undefined) {
+        setTabValue(location.state.activeTab); 
+        
+        setTimeout(() => {
+          const targetRef = location.state.scrollTo === 'profile' ? profileRef : activityRef;
+          if (targetRef.current) {
+            const offset = targetRef.current.offsetTop - 100;
+            window.scrollTo({ top: offset, behavior: 'smooth' });
+          }
+        }, 100);
+        
+        window.history.replaceState({}, document.title);
       }
-    };
+    } catch (error) {
+      console.error("회원 정보를 불러오지 못했습니다.", error);
+      if (authUser) {
+        setUserInfo(authUser);
+        setFormData({
+          nickname: authUser.nickname || '',
+          position: authUser.position || '',
+          phoneNumber: authUser.phoneNumber || '',
+          intro: authUser.intro || ''
+        });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUserData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location]); 
@@ -237,10 +236,9 @@ const MyPage = () => {
       };
       const response = await axiosInstance.put('/users/me', updatePayload);
       
-      // 인터셉터가 response.data.data를 반환하므로 바로 사용
       const updatedUser = {
         ...response,
-        userId: response.userId || response.id // userId 우선순위
+        userId: response.userId || response.id 
       };
       
       setUserInfo(updatedUser); 
@@ -253,12 +251,10 @@ const MyPage = () => {
     }
   };
 
-  // 4.5.5 프로필 이미지 수정 핸들러
   const handleImageChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // 파일 검증: 확장자 및 크기(5MB)
     const allowedExtensions = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!allowedExtensions.includes(file.type)) {
       showToast('JPG, JPEG, PNG 파일만 업로드 가능합니다.', 'error');
@@ -273,12 +269,10 @@ const MyPage = () => {
     formDataObj.append('profileImage', file);
 
     try {
-      // 1. 서버에 업로드 요청
       const response = await axiosInstance.patch('/users/profile-image', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      // 2. [목업 대응 수정] 서버가 가짜 URL을 줄 경우 화면에는 사용자가 선택한 실제 이미지의 임시 URL을 보여줌
       const previewUrl = URL.createObjectURL(file);
 
       setUserInfo(prev => ({ ...prev, profileImageUrl: previewUrl }));
@@ -292,18 +286,14 @@ const MyPage = () => {
     }
   };
 
-  // 4.5.6 프로필 이미지 삭제 핸들러
   const handleDeleteImage = async () => {
     try {
       const response = await axiosInstance.delete('/users/profile-image');      
       
-      // MSW 응답 데이터 구조: response.data 안에 profileImageUrl이 들어있음
-      const defaultUrl = response.profileImageUrl; // axiosInstance 설정에 따라 response 자체가 data일 수 있음
+      const defaultUrl = response.profileImageUrl; 
 
-      // 1. 로컬 state 업데이트
       setUserInfo(prev => ({ ...prev, profileImageUrl: defaultUrl }));
 
-      // 2. Auth 스토어 업데이트 (객체 형태로 전달하여 안전하게 갱신)
       updateUser({ 
         ...userInfo, 
         profileImageUrl: defaultUrl 
@@ -311,11 +301,32 @@ const MyPage = () => {
 
       showToast(response.message || '기본 이미지로 변경되었습니다.', 'success');
     } catch (error) {
-      console.error("삭제 중 상세 에러:", error); // 에러 원인 파악을 위해 콘솔 출력 추가
+      console.error("삭제 중 상세 에러:", error); 
       showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');
     } finally {
       handleMenuClose();
     }
+  };
+
+  // [항목 8번 추가] 신청 취소 핸들러
+  const handleCancelApplication = async (applyId) => {
+    openModal('confirm', {
+      title: '지원 취소',
+      message: '정말로 이 프로젝트 지원을 취소하시겠습니까?',
+      confirmText: '지원 취소',
+      color: 'error',
+      onConfirm: async () => {
+        try {
+          await axiosInstance.delete(`/applications/${applyId}`);
+          showToast('지원이 취소되었습니다.', 'success');
+          // 데이터 리로드하여 목록 갱신
+          fetchUserData();
+        } catch (error) {
+          console.error("지원 취소 실패:", error);
+          showToast('지원 취소 중 오류가 발생했습니다.', 'error');
+        }
+      }
+    });
   };
 
   const handleAvatarClick = (event) => setAnchorEl(event.currentTarget);
@@ -382,7 +393,6 @@ const MyPage = () => {
                     </IconButton>
                   </Box>
 
-                  {/* 프로필 이미지 관리 메뉴 (직선형 스퀘어 디자인) */}
                   <Menu
                     anchorEl={anchorEl}
                     open={Boolean(anchorEl)}
@@ -392,12 +402,12 @@ const MyPage = () => {
                     transformOrigin={{ vertical: 'top', horizontal: 'center' }}
                     PaperProps={{ 
                       sx: { 
-                        borderRadius: 0, // 둥근 모서리 제거 (완전한 네모)
+                        borderRadius: 0, 
                         mt: 1.5, 
                         minWidth: 180,
                         overflow: 'visible',
                         filter: 'drop-shadow(0px 4px 20px rgba(0,0,0,0.1))',
-                        border: '1px solid #E5E7EB', // 더 선명한 테두리
+                        border: '1px solid #E5E7EB', 
                         '&:before': {
                           content: '""', display: 'block', position: 'absolute', top: 0, left: '50%',
                           width: 10, height: 10, bgcolor: 'background.paper', transform: 'translate(-50%, -50%) rotate(45deg)', 
@@ -410,7 +420,7 @@ const MyPage = () => {
                       onClick={() => { fileInputRef.current.click(); handleMenuClose(); }} 
                       sx={{ 
                         fontWeight: 800, py: 1.5, px: 2.5, fontSize: '0.9rem', color: '#374151',
-                        borderRadius: 0, // 아이템 호버 시에도 각진 형태 유지
+                        borderRadius: 0, 
                         transition: '0.1s',
                         '&:hover': { bgcolor: '#F3F4F6', color: '#6366F1' }
                       }}
@@ -584,6 +594,8 @@ const MyPage = () => {
                           const id = item.projectId || item.id;
                           navigate(`/posts/${id}/edit`);
                         }}
+                        // [항목 8번 반영] 취소 함수 전달
+                        onCancelClick={() => handleCancelApplication(item.applyId || item.id)}
                       />
                     ))
                   ) : (
@@ -612,7 +624,7 @@ const MenuButton = ({ icon, label, count, onClick }) => (
 
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
-const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick }) => {
+const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onCancelClick }) => {
   const title = item.projectTitle || item.title;
   const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : '승인완료');
   const info = tabValue === 2 
@@ -662,8 +674,16 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick }) => {
             관리
           </Button>
         )}
+        {/* [항목 8번 반영] PENDING 상태일 때 취소하기 버튼 노출 */}
         {tabValue === 1 && item.status === 'PENDING' && (
-          <Button variant="outlined" disabled sx={{ fontWeight: 800, borderRadius: 2, borderColor: '#E5E7EB' }}>대기 중</Button>
+          <Button 
+            variant="outlined" 
+            color="error"
+            onClick={onCancelClick}
+            sx={{ fontWeight: 800, borderRadius: 2 }}
+          >
+            취소하기
+          </Button>
         )}
       </Stack>
     </Box>

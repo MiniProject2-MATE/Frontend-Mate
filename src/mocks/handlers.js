@@ -419,6 +419,27 @@ export const handlers = [
     }
   }),
 
+  // [추가] 17-2. 지원 취소 (DELETE /api/applications/{id})
+  http.delete('*/api/applications/:id', ({ params }) => {
+    const { id } = params;
+    
+    // 1. mockApplies 배열에서 해당 ID 삭제
+    const initialLength = mockApplies.length;
+    mockApplies = mockApplies.filter(a => String(a.applyId || a.id) !== String(id));
+    
+    // 2. 삭제 성공 여부 확인 및 저장
+    if (mockApplies.length < initialLength) {
+      syncStorage(); // 로컬스토리지 동기화
+      return new HttpResponse(null, { status: 204 }); // 성공 시 No Content(204) 반환
+    }
+
+    // 3. 찾지 못한 경우 404 반환
+    return new HttpResponse(JSON.stringify({ 
+      success: false, 
+      message: '존재하지 않는 지원 내역입니다.' 
+    }), { status: 404 });
+  }),
+
   // 19. 팀 게시글 수정/삭제 핸들러
   http.put('*/api/posts/:projectId/board/:boardPostId', async ({ params, request }) => {
     const { boardPostId } = params;
