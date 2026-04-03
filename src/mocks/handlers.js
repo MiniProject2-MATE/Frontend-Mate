@@ -392,14 +392,31 @@ export const handlers = [
     });
   }),
 
-  // 16. 새로운 모집글 등록
-  http.post('*/api/posts', async ({ request }) => {
-    const newPostData = await request.json();
-    const newId = Date.now();
-    const newPost = { projectId: newId, ...newPostData, status: 'RECRUITING', currentCount: 0, ownerNickname: currentUserData.nickname };
-    mockPosts.push(newPost);
-    syncStorage();
-    return HttpResponse.json({ success: true, data: { projectId: newId } });
+  // 16. 새로운 모집글 등록 (경로 수정: /api/posts -> /api/projects)
+  http.post('*/api/projects', async ({ request }) => {
+    try {
+      const newPostData = await request.json();
+      const newId = Date.now();
+      const newPost = { 
+        projectId: newId, 
+        ...newPostData, 
+        status: 'RECRUITING', 
+        currentCount: 0, 
+        ownerNickname: currentUserData.nickname,
+        date: new Date().toISOString().split('T')[0]
+      };
+      
+      mockPosts.unshift(newPost);
+      syncStorage();
+      
+      return HttpResponse.json({ 
+        success: true, 
+        data: { projectId: newId },
+        message: '모집글이 성공적으로 등록되었습니다.'
+      }, { status: 201 });
+    } catch {
+      return new HttpResponse(JSON.stringify({ success: false, message: '등록 중 오류 발생' }), { status: 500 });
+    }
   }),
 
   // 17. 모집글 지원하기 (경로: /api/applications)
