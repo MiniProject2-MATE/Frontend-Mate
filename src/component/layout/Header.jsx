@@ -4,6 +4,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore.js';
 import { useUiStore } from '../../store/uiStore.js';
+import authApi from '../../api/authApi.js';
 
 const Header = () => {
   const navigate = useNavigate();
@@ -19,10 +20,27 @@ const Header = () => {
     setMobileOpen(!mobileOpen);
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-    if (mobileOpen) setMobileOpen(false);
+  const handleLogout = async () => {
+    try {
+      // 1단계: 서버 호출 (/api/auth/logout)
+      await authApi.logout();
+      
+      // 2단계: 클라이언트 토큰 파기 (Zustand store의 logout 호출)
+      logout();
+      showToast('성공적으로 로그아웃되었습니다.', 'success');
+      
+      // 3단계: 페이지 리다이렉트
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // 서버 호출이 실패하더라도 클라이언트 상태는 초기화하여 
+      // 사용자가 다시 로그인할 수 있도록 처리하는 것이 일반적입니다.
+      logout();
+      navigate('/');
+      showToast('로그아웃 중 오류가 발생했지만 세션이 종료되었습니다.', 'info');
+    } finally {
+      if (mobileOpen) setMobileOpen(false);
+    }
   };
 
   // Explore 경로에 해시(#) 추가

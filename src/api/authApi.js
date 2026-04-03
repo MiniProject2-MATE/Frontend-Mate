@@ -14,6 +14,11 @@ export const authApi = {
     return await axiosInstance.post('/auth/signup', userData);
   },
 
+  // 로그아웃 API
+  logout: async () => {
+    return await axiosInstance.post('/auth/logout');
+  },
+
   // 토큰 갱신 API (Axios Interceptor에서 주로 활용)
   refresh: async (refreshToken) => {
     return await axiosInstance.post('/auth/refresh', { refreshToken });
