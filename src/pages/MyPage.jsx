@@ -179,7 +179,7 @@ const MyPage = () => {
       return;
     }
     try {
-      const response = await axiosInstance.get(`/auth/check-nickname?nickname=${formData.nickname}`);
+      const response = await axiosInstance.get(`/users/check-nickname?nickname=${formData.nickname}`);
       const isAvailable = response.data?.isAvailable ?? response.isAvailable;
       if (isAvailable) {
         showToast('사용 가능한 닉네임입니다!', 'success');

@@ -39,8 +39,8 @@ export const postApi = {
   // 프로젝트 참여 지원 (설계서 규격: POST /api/applications)
   applyToPost: async (projectId, applicationData) => {
     return await axiosInstance.post('/applications', {
-      postId: projectId, // 설계서 body 필드명: postId
-      ...applicationData // position, content, link, contact 등
+      postId: projectId,
+      message: applicationData.content  // message 필드만
     });
   },
 
