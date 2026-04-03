@@ -78,6 +78,12 @@ const MyPage = () => {
         phoneNumber: data.phoneNumber || '',
         intro: data.intro || ''
       });
+      // 데이터 로드 시점의 정보를 마지막 확인된 정보로 저장
+      setLastCheckedNickname(data.nickname || '');
+      setLastCheckedPhone(data.phoneNumber || '');
+      setIsNicknameChecked(true);
+      setIsPhoneChecked(true);
+      
       updateUser(data);
 
       if (location.state?.activeTab !== undefined) {
@@ -133,6 +139,8 @@ const MyPage = () => {
       const onlyNums = value.replace(/[^0-9]/g, '');
       if (onlyNums.length > 11) return;
       setFormData(prev => ({ ...prev, [field]: onlyNums }));
+      
+      // 입력값이 바뀌면 본인의 원래 번호와 대조하여 중복확인 상태 변경
       if (userInfo && onlyNums !== userInfo.phoneNumber) setIsPhoneChecked(false);
       else setIsPhoneChecked(true);
       return;
@@ -157,7 +165,8 @@ const MyPage = () => {
     }
     try {
       const response = await axiosInstance.get(`/auth/check-nickname?nickname=${formData.nickname}`);
-      if (response.isAvailable) {
+      const isAvailable = response.data?.isAvailable ?? response.isAvailable;
+      if (isAvailable) {
         showToast('사용 가능한 닉네임입니다!', 'success');
         setIsNicknameChecked(true);
         setLastCheckedNickname(formData.nickname);
@@ -183,7 +192,8 @@ const MyPage = () => {
     }
     try {
       const response = await axiosInstance.get(`/users/check-phone?phoneNumber=${formData.phoneNumber}`);
-      if (response.isAvailable) {
+      const isAvailable = response.data?.isAvailable ?? response.isAvailable;
+      if (isAvailable) {
         showToast('사용 가능한 전화번호입니다.', 'success');
         setIsPhoneChecked(true);
         setLastCheckedPhone(formData.phoneNumber);
@@ -246,6 +256,8 @@ const MyPage = () => {
       showToast('프로필 정보가 성공적으로 저장되었습니다!', 'success');
       setPassword('');
       setConfirmPassword('');
+      setIsPhoneChecked(true);
+      setIsNicknameChecked(true);
     } catch {
       showToast('저장 중 오류가 발생했습니다.', 'error');
     }
@@ -301,7 +313,7 @@ const MyPage = () => {
 
       showToast(response.message || '기본 이미지로 변경되었습니다.', 'success');
     } catch (error) {
-      console.error("삭제 중 상세 에러:", error); 
+      console.error("이미지 삭제 에러:", error); 
       showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');
     } finally {
       handleMenuClose();
@@ -327,7 +339,6 @@ const MyPage = () => {
     });
   };
 
-  // [항목 13번 반영] 회원 탈퇴 핸들러
   const handleWithdrawal = () => {
     openModal('confirm', {
       title: '회원 탈퇴',
@@ -337,8 +348,7 @@ const MyPage = () => {
       onConfirm: async () => {
         try {
           await axiosInstance.delete('/users/me');
-          showToast('회원 탈퇴가 완료되었습니다. 그동안 이용해 주셔서 감사합니다.', 'success');
-          // 전역 로그아웃 처리 및 메인으로 이동
+          showToast('회원 탈퇴가 완료되었습니다.', 'success');
           logout();
           navigate('/');
         } catch (error) {
@@ -440,8 +450,7 @@ const MyPage = () => {
                       onClick={() => { fileInputRef.current.click(); handleMenuClose(); }} 
                       sx={{ 
                         fontWeight: 800, py: 1.5, px: 2.5, fontSize: '0.9rem', color: '#374151',
-                        borderRadius: 0, 
-                        transition: '0.1s',
+                        borderRadius: 0, transition: '0.1s',
                         '&:hover': { bgcolor: '#F3F4F6', color: '#6366F1' }
                       }}
                     >
@@ -454,8 +463,7 @@ const MyPage = () => {
                       onClick={handleDeleteImage} 
                       sx={{ 
                         fontWeight: 800, py: 1.5, px: 2.5, fontSize: '0.9rem', color: '#374151',
-                        borderRadius: 0,
-                        transition: '0.1s',
+                        borderRadius: 0, transition: '0.1s',
                         '&:hover': { bgcolor: '#FEF2F2', color: '#F43F5E' }
                       }}
                     >
@@ -496,7 +504,6 @@ const MyPage = () => {
                   <MenuButton icon={<EmailIcon />} label="신청 현황" count={userInfo.applyCount} onClick={() => scrollToSection(activityRef, 1)} />
                   <MenuButton icon={<RocketLaunchIcon />} label="내 팀" count={userInfo.acceptedProjects?.length || 0} onClick={() => scrollToSection(activityRef, 2)} />
                   <Divider sx={{ my: 1.5 }} />
-                  {/* [항목 13번 반영] 회원 탈퇴 함수 연결 */}
                   <Button 
                     fullWidth 
                     startIcon={<LogoutIcon />} 
@@ -612,16 +619,10 @@ const MyPage = () => {
                         tabValue={tabValue}
                         onTitleClick={() => {
                           const targetId = item.projectId || item.id;
-                          if (tabValue === 1) {
-                            navigate(`/posts/${targetId}`);
-                          } else {
-                            navigate(`/posts/${targetId}/board`);
-                          }
+                          if (tabValue === 1) navigate(`/posts/${targetId}`);
+                          else navigate(`/posts/${targetId}/board`);
                         }}
-                        onManageClick={() => {
-                          const id = item.projectId || item.id;
-                          navigate(`/posts/${id}/edit`);
-                        }}
+                        onManageClick={() => navigate(`/posts/${item.projectId || item.id}/edit`)}
                         onCancelClick={() => handleCancelApplication(item.applyId || item.id)}
                       />
                     ))
@@ -641,7 +642,6 @@ const MyPage = () => {
 };
 
 // --- 내부 컴포넌트 ---
-
 const MenuButton = ({ icon, label, count, onClick }) => (
   <Button fullWidth startIcon={icon} onClick={onClick} sx={{ justifyContent: 'flex-start', px: 2.5, py: 1.8, borderRadius: 3, fontWeight: 800, color: '#6B7280', '&:hover': { bgcolor: '#F9FAFB', color: '#6366F1' } }}>
     <Box sx={{ flexGrow: 1, textAlign: 'left' }}>{label}</Box>
@@ -669,10 +669,7 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onCancelCli
           <Typography 
             variant="h6" 
             onClick={onTitleClick}
-            sx={{ 
-              fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer',
-              '&:hover': { color: '#6366F1', textDecoration: 'underline' } 
-            }}
+            sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}
           >
             {title}
           </Typography>
@@ -691,26 +688,8 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onCancelCli
       </Box>
       
       <Stack direction="row" spacing={1}>
-        {tabValue === 0 && (
-          <Button 
-            variant="contained" 
-            disableElevation 
-            onClick={onManageClick}
-            sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}
-          >
-            관리
-          </Button>
-        )}
-        {tabValue === 1 && item.status === 'PENDING' && (
-          <Button 
-            variant="outlined" 
-            color="error"
-            onClick={onCancelClick}
-            sx={{ fontWeight: 800, borderRadius: 2 }}
-          >
-            취소하기
-          </Button>
-        )}
+        {tabValue === 0 && <Button variant="contained" disableElevation onClick={onManageClick} sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button>}
+        {tabValue === 1 && item.status === 'PENDING' && <Button variant="outlined" color="error" onClick={onCancelClick} sx={{ fontWeight: 800, borderRadius: 2 }}>취소하기</Button>}
       </Stack>
     </Box>
   );
