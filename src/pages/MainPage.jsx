@@ -151,7 +151,7 @@ const MainPage = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', flexGrow: 1, px: 2 }}>
                 <SearchIcon sx={{ color: 'primary.main', mr: 1.5, fontSize: 28 }} />
                 <TextField
-                  placeholder="관심 있는 스택이나 주제를 검색하세요 (React, Spring, Figma...)"
+                  placeholder="관심 있는 스택이나 주제를 검색하세요 (python, react, java...)"
                   variant="standard"
                   value={keyword}
                   onChange={(e) => setKeyword(e.target.value)}

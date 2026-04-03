@@ -303,7 +303,7 @@ const PostDetailPage = () => {
                       {post.owner?.job || '시니어 개발자'}
                     </Typography>
                     <Chip 
-                      label={post.owner?.position || 'FE'} 
+                      label={POSITION_OPTIONS.find(p => p.value === post.owner?.position)?.label || post.owner?.position || 'FE'} 
                       size="small" 
                       sx={{ bgcolor: '#F5F3FF', color: '#6C63FF', fontWeight: 900, borderRadius: 1.5, px: 0.5 }} 
                     />

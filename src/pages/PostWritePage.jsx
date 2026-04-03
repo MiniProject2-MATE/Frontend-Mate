@@ -20,17 +20,9 @@ import Breadcrumb from '../component/common/Breadcrumb';
 import CustomButton from '../component/common/Button';
 import { postApi } from '../api/postApi';
 import { useUiStore } from '../store/uiStore';
+import { TECH_STACK_OPTIONS } from '../constants/techStacks';
 
 const filter = createFilterOptions();
-
-// 추천 기술 스택 리스트
-const TECH_STACK_OPTIONS = [
-  'JavaScript', 'TypeScript', 'React', 'Vue', 'Next.js', 'Svelte',
-  'Node.js', 'Spring Boot', 'Java', 'Python', 'Django', 'Flask',
-  'Go', 'NestJS', 'Express', 'MySQL', 'PostgreSQL', 'MongoDB',
-  'Redis', 'Docker', 'Kubernetes', 'AWS', 'Flutter', 'ReactNative',
-  'Swift', 'Kotlin', 'Unity', 'Figma'
-];
 
 const PostWritePage = () => {
   const navigate = useNavigate();

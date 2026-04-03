@@ -22,6 +22,9 @@ import CustomButton from '../component/common/Button';
 import Pagination from '../component/common/Pagination';
 import CommentItem from '../component/common/CommentItem';
 
+// 상수
+import { POSITION_OPTIONS } from '../constants/techStacks';
+
 // API
 import boardApi from '../api/boardApi';
 
@@ -283,7 +286,9 @@ const BoardPage = () => {
                         </Avatar>
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 800, color: '#111827' }}>{member.nickname}</Typography>
-                          <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{member.position}</Typography>
+                          <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>
+                            {POSITION_OPTIONS.find(p => p.value === member.position)?.label || member.position}
+                          </Typography>
                         </Box>
                       </Stack>
                       {member.role === 'OWNER' && <Chip label="OWNER" size="small" sx={{ bgcolor: '#FFFBEB', color: '#B45309', fontWeight: 900, fontSize: '0.65rem', borderRadius: 1 }} />}

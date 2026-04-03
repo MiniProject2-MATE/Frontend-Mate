@@ -24,6 +24,7 @@ import axiosInstance from '../api/axiosInstance';
 import Breadcrumb from '../component/common/Breadcrumb';
 import { useUiStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
+import { TECH_STACK_OPTIONS, POSITION_OPTIONS } from '../constants/techStacks';
 
 const MyPage = () => {
   const navigate = useNavigate();
@@ -57,21 +58,6 @@ const MyPage = () => {
   // 프로필 이미지 관련 상태 및 Ref
   const [anchorEl, setAnchorEl] = useState(null);
   const fileInputRef = useRef(null);
-
-  const POSITION_OPTIONS = [
-    { value: 'FE', label: '프론트엔드 (FE)' },
-    { value: 'BE', label: '백엔드 (BE)' },
-    { value: 'DE', label: '디자이너 (DE)' },
-    { value: 'PM', label: '기획자 (PM)' },
-    { value: 'ETC', label: '기타 (ETC)' }
-  ];
-
-  const COMMON_TECH_STACKS = [
-    'React', 'Vue', 'TypeScript', 'JavaScript', 'Next.js',
-    'Spring Boot', 'Java', 'Node.js', 'Python', 'Go',
-    'Figma', 'Adobe XD', 'Sketch',
-    'AWS', 'Docker', 'Kubernetes', 'MySQL', 'MongoDB'
-  ];
 
   const profileRef = useRef(null);
   const activityRef = useRef(null);
@@ -605,7 +591,7 @@ const MyPage = () => {
                     <FormLabel text="기술 스택" />
                     <Autocomplete
                       multiple
-                      options={COMMON_TECH_STACKS}
+                      options={TECH_STACK_OPTIONS}
                       value={formData.techStacks}
                       onChange={handleTechStacksChange}
                       freeSolo

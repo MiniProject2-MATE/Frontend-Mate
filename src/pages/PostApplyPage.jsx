@@ -13,7 +13,8 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import Breadcrumb from '../component/common/Breadcrumb';
-import postApi from '../api/postApi'; // [추가] postApi 사용
+import postApi from '../api/postApi';
+import { POSITION_OPTIONS } from '../constants/techStacks';
 
 const PostApplyPage = () => {
   const { id } = useParams(); 
@@ -42,7 +43,6 @@ const PostApplyPage = () => {
     const fetchPostData = async () => {
       setIsLoading(true);
       try {
-        // [수정] postApi 사용
         const data = await postApi.getPostDetail(id);
         
         if (data) {
@@ -74,11 +74,9 @@ const PostApplyPage = () => {
 
     setIsSubmitting(true);
     try {
-      // [수정] postApi.applyToPost를 통해 백엔드 요청인 /api/application 호출
       await postApi.applyToPost(id, formData);
       showToast('지원이 성공적으로 완료되었습니다!', 'success');
       
-      // [핵심 수정] 마이페이지로 이동할 때 탭 인덱스(1: 신청 현황)와 스크롤 대상을 state로 전달
       navigate('/mypage', { 
         state: { 
           activeTab: 1, 
@@ -95,7 +93,6 @@ const PostApplyPage = () => {
 
   if (isLoading) return <Box sx={{ width: '100%', mt: '100px' }}><LinearProgress /></Box>;
 
-  // 섹션 제목 컴포넌트
   const SectionTitle = ({ number, title, required }) => (
     <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2.5 }}>
       <Avatar sx={{ width: 30, height: 30, bgcolor: '#6366F1', fontSize: '0.95rem', fontWeight: 900, boxShadow: '0 4px 10px rgba(99, 102, 241, 0.2)' }}>
@@ -110,7 +107,6 @@ const PostApplyPage = () => {
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
       <Container maxWidth="md">
-        {/* 상단 네비게이션 */}
         <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 4 }}>
           <IconButton onClick={() => navigate(-1)} sx={{ bgcolor: 'white', border: '1px solid #E5E7EB', '&:hover': { bgcolor: '#F3F4F6', borderColor: '#D1D5DB' } }}>
             <ArrowBackIosNewIcon sx={{ fontSize: 14, color: '#4B5563' }} />
@@ -133,16 +129,15 @@ const PostApplyPage = () => {
           </Box>
 
           <Stack component="form" spacing={7} onSubmit={handleSubmit}>
-            {/* 1. 지원 분야 선택 */}
             <FormControl required disabled={postInfo.isApplied} sx={{ width: '100%' }}>
               <SectionTitle number="1" title="어떤 분야에 지원하시나요?" required />
               <RadioGroup row value={formData.position} onChange={handleChange('position')} sx={{ gap: 2, justifyContent: 'center' }}>
-                {['프론트엔드', '백엔드', '디자이너', '기획자', '기타'].map((pos) => {
-                  const isSelected = formData.position === pos;
+                {POSITION_OPTIONS.map((pos) => {
+                  const isSelected = formData.position === pos.value;
                   return (
                     <FormControlLabel 
-                      key={pos} 
-                      value={pos} 
+                      key={pos.value} 
+                      value={pos.value} 
                       control={<Radio sx={{ display: 'none' }} />} 
                       label={
                         <Box sx={{ 
@@ -172,7 +167,7 @@ const PostApplyPage = () => {
                             '&:hover': { bgcolor: '#F3F4F6' }
                           })
                         }}>
-                          {pos}
+                          {pos.label}
                         </Box>
                       }
                       sx={{ m: 0 }}
@@ -184,7 +179,6 @@ const PostApplyPage = () => {
 
             <Divider sx={{ borderColor: '#F0F0F0' }} />
 
-            {/* 2. 자기소개 및 지원 동기 */}
             <Box>
               <SectionTitle number="2" title="자기소개 및 지원 동기" required />
               <TextField
@@ -199,7 +193,6 @@ const PostApplyPage = () => {
               />
             </Box>
 
-            {/* 3. 포트폴리오 링크 */}
             <Box>
               <SectionTitle number="3" title="참고 링크" />
               <TextField
@@ -212,7 +205,6 @@ const PostApplyPage = () => {
               />
             </Box>
 
-            {/* 4. 연락처 */}
             <Box>
               <SectionTitle number="4" title="소통 채널" required />
               <TextField
@@ -225,7 +217,6 @@ const PostApplyPage = () => {
               />
             </Box>
 
-            {/* 하단 액션 버튼 */}
             <Stack direction="row" spacing={2.5} justifyContent="center" sx={{ pt: 3 }}>
               <Button 
                 type="submit" 
@@ -260,7 +251,6 @@ const PostApplyPage = () => {
   );
 };
 
-// 입력 필드 스타일
 const inputStyle = {
   '& .MuiOutlinedInput-root': {
     bgcolor: '#F9FAFB',

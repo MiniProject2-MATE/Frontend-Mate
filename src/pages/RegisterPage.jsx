@@ -4,6 +4,7 @@ import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import axiosInstance from '../api/axiosInstance';
 import { useUiStore } from '../store/uiStore';
+import { TECH_STACK_OPTIONS, POSITION_OPTIONS } from '../constants/techStacks';
 
 const RegisterPage = () => {
   const navigate = useNavigate();
@@ -25,21 +26,6 @@ const RegisterPage = () => {
   const [lastCheckedPhone, setLastCheckedPhone] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
-  const positions = [
-    { value: 'FE', label: '프론트엔드 (FE)' },
-    { value: 'BE', label: '백엔드 (BE)' },
-    { value: 'DE', label: '디자이너 (DE)' },
-    { value: 'PM', label: '기획자 (PM)' },
-    { value: 'ETC', label: '기타 (ETC)' },
-  ];
-
-  const commonTechStacks = [
-    'React', 'Vue', 'TypeScript', 'JavaScript', 'Next.js',
-    'Spring Boot', 'Java', 'Node.js', 'Python', 'Go',
-    'Figma', 'Adobe XD', 'Sketch',
-    'AWS', 'Docker', 'Kubernetes', 'MySQL', 'MongoDB'
-  ];
 
   // 닉네임 미입력 시 사용할 랜덤 닉네임 생성 함수
   const generateRandomNickname = () => {
@@ -301,7 +287,7 @@ const RegisterPage = () => {
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>희망 직군 *</Typography>
               <TextField select fullWidth name="position" value={formData.position} onChange={handleChange} sx={inputStyle}>
-                {positions.map((option) => (
+                {POSITION_OPTIONS.map((option) => (
                   <MenuItem key={option.value} value={option.value}>{option.label}</MenuItem>
                 ))}
               </TextField>
@@ -311,7 +297,7 @@ const RegisterPage = () => {
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>기술 스택 *</Typography>
               <Autocomplete
                 multiple
-                options={commonTechStacks}
+                options={TECH_STACK_OPTIONS}
                 value={formData.techStacks}
                 onChange={handleTechStacksChange}
                 freeSolo
