@@ -372,7 +372,7 @@ http.delete('*/api/users/profile-image', () => {
         data: newApply,
         message: '지원이 완료되었습니다.'
       });
-    } catch (err) {
+    } catch {
       return new HttpResponse(JSON.stringify({ success: false, message: '지원 처리 중 오류가 발생했습니다.' }), { status: 500 });
     }
   }),
