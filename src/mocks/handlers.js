@@ -27,14 +27,14 @@ const getStoredUser = () => {
   const saved = localStorage.getItem('user-info');
   if (saved) return JSON.parse(saved);
   return {
-    id: 1,
+    userId: 1, // id -> userId
     email: 'test@test.com',
     nickname: '테스트메이트',
     position: 'FE',
     intro: '안녕하세요! 함께 성장하고 싶은 개발자입니다.', 
     techStacks: ['React', 'TypeScript', 'Node.js'],
     phoneNumber: '01012345678',
-    profileImageUrl: 'https://mate-s3.com/default-profile.png', // API 설계에 맞춘 컬럼명
+    profileImageUrl: 'https://mate-s3.com/default-profile.png',
   };
 };
 
@@ -160,7 +160,11 @@ export const handlers = [
       filteredPosts = filteredPosts.filter(p => p.category === (categoryMap[category] || category));
     }
     if (keyword) {
-      filteredPosts = filteredPosts.filter(p => p.title.toLowerCase().includes(keyword) || p.content.toLowerCase().includes(keyword));
+      filteredPosts = filteredPosts.filter(p => 
+        p.title.toLowerCase().includes(keyword) || 
+        p.content.toLowerCase().includes(keyword) ||
+        (p.techStacks && p.techStacks.some(stack => stack.toLowerCase().includes(keyword)))
+      );
     }
     const totalElements = filteredPosts.length;
     return HttpResponse.json({
@@ -204,12 +208,31 @@ export const handlers = [
   http.put('*/api/users/me', async ({ request }) => {
     const updateData = await request.json();
     const oldNickname = currentUserData.nickname;
+    
+    // 닉네임 변경 시 관련 데이터 동기화
     if (updateData.nickname && updateData.nickname !== oldNickname) {
       mockPosts = mockPosts.map(p => p.ownerNickname === oldNickname ? { ...p, ownerNickname: updateData.nickname } : p);
     }
+    
     currentUserData = { ...currentUserData, ...updateData };
     syncStorage();
-    return HttpResponse.json({ success: true, data: currentUserData, message: '프로필이 수정되었습니다.' });
+
+    // [핵심 수정] 수정 후 응답 시에도 활동 내역 정보를 포함하여 반환 (UI 데이터 유지 목적)
+    const myPosts = mockPosts.filter(p => p.ownerNickname === currentUserData.nickname);
+    const myApplies = mockApplies.filter(a => a.ownerNickname !== currentUserData.nickname);
+    
+    return HttpResponse.json({ 
+      success: true, 
+      data: {
+        ...currentUserData,
+        postCount: myPosts.length, 
+        applyCount: myApplies.length, 
+        myPosts, 
+        applies: myApplies, 
+        acceptedProjects: mockApplies.filter(a => a.status === 'ACCEPTED') 
+      }, 
+      message: '프로필이 수정되었습니다.' 
+    });
   }),
 
   // [수정] 4.5.5 프로필 이미지 수정 (PATCH)
@@ -322,24 +345,36 @@ http.delete('*/api/users/profile-image', () => {
     return HttpResponse.json({ success: true, data: { projectId: newId } });
   }),
 
-  // 17. 모집글 지원하기
-  http.post('*/api/application', async ({ request }) => {
-    const applyData = await request.json(); 
-    const projectId = applyData.projectId;
-    const targetProject = mockPosts.find(p => p.projectId === parseInt(projectId));
+  // 17. 모집글 지원하기 (경로: /api/applications)
+  http.post('*/api/applications', async ({ request }) => {
+    try {
+      const applyData = await request.json(); 
+      const postId = applyData.postId; 
+      
+      // 해당 프로젝트 찾기
+      const targetProject = mockPosts.find(p => String(p.projectId) === String(postId));
 
-    const newApply = { 
-      applyId: Date.now(), 
-      projectId: parseInt(projectId), 
-      projectTitle: targetProject?.title || "지원 프로젝트",
-      ...applyData, 
-      status: "PENDING", 
-      appliedDate: new Date().toISOString().split('T')[0], 
-      ownerNickname: targetProject?.ownerNickname || "Owner" 
-    };
-    mockApplies.push(newApply);
-    syncStorage();
-    return HttpResponse.json({ success: true, data: newApply });
+      const newApply = { 
+        applyId: Date.now(), 
+        projectId: parseInt(postId), 
+        projectTitle: targetProject?.title || "지원 프로젝트",
+        ...applyData, 
+        status: "PENDING", 
+        appliedDate: new Date().toISOString().split('T')[0], 
+        ownerNickname: targetProject?.ownerNickname || "Owner" 
+      };
+      
+      mockApplies.push(newApply);
+      syncStorage();
+      
+      return HttpResponse.json({ 
+        success: true, 
+        data: newApply,
+        message: '지원이 완료되었습니다.'
+      });
+    } catch (err) {
+      return new HttpResponse(JSON.stringify({ success: false, message: '지원 처리 중 오류가 발생했습니다.' }), { status: 500 });
+    }
   }),
 
   // 19. 팀 게시글 수정/삭제 핸들러
@@ -362,8 +397,8 @@ http.delete('*/api/users/profile-image', () => {
     return HttpResponse.json({ success: true });
   }),
 
-  // 20. 댓글 수정/삭제 핸들러
-  http.put('*/api/posts/:projectId/board/:boardPostId/comments/:commentId', async ({ params, request }) => {
+  // 20. 댓글 수정/삭제 핸들러 (경로 변경)
+  http.patch('*/api/comments/:commentId', async ({ params, request }) => {
     const { commentId } = params;
     const { content } = await request.json();
     const index = mockComments.findIndex(c => c.id === parseInt(commentId));
@@ -375,26 +410,28 @@ http.delete('*/api/users/profile-image', () => {
     return new HttpResponse(null, { status: 404 });
   }),
 
-  http.delete('*/api/posts/:projectId/board/:boardPostId/comments/:commentId', ({ params }) => {
+  http.delete('*/api/comments/:commentId', ({ params }) => {
     const { commentId } = params;
     mockComments = mockComments.filter(c => c.id !== parseInt(commentId));
     syncStorage();
     return HttpResponse.json({ success: true });
   }),
 
-  // 18. 모집글 삭제
-  http.delete('*/api/posts/:id', ({ params }) => {
+  // 18. 모집글 삭제 (경로 변경: /posts -> /projects)
+  http.delete('*/api/projects/:id', ({ params }) => {
     const { id } = params;
-    mockPosts = mockPosts.filter(p => p.projectId !== parseInt(id));
+    // [수정] 일치하지 않는 것들만 남겨야 함 (삭제 로직)
+    mockPosts = mockPosts.filter(p => String(p.projectId) !== String(id));
     syncStorage();
     return HttpResponse.json({ success: true });
   }),
 
-  // 19. 모집글 수정 핸들러
-  http.put('*/api/posts/:id', async ({ params, request }) => {
+  // 19. 모집글 수정 핸들러 (경로 변경: /posts -> /projects)
+  http.put('*/api/projects/:id', async ({ params, request }) => {
     const { id } = params;
     const updatedData = await request.json();
-    const postIndex = mockPosts.findIndex(p => p.projectId === parseInt(id));
+    // [보정] findIndex 시에도 타입 안전하게 비교
+    const postIndex = mockPosts.findIndex(p => String(p.projectId) === String(id));
     if (postIndex !== -1) {
       mockPosts[postIndex] = {
         ...mockPosts[postIndex],
@@ -410,4 +447,4 @@ http.delete('*/api/users/profile-image', () => {
     }
     return new HttpResponse(JSON.stringify({ success: false, message: '게시글을 찾을 수 없습니다.' }), { status: 404 });
   }),
-];
+    ];

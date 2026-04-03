@@ -38,18 +38,16 @@ const PostDetailPage = () => {
       setIsLoading(true);
       try {
         // 1. 상세 데이터 로드
-        const postResponse = await axiosInstance.get(`/projects/${id}`);
-        const postData = postResponse.data || postResponse;
+        const postData = await postApi.getPostDetail(id);
         setPost(postData);
 
         // 2. 로그인 상태인 경우 내 지원 내역 확인
         if (isLoggedIn) {
-          const userResponse = await authApi.getUserInfo();
-          const userData = userResponse.data || userResponse;
+          const userData = await authApi.getUserInfo();
           const applies = userData.applies || [];
           
           // 현재 게시글 ID와 일치하는 지원 내역이 있는지 확인
-          const alreadyApplied = applies.some(apply => Number(apply.projectId) === Number(id));
+          const alreadyApplied = applies.some(apply => Number(apply.projectId || apply.id) === Number(id));
           setHasApplied(alreadyApplied);
         }
       } catch (error) {

@@ -106,7 +106,8 @@ const PostWritePage = () => {
         recruitCount: Number(formData.recruitCount)
       });
       
-      const newPostId = response?.projectId || response?.data?.projectId || 100;
+      // postApi가 response.data.data를 반환하므로 바로 projectId 접근
+      const newPostId = response?.projectId || response?.id;
       showToast('모집글이 성공적으로 등록되었습니다! 🚀', 'success');
       navigate(`/posts/${newPostId}`);
     } catch (error) {

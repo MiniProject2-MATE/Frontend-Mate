@@ -138,15 +138,19 @@ const RegisterPage = () => {
     if (!validate()) return;
     setIsLoading(true);
     try {
-      const requestData = {
+      const userData = {
         ...formData,
         phoneNumber: formData.phoneNumber.replace(/-/g, ''),
       };
-      delete requestData.confirmPassword;
-      await authApi.signup(requestData);
+      delete userData.confirmPassword;
+      
+      // authApi.signup은 (userData, profileImage)를 받음
+      await authApi.signup(userData, null); // 현재 이미지 선택 UI가 없으므로 null 전달
+      
+      showToast('환영합니다! 회원가입이 완료되었습니다.', 'success');
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.error?.message || '회원가입에 실패했습니다.');
+      setError(err.message || '회원가입에 실패했습니다.');
     } finally {
       setIsLoading(false);
     }

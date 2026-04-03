@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Box, Container, Typography, Paper, Avatar, Stack, 
   Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem, Menu
@@ -27,6 +27,7 @@ import { useAuthStore } from '../store/authStore';
 
 const MyPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useUiStore();
   const { user: authUser, updateUser } = useAuthStore();
 
@@ -79,6 +80,22 @@ const MyPage = () => {
           intro: data.intro || ''
         });
         updateUser(data);
+
+        // [추가] 지원 완료 후 넘어온 정보가 있으면 탭 변경 및 스크롤
+        if (location.state?.activeTab !== undefined) {
+          setTabValue(location.state.activeTab); // 예: 1번 탭(신청 현황)
+          
+          setTimeout(() => {
+            const targetRef = location.state.scrollTo === 'profile' ? profileRef : activityRef;
+            if (targetRef.current) {
+              const offset = targetRef.current.offsetTop - 100;
+              window.scrollTo({ top: offset, behavior: 'smooth' });
+            }
+          }, 100);
+          
+          // 사용한 state 초기화 (새로고침 시 유지 안되도록)
+          window.history.replaceState({}, document.title);
+        }
       } catch (error) {
         console.error("회원 정보를 불러오지 못했습니다.", error);
         if (authUser) {
@@ -95,9 +112,8 @@ const MyPage = () => {
       }
     };
     fetchUserData();
-    // 무한 루프 방지를 위해 의존성 배열을 비웁니다.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, [location]); 
 
   const scrollToSection = useCallback((ref, tabIdx = null) => {
     if (tabIdx !== null) setTabValue(tabIdx);
@@ -220,8 +236,15 @@ const MyPage = () => {
         ...(password && { password })
       };
       const response = await axiosInstance.put('/users/me', updatePayload);
-      setUserInfo(response); 
-      updateUser(response); 
+      
+      // 인터셉터가 response.data.data를 반환하므로 바로 사용
+      const updatedUser = {
+        ...response,
+        userId: response.userId || response.id // userId 우선순위
+      };
+      
+      setUserInfo(updatedUser); 
+      updateUser(updatedUser); 
       showToast('프로필 정보가 성공적으로 저장되었습니다!', 'success');
       setPassword('');
       setConfirmPassword('');

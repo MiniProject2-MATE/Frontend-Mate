@@ -41,9 +41,15 @@ export const usePostStore = create((set, get) => ({
       
       const response = await postApi.getPosts(currentParams);
       
+      // 설계서 규격(projectId)과 현재 UI(id) 간의 호환성을 위해 매핑
+      const mappedPosts = (response?.content || []).map(post => ({
+        ...post,
+        id: post.projectId || post.id // UI에서 id를 주로 사용하므로 보정
+      }));
+
       // axiosInstance가 res.data.data를 반환하므로 response는 { content, page } 구조임
       set({ 
-        posts: response?.content || [], 
+        posts: mappedPosts, 
         totalPages: response?.page?.totalPages || 0,
         totalElements: response?.page?.totalElements || 0,
         isLoading: false 
@@ -53,13 +59,13 @@ export const usePostStore = create((set, get) => ({
     }
   },
 
-  // 필터 변경
+  // 필터 변경 액션
   setKeyword: (keyword) => set({ keyword, page: 0 }),
   setCategory: (category) => set({ category, page: 0 }),
   setSort: (sort) => set({ sort, page: 0 }),
   setPage: (page) => set({ page }),
 
-  // 로딩/에러
+  // 로딩/에러 설정
   setLoading: (isLoading) => set({ isLoading }),
   setError: (error) => set({ error }),
 
@@ -68,7 +74,16 @@ export const usePostStore = create((set, get) => ({
     set({ isLoading: true, error: null })
     try {
       const response = await postApi.getPostDetail(projectId)
-      set({ currentPost: response, isLoading: false })
+      
+      // 상세 데이터에서도 id와 projectId 호환성 유지 및 날짜 정규화
+      const mappedDetail = response ? {
+        ...response,
+        id: response.projectId || response.id,
+        // ISO 8601 날짜를 UI에서 사용하는 포맷으로 필요시 변환 (추후 컴포넌트에서도 처리 가능)
+        endDate: response.endDate ? response.endDate.split('T')[0] : response.endDate 
+      } : null;
+
+      set({ currentPost: mappedDetail, isLoading: false })
     } catch (error) {
       set({ error: error.message, isLoading: false })
     }

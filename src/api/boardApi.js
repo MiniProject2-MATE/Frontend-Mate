@@ -27,39 +27,39 @@ const boardApi = {
     return response;
   },
 
-  // [추가] 게시글 수정
-  updateBoardPost: async (projectId, boardPostId, postData) => {
-    const response = await axiosInstance.put(`/posts/${projectId}/board/${boardPostId}`, postData);
+  // 게시글 수정 (설계서 규격: PUT /api/board-posts/{boardPostId})
+  updateBoardPost: async (boardPostId, postData) => {
+    const response = await axiosInstance.put(`/board-posts/${boardPostId}`, postData);
     return response;
   },
 
-  // [추가] 게시글 삭제
-  deleteBoardPost: async (projectId, boardPostId) => {
-    const response = await axiosInstance.delete(`/posts/${projectId}/board/${boardPostId}`);
+  // 게시글 삭제 (설계서 규격: DELETE /api/board-posts/{boardPostId})
+  deleteBoardPost: async (boardPostId) => {
+    const response = await axiosInstance.delete(`/board-posts/${boardPostId}`);
     return response;
   },
 
-  // 댓글 조회
+  // 댓글 조회 (설계서 규격 유지: GET /api/posts/{projectId}/board/{boardPostId}/comments)
   getComments: async (projectId, boardPostId) => {
     const response = await axiosInstance.get(`/posts/${projectId}/board/${boardPostId}/comments`);
     return response;
   },
 
-  // 댓글 작성
+  // 댓글 작성 (설계서 규격 유지)
   createComment: async (projectId, boardPostId, content) => {
     const response = await axiosInstance.post(`/posts/${projectId}/board/${boardPostId}/comments`, { content });
     return response;
   },
 
-  // [추가] 댓글 수정
-  updateComment: async (projectId, boardPostId, commentId, content) => {
-    const response = await axiosInstance.put(`/posts/${projectId}/board/${boardPostId}/comments/${commentId}`, { content });
+  // 댓글 수정 (설계서 규격: PATCH /api/comments/{commentId})
+  updateComment: async (commentId, content) => {
+    const response = await axiosInstance.patch(`/comments/${commentId}`, { content });
     return response;
   },
 
-  // [추가] 댓글 삭제
-  deleteComment: async (projectId, boardPostId, commentId) => {
-    const response = await axiosInstance.delete(`/posts/${projectId}/board/${boardPostId}/comments/${commentId}`);
+  // 댓글 삭제 (설계서 규격: DELETE /api/comments/{commentId})
+  deleteComment: async (commentId) => {
+    const response = await axiosInstance.delete(`/comments/${commentId}`);
     return response;
   },
   };

@@ -54,6 +54,7 @@ export default function PostCard({ post, isLoading }) {
 
   const {
     projectId,
+    id, // 호환성을 위해 유지
     title,
     content,
     status,
@@ -64,16 +65,20 @@ export default function PostCard({ post, isLoading }) {
     techStacks = [],
   } = post;
 
+  const displayId = projectId || id;
+
   const calculateDDay = (dateStr) => {
+    if (!dateStr) return '미정';
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const target = new Date(dateStr);
+    if (isNaN(target)) return '날짜오류';
     const diff = Math.ceil((target - today) / (1000 * 60 * 60 * 24));
     return diff >= 0 ? `D-${diff}` : '만료';
   };
 
   return (
-    <Card onClick={() => navigate(`/posts/${projectId}`)} sx={cardStyle}>
+    <Card onClick={() => navigate(`/posts/${displayId}`)} sx={cardStyle}>
       <CardContent sx={{ p: 2.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>

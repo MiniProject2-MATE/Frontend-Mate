@@ -12,10 +12,12 @@ export const useAuthStore = create(
 
       // 로그인 성공 시 토큰과 유저 정보 저장
       setAuth: (accessToken, refreshToken, user) => {
+        // 백엔드 응답의 id를 userId로 매핑하여 저장 (일관성 유지)
+        const userWithId = user ? { ...user, userId: user.userId || user.id } : null;
         set({
           accessToken,
           refreshToken,
-          user,
+          user: userWithId,
           isLoggedIn: !!accessToken,
         });
       },
@@ -32,7 +34,9 @@ export const useAuthStore = create(
       // 유저 정보만 부분 업데이트
       updateUser: (userData) => {
         set((state) => ({
-          user: state.user ? { ...state.user, ...userData } : userData
+          user: state.user 
+            ? { ...state.user, ...userData, userId: userData.userId || userData.id || state.user.userId } 
+            : userData
         }));
       },
 

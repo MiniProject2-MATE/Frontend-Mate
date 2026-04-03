@@ -8,6 +8,7 @@ const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
 const axiosInstance = axios.create({
   baseURL: API_URL, // 이제 모든 요청 앞에 자동으로 /api가 붙습니다.
   timeout: 5000,
+  withCredentials: true, // [추가] 쿠키 및 인증 정보 포함
 });
 
 // Request Interceptor: 토큰 자동 추가
@@ -15,6 +16,7 @@ axiosInstance.interceptors.request.use(
   (config) => {
     const accessToken = useAuthStore.getState().accessToken;
     if (accessToken) {
+      // 설계서 규격에 따라 Bearer 접두사 확인 (이미 되어 있음)
       config.headers.Authorization = `Bearer ${accessToken}`;
     }
     return config;
@@ -22,53 +24,48 @@ axiosInstance.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: 401 에러 대응 및 토큰 자동 갱신
+// Response Interceptor: 공통 응답 포맷 처리 및 토큰 갱신
 axiosInstance.interceptors.response.use(
   (response) => {
-    // 성공 시 res.data.data 반환 (서버 응답 구조에 맞춰 가공)
+    // 설계서 규격: { success, data, message, timestamp }
+    // 성공 시 data 필드만 반환하여 컴포넌트에서 res.data.data 대신 res로 바로 접근 가능하게 함
     return response.data.data;
   },
   async (error) => {
     const originalRequest = error.config;
     const { response } = error;
 
-    // RESTAPI설계서.md의 3.2 JWT 인증 흐름을 완벽히 구현
-    // 응답에서 401 에러가 발생하고, 원래 요청이 재시도된 요청이 아닐 경우 (!originalRequest._retry)
-    // [추가] 로그인 요청(/auth/login)은 401이 발생하더라도 토큰 갱신 로직을 타지 않아야 함 (로그인 실패이므로)
+    // 401 Unauthorized 에러 처리 (토큰 만료 등)
     if (response?.status === 401 && !originalRequest._retry && !originalRequest.url.includes('/auth/login')) {
       originalRequest._retry = true;
       const refreshToken = useAuthStore.getState().refreshToken;
 
       if (refreshToken) {
         try {
-          // authStore에서 refreshToken을 꺼내 POST /api/auth/refresh API를 호출
-          // axiosInstance가 아닌 기본 axios를 사용하여 재발급 요청 (인터셉터 순환 방지)
-          const refreshRes = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/auth/refresh`, {
+          // 설계서 규격: POST /api/auth/refresh { refreshToken }
+          const refreshRes = await axios.post(`${API_URL}/auth/refresh`, {
             refreshToken
           });
 
           if (refreshRes.data.success) {
             const { accessToken: newAccessToken, refreshToken: newRefreshToken } = refreshRes.data.data;
             
-            // 성공 시: 새로 발급받은 토큰들을 authStore.getState().setTokens()로 저장
             useAuthStore.getState().setTokens(newAccessToken, newRefreshToken || refreshToken);
             
-            // 원래 요청의 헤더를 새 토큰으로 교체한 뒤 재요청(retry)
             originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
             return axiosInstance(originalRequest);
           }
         } catch (refreshError) {
-          // 리프레시 토큰도 만료되었거나 에러 발생 시
           console.error('Token refresh failed:', refreshError);
         }
       }
 
-      // 실패 시 (리프레시 토큰도 만료): logout() 호출 후 /login으로 강제 이동
       useAuthStore.getState().logout();
       window.location.href = '/login';
     }
 
-    return Promise.reject(error);
+    // 에러 발생 시에도 response.data에 에러 정보가 있다면 이를 reject 함
+    return Promise.reject(error.response?.data || error);
   }
 );
 
