@@ -171,7 +171,7 @@ const PostEditPage = () => {
         try {
           await postApi.deletePost(id);
           showToast('삭제되었습니다.', 'success');
-          navigate('/mypage');
+          navigate('/');
         } catch (error) {
           console.error('삭제 실패:', error);
           showToast('삭제 중 오류가 발생했습니다.', 'error');
