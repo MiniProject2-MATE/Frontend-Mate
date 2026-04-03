@@ -9,29 +9,11 @@ import { getDynamicStatus } from '../../utils/statusUtils';
 export default function PostCard({ post, isLoading }) {
   const navigate = useNavigate();
 
-  // 카드 스타일 수정: 가로로 더 긴 직사각형 형태, 곡률 완화
-  const cardStyle = {
-    width: '100%',
-    height: 300, 
-    display: 'flex', 
-    flexDirection: 'column',
-    cursor: 'pointer',
-    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-    borderRadius: 2.5, 
-    border: '1px solid #E5E7EB',
-    bgcolor: '#ffffff',
-    boxSizing: 'border-box',
-    overflow: 'hidden',
-    '&:hover': {
-      transform: 'translateY(-6px)',
-      boxShadow: '0 12px 30px rgba(108,99,255,0.1)',
-      borderColor: 'primary.main',
-    }
-  };
-
   if (isLoading) {
     return (
-      <Card sx={cardStyle}>
+      <Card sx={{ 
+        width: '100%', height: 300, borderRadius: 2.5, border: '1px solid #E5E7EB', bgcolor: '#ffffff' 
+      }}>
         <Box sx={{ p: 2.5, flexGrow: 1 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.5 }}>
             <Skeleton variant="text" width={60} height={20} />
@@ -53,13 +35,16 @@ export default function PostCard({ post, isLoading }) {
 
   if (!post) return null;
 
+  const dynamicStatus = getDynamicStatus(post);
+  const isDeadlineSoon = dynamicStatus === 'DEADLINE_SOON';
+  const isClosed = dynamicStatus === 'CLOSED';
+
   const {
     projectId,
     id,
     category,
     title,
     content,
-    status,
     recruitCount,
     currentCount,
     endDate,
@@ -69,6 +54,42 @@ export default function PostCard({ post, isLoading }) {
 
   const displayId = projectId || id;
   const categoryLabel = category === 'PROJECT' ? '[프로젝트]' : category === 'STUDY' ? '[스터디]' : '';
+
+  // 카드 스타일 정의
+  const cardStyle = {
+    width: '100%',
+    height: 300, 
+    display: 'flex', 
+    flexDirection: 'column',
+    cursor: 'pointer',
+    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+    borderRadius: 2.5, 
+    border: '1px solid',
+    borderColor: isDeadlineSoon ? '#F59E0B' : '#E5E7EB',
+    bgcolor: '#ffffff',
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    position: 'relative',
+    filter: isClosed ? 'grayscale(0.8)' : 'none',
+    opacity: isClosed ? 0.65 : 1,
+    '&:hover': {
+      transform: 'translateY(-6px)',
+      boxShadow: '0 12px 30px rgba(108,99,255,0.15)',
+      borderColor: 'primary.main',
+    },
+    ...(isDeadlineSoon && {
+      boxShadow: '0 0 0 1px rgba(245, 158, 11, 0.2)',
+    })
+  };
+
+  // 애니메이션 정의
+  const pulseKeyframes = {
+    '@keyframes pulse': {
+      '0%': { transform: 'scale(1)', opacity: 1 },
+      '50%': { transform: 'scale(1.05)', opacity: 0.8 },
+      '100%': { transform: 'scale(1)', opacity: 1 },
+    }
+  };
 
   const calculateDDay = (dateStr) => {
     if (!dateStr) return '미정';
@@ -84,7 +105,13 @@ export default function PostCard({ post, isLoading }) {
     <Card onClick={() => navigate(`/posts/${displayId}`)} sx={cardStyle}>
       <CardContent sx={{ p: 2.5, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+          <Box sx={{ 
+            display: 'flex', 
+            gap: 1, 
+            alignItems: 'center',
+            ...pulseKeyframes,
+            animation: isDeadlineSoon ? 'pulse 2s infinite ease-in-out' : 'none'
+          }}>
             <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 800, bgcolor: 'primary.soft', px: 1, py: 0.2, borderRadius: 1 }}>
               {currentCount}/{recruitCount}명
             </Typography>
@@ -92,7 +119,7 @@ export default function PostCard({ post, isLoading }) {
               {calculateDDay(endDate)}
             </Typography>
           </Box>
-          <Badge status={getDynamicStatus(post)} />
+          <Badge status={dynamicStatus} />
         </Box>
 
         <Typography variant="h6" sx={{ 
