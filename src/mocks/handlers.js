@@ -137,31 +137,88 @@ const generatePosts = (users) => {
 };
 
 const generateApplies = (users, posts) => {
-  const applies = [];
-  // Generate some random applications
-  for (let i = 1; i <= 80; i++) {
-    const user = users[i % users.length];
-    const post = posts[i % posts.length];
+  const applies = [
+    // --- [시나리오 1] user_1(프론트깍이)의 글에 다른 사람들이 지원한 경우 (지원서 보기 테스트용) ---
+    {
+      applyId: 101, projectId: 2, userId: 2, projectTitle: '모던 자바스크립트 Deep Dive', 
+      category: 'STUDY', position: 'BE', status: 'PENDING', appliedDate: '2026-04-01',
+      ownerNickname: '프론트깍이', nickname: '백엔드장인', profileImageUrl: 'https://i.pravatar.cc/150?u=user2',
+      message: '안녕하세요! 백엔드 개발자이지만 JS 기초를 탄탄히 다지고 싶어 지원합니다. 매주 오프라인 모임에 성실히 참여하겠습니다.',
+      contact: 'open.kakao.com/o/sJSStudy_BE', link: 'https://github.com/backend-master'
+    },
+    {
+      applyId: 102, projectId: 2, userId: 3, projectTitle: '모던 자바스크립트 Deep Dive', 
+      category: 'STUDY', position: 'DE', status: 'ACCEPTED', appliedDate: '2026-04-02',
+      ownerNickname: '프론트깍이', nickname: '디자인천재', profileImageUrl: 'https://i.pravatar.cc/150?u=user3',
+      message: '디자이너로서 개발자와의 소통을 위해 JS를 배우고 싶습니다. 시각화 라이브러리에도 관심이 많아요!',
+      contact: '010-1234-5678', link: 'https://behance.net/design-genius'
+    },
+    {
+      applyId: 103, projectId: 19, userId: 5, projectTitle: '시니어 세대를 위한 커뮤니티', 
+      category: 'PROJECT', position: 'BE', status: 'PENDING', appliedDate: '2026-04-03',
+      ownerNickname: '프론트깍이', nickname: '풀스택꿈나무', profileImageUrl: 'https://i.pravatar.cc/150?u=user5',
+      message: '사회적 가치가 있는 프로젝트라 꼭 참여하고 싶습니다. Node.js와 React 모두 경험이 있어 큰 도움이 될 것 같습니다.',
+      contact: 'kakao: fullstack_dream', link: 'https://github.com/fullstack-dream'
+    },
+    {
+      applyId: 104, projectId: 19, userId: 8, projectTitle: '시니어 세대를 위한 커뮤니티', 
+      category: 'PROJECT', position: 'DE', status: 'REJECTED', appliedDate: '2026-04-01',
+      ownerNickname: '프론트깍이', nickname: 'UI구조대', profileImageUrl: 'https://i.pravatar.cc/150?u=user8',
+      message: '접근성 높은 UI 디자인에 자신 있습니다. 시니어 타겟 앱 디자인 경험이 있습니다.',
+      contact: '010-8888-9999', link: 'https://portfolio.com/ui-guard'
+    },
+
+    // --- [시나리오 2] user_1(프론트깍이)이 다른 사람의 글에 지원한 경우 (신청 현황 테스트용) ---
+    {
+      applyId: 105, projectId: 6, userId: 1, projectTitle: '스프링 부트 핵심 원리 파악', 
+      category: 'STUDY', position: 'FE', status: 'PENDING', appliedDate: '2026-04-02',
+      ownerNickname: '백엔드장인', nickname: '프론트깍이', profileImageUrl: 'https://i.pravatar.cc/150?u=user1',
+      message: '프론트엔드 개발자이지만 백엔드 통신 원리를 깊게 이해하고 싶어 지원했습니다. 잘 부탁드립니다!',
+      contact: '010-1111-0001', link: 'https://github.com/front-ggagi'
+    },
+    {
+      applyId: 106, projectId: 3, userId: 1, projectTitle: 'AI 기반 식단 추천 서비스', 
+      category: 'PROJECT', position: 'FE', status: 'ACCEPTED', appliedDate: '2026-03-30',
+      ownerNickname: '최종보스', nickname: '프론트깍이', profileImageUrl: 'https://i.pravatar.cc/150?u=user1',
+      message: 'AI 모델 결과물을 멋지게 시각화해보고 싶습니다. React 환경 구축에 자신 있습니다.',
+      contact: '010-1111-0001', link: 'https://front-ggagi.blog'
+    }
+  ];
+
+  // 나머지 렌덤 데이터는 최소화하여 수동 데이터의 가독성 확보
+  const manualUserIds = [1, 2, 3, 5, 8];
+  const manualProjectIds = [2, 19, 6, 3];
+
+  for (let i = 1; i <= 50; i++) {
+    const user = users[(i + 10) % users.length];
+    const post = posts[(i + 5) % posts.length];
     
     if (user.nickname === post.ownerNickname) continue;
+    // 수동 데이터와 겹치지 않게 방지
+    if (manualUserIds.includes(user.userId) && manualProjectIds.includes(post.projectId)) continue;
 
-    const status = i % 4 === 0 ? 'ACCEPTED' : (i % 7 === 0 ? 'REJECTED' : 'PENDING');
+    const status = i % 6 === 0 ? 'ACCEPTED' : (i % 10 === 0 ? 'REJECTED' : 'PENDING');
     
     applies.push({
-      applyId: i,
+      applyId: i + 300,
       projectId: post.projectId,
       userId: user.userId,
       projectTitle: post.title,
       category: post.category,
       position: user.position === 'FE' ? '프론트엔드' : (user.position === 'BE' ? '백엔드' : '디자이너'),
       status,
-      appliedDate: `2026-03-${String((i % 31) + 1).padStart(2, '0')}`,
+      appliedDate: `2026-03-${String((i % 28) + 1).padStart(2, '0')}`,
       ownerNickname: post.ownerNickname,
-      message: "열심히 하겠습니다! 꼭 뽑아주세요."
+      nickname: user.nickname,
+      profileImageUrl: `https://i.pravatar.cc/150?u=user${user.userId}`,
+      message: "안녕하세요! 공고 보고 지원합니다. 성실히 참여하겠습니다!",
+      contact: "승인 후 공개됩니다.",
+      link: ""
     });
 
     if (status === 'ACCEPTED') {
-      post.currentCount += 1;
+      const targetPost = posts.find(p => p.projectId === post.projectId);
+      if (targetPost) targetPost.currentCount += 1;
     }
   }
   return applies;
@@ -255,7 +312,7 @@ export const handlers = [
   }),
 
   // 닉네임 중복 확인
-  http.get('*/api/auth/check-nickname', ({ request }) => {
+  http.get('*/api/users/check-nickname', ({ request }) => {
     const url = new URL(request.url);
     const nickname = url.searchParams.get('nickname');
     const exists = db.users.some(u => u.nickname === nickname && u.userId !== db.currentUser?.userId);
@@ -446,6 +503,16 @@ export const handlers = [
     
     saveDB(db);
     return HttpResponse.json({ success: true });
+  }),
+
+  // 특정 모집글의 지원서 목록 조회
+  http.get('*/api/projects/:projectId/applications', ({ params }) => {
+    const { projectId } = params;
+    const projectApplies = db.applies.filter(a => a.projectId === parseInt(projectId));
+    return HttpResponse.json({
+      success: true,
+      data: projectApplies
+    });
   }),
 
   // 팀 게시판 목록

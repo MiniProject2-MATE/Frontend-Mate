@@ -101,7 +101,7 @@ const RegisterPage = () => {
 
     try {
       // Network Error 방지를 위한 에러 핸들링 강화
-      const response = await axiosInstance.get(`/auth/check-nickname?nickname=${encodeURIComponent(formData.nickname)}`);
+      const response = await axiosInstance.get(`/users/check-nickname?nickname=${encodeURIComponent(formData.nickname)}`);
       // 가짜 데이터(MSW) 환경과 실제 API 환경 모두 고려
       const isAvailable = response.data?.isAvailable ?? response.isAvailable;
       

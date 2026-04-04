@@ -42,6 +42,12 @@ export const postApi = {
     return await axiosInstance.patch(`/projects/${projectId}/reopen`);
   },
 
+  // 특정 모집글의 지원자 목록 조회
+  getProjectApplications: async (projectId) => {
+    // 설계서 규격: GET /api/projects/{id}/applications
+    return await axiosInstance.get(`/projects/${projectId}/applications`);
+  },
+
   // 프로젝트 참여 지원 (설계서 규격: POST /api/applications)
   applyToPost: async (projectId, applicationData) => {
     return await axiosInstance.post('/applications', {
