@@ -191,9 +191,30 @@ export const handlers = [
     return HttpResponse.json({ success: true, message: "멤버 조회가 완료되었습니다.", data: [ownerData, ...members] });
   }),
 
-  http.delete('*/api/posts/members/:memberId', () => {
-    // 실제로는 applies에서 ACCEPTED를 제거하거나 status를 변경해야 함 (Mock 단순화)
-    return HttpResponse.json({ success: true, message: "멤버가 제외되었습니다." });
+  http.delete('*/api/posts/members/:memberId', ({ params }) => {
+    const userId = parseInt(params.memberId);
+    
+    // 1. 해당 유저의 'ACCEPTED' 상태인 지원 내역을 찾아서 삭제 (또는 상태 변경)
+    // 어떤 프로젝트인지 특정하기 위해 현재 db.applies를 필터링
+    const targetApply = db.applies.find(a => a.applicantId === userId && a.status === 'ACCEPTED');
+    
+    if (targetApply) {
+      const projectId = targetApply.projectId;
+      
+      // 2. 지원 내역 삭제
+      db.applies = db.applies.filter(a => !(a.applicantId === userId && a.projectId === projectId));
+      
+      // 3. 해당 프로젝트의 currentCount 감소
+      const project = db.posts.find(p => p.id === projectId);
+      if (project && project.currentCount > 1) {
+        project.currentCount -= 1;
+      }
+      
+      saveDB(db);
+      return HttpResponse.json({ success: true, message: "멤버가 팀에서 제외되었습니다." });
+    }
+    
+    return new HttpResponse(JSON.stringify({ success: false, message: "해당 멤버를 찾을 수 없습니다." }), { status: 404 });
   }),
 
   // 5. 지원 (Applications)

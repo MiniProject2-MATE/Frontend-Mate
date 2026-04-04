@@ -57,6 +57,31 @@ const BoardPage = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [postMenuAnchor, setPostMenuAnchor] = useState(null);
 
+  // 팀원 강퇴 핸들러
+  const handleKickMember = (member) => {
+    openModal('confirm', {
+      title: '팀원 제외',
+      message: `정말로 '${member.nickname}'님을 팀에서 제외하시겠습니까?`,
+      confirmText: '제외하기',
+      color: 'error',
+      onConfirm: async () => {
+        try {
+          // 설계서 v1.1: 4.4.2 팀원 강제 퇴출 (memberId 사용)
+          // member.id 또는 member.userId 중 존재하는 값을 사용
+          await boardApi.kickMember(member.id || member.userId);
+          showToast(`${member.nickname}님이 팀에서 제외되었습니다.`, 'success');
+          
+          // 멤버 목록 새로고침
+          const membersRes = await boardApi.getProjectMembers(id);
+          setProjectInfo(prev => ({ ...prev, members: membersRes || [] }));
+        } catch (err) {
+          console.error("Kick member error:", err);
+          showToast(err.error?.message || '멤버 제외에 실패했습니다.', 'error');
+        }
+      }
+    });
+  };
+
   // 날짜 포맷팅 유틸리티
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
@@ -287,8 +312,32 @@ const BoardPage = () => {
               <Stack spacing={2.5}>
                 {projectInfo.members.map((member) => (
                   <Box key={member.nickname} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Stack direction="row" spacing={2} alignItems="center"><Avatar name={member.nickname} size="md" src={member.profileImg || member.profileImageUrl} /><Box><Typography variant="body2" sx={{ fontWeight: 800, color: '#111827' }}>{member.nickname}</Typography><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === member.position)?.label || member.position}</Typography></Box></Stack>
-                    {member.role === 'OWNER' && <Chip label="OWNER" size="small" sx={{ bgcolor: '#FFFBEB', color: '#B45309', fontWeight: 900, fontSize: '0.65rem', borderRadius: 1 }} />}
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar name={member.nickname} size="md" src={member.profileImg || member.profileImageUrl} />
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: '#111827' }}>{member.nickname}</Typography>
+                        <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>
+                          {POSITION_OPTIONS.find(p => p.value === member.position)?.label || member.position}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                    
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      {member.role === 'OWNER' ? (
+                        <Chip label="OWNER" size="small" sx={{ bgcolor: '#FFFBEB', color: '#B45309', fontWeight: 900, fontSize: '0.65rem', borderRadius: 1 }} />
+                      ) : (
+                        // 내가 방장이고, 대상이 일반 팀원인 경우에만 퇴출 버튼 표시
+                        isProjectOwner && (
+                          <IconButton 
+                            size="small" 
+                            onClick={() => handleKickMember(member)}
+                            sx={{ color: '#EF4444', bgcolor: '#FEF2F2', '&:hover': { bgcolor: '#FEE2E2' }, borderRadius: 1.5 }}
+                          >
+                            <DeleteIcon sx={{ fontSize: 18 }} />
+                          </IconButton>
+                        )
+                      )}
+                    </Stack>
                   </Box>
                 ))}
               </Stack>
