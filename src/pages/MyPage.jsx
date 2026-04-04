@@ -436,7 +436,7 @@ const MyPage = () => {
                 <Box sx={{ px: 3, pb: 4, textAlign: 'center', mt: -6 }}>
                   <Box sx={{ position: 'relative', display: 'inline-block' }}>
                     <Box onClick={handleAvatarClick} sx={{ cursor: 'pointer', transition: '0.2s', '&:hover': { opacity: 0.8, transform: 'scale(1.02)' } }}>
-                      <Avatar name={userInfo.nickname} src={userInfo.profileImageUrl} size="xl" />
+                      <Avatar name={userInfo.nickname} src={userInfo.profileImg || userInfo.profileImageUrl} size="xl" />
                     </Box>
                     <IconButton 
                       onClick={handleAvatarClick} 
@@ -596,9 +596,9 @@ const MyPage = () => {
           {applications.length > 0 ? (
             <List sx={{ py: 0 }}>
               {applications.map((app) => (
-                <ListItem key={app.applyId} button onClick={() => { setSelectedApp(app); setIsAppDetailOpen(true); }} sx={{ py: 2.5, px: 4, borderBottom: '1px solid #F9FAFB', transition: '0.2s', '&:hover': { bgcolor: '#F8F9FF' } }}>
-                  <ListItemAvatar><Avatar name={app.nickname} src={app.profileImg || app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
-                  <ListItemText primary={<Typography sx={{ fontWeight: 900, color: '#111827', fontSize: '1.05rem' }}>{app.nickname}</Typography>} secondary={<Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === app.position)?.label || app.position} · {app.appliedDate}</Typography>} />
+                <ListItem key={app.id || app.applyId} button onClick={() => { setSelectedApp(app); setIsAppDetailOpen(true); }} sx={{ py: 2.5, px: 4, borderBottom: '1px solid #F9FAFB', transition: '0.2s', '&:hover': { bgcolor: '#F8F9FF' } }}>
+                  <ListItemAvatar><Avatar name={app.applicantNickname} src={app.profileImg || app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
+                  <ListItemText primary={<Typography sx={{ fontWeight: 900, color: '#111827', fontSize: '1.05rem' }}>{app.applicantNickname}</Typography>} secondary={<Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === app.applicantPosition)?.label || app.applicantPosition} · {app.createdAt?.split('T')[0]}</Typography>} />
                   <Chip label={app.status === 'PENDING' ? '대기중' : (app.status === 'ACCEPTED' ? '승인됨' : '거절됨')} size="small" sx={{ fontWeight: 900, px: 1, bgcolor: app.status === 'PENDING' ? '#FFFBEB' : (app.status === 'ACCEPTED' ? '#ECFDF5' : '#FEF2F2'), color: app.status === 'PENDING' ? '#D97706' : (app.status === 'ACCEPTED' ? '#10B981' : '#EF4444'), borderRadius: 1.5 }} />
                   <ArrowForwardIosIcon sx={{ fontSize: 14, ml: 2, color: '#D1D5DB' }} />
                 </ListItem>
@@ -615,7 +615,7 @@ const MyPage = () => {
         {selectedApp && (
           <>
             <DialogTitle sx={{ fontWeight: 900, color: '#111827', bgcolor: '#F8F9FF', py: 3, px: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              {selectedApp.nickname}님의 지원서
+              {selectedApp.applicantNickname}님의 지원서
               <IconButton onClick={() => setIsAppDetailOpen(false)} size="small" sx={{ color: '#9CA3AF' }}><CloseIcon /></IconButton>
             </DialogTitle>
             <DialogContent sx={{ p: 4 }}>
@@ -623,8 +623,8 @@ const MyPage = () => {
                 <Box>
                   <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>지원 정보</Typography>
                   <Stack direction="row" spacing={1}>
-                    <Chip label={POSITION_OPTIONS.find(p => p.value === selectedApp.position)?.label || selectedApp.position} sx={{ bgcolor: '#EEF2FF', color: '#6366F1', fontWeight: 900, borderRadius: 1.5 }} />
-                    <Chip label={selectedApp.appliedDate} variant="outlined" sx={{ fontWeight: 700, borderRadius: 1.5, borderColor: '#E5E7EB' }} />
+                    <Chip label={POSITION_OPTIONS.find(p => p.value === selectedApp.applicantPosition)?.label || selectedApp.applicantPosition} sx={{ bgcolor: '#EEF2FF', color: '#6366F1', fontWeight: 900, borderRadius: 1.5 }} />
+                    <Chip label={selectedApp.createdAt?.split('T')[0]} variant="outlined" sx={{ fontWeight: 700, borderRadius: 1.5, borderColor: '#E5E7EB' }} />
                   </Stack>
                 </Box>
                 <Box>
@@ -633,7 +633,7 @@ const MyPage = () => {
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>소통 채널</Typography>
-                  <Typography sx={{ fontWeight: 800, color: '#111827', pl: 1 }}>{selectedApp.contact}</Typography>
+                  <Typography sx={{ fontWeight: 800, color: '#111827', pl: 1 }}>{selectedApp.contact || '미입력'}</Typography>
                 </Box>
                 {selectedApp.link && (
                   <Box>
@@ -643,8 +643,8 @@ const MyPage = () => {
                 )}
                 {selectedApp.status === 'PENDING' && (
                   <Stack direction="row" spacing={2} sx={{ pt: 3 }}>
-                    <Button fullWidth variant="contained" onClick={() => handleStatusUpdate(selectedApp.applyId, 'ACCEPTED')} startIcon={<CheckIcon />} sx={{ bgcolor: '#6366F1', fontWeight: 900, py: 1.8, borderRadius: 2.5, boxShadow: '0 8px 16px rgba(99, 102, 241, 0.2)' }}>승인하기</Button>
-                    <Button fullWidth variant="outlined" onClick={() => handleStatusUpdate(selectedApp.applyId, 'REJECTED')} startIcon={<CloseIcon />} sx={{ color: '#EF4444', borderColor: '#EF4444', fontWeight: 900, py: 1.8, borderRadius: 2.5, '&:hover': { bgcolor: '#FFF1F2', borderColor: '#EF4444' } }}>거절하기</Button>
+                    <Button fullWidth variant="contained" onClick={() => handleStatusUpdate(selectedApp.id || selectedApp.applyId, 'ACCEPTED')} startIcon={<CheckIcon />} sx={{ bgcolor: '#6366F1', fontWeight: 900, py: 1.8, borderRadius: 2.5, boxShadow: '0 8px 16px rgba(99, 102, 241, 0.2)' }}>승인하기</Button>
+                    <Button fullWidth variant="outlined" onClick={() => handleStatusUpdate(selectedApp.id || selectedApp.applyId, 'REJECTED')} startIcon={<CloseIcon />} sx={{ color: '#EF4444', borderColor: '#EF4444', fontWeight: 900, py: 1.8, borderRadius: 2.5, '&:hover': { bgcolor: '#FFF1F2', borderColor: '#EF4444' } }}>거절하기</Button>
                   </Stack>
                 )}
               </Stack>
@@ -662,7 +662,15 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onViewAppsC
   const categoryLabel = item.category === 'PROJECT' ? '[프로젝트]' : item.category === 'STUDY' ? '[스터디]' : '';
   const title = item.projectTitle || item.title;
   const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : (item.status === 'ACCEPTED' ? '승인완료' : '거절됨'));
-  const info = tabValue === 2 ? `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${item.position || '멤버'}` : `지원 분야: ${item.position || '선택없음'} · 신청일: ${item.appliedDate || item.endDate || '-'}`;
+  
+  // 설계서 v1.1 규격 반영: applicantPosition, createdAt 사용
+  const position = item.applicantPosition || item.position || '선택없음';
+  const date = (item.createdAt || item.appliedDate || item.endDate || '-').split('T')[0];
+  
+  const info = tabValue === 2 
+    ? `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${position}` 
+    : `지원 분야: ${position} · 신청일: ${date}`;
+
   return ( <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }, transition: '0.2s' }}><Box sx={{ flex: 1 }}><Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" onClick={onTitleClick} sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}><Box component="span" sx={{ color: item.category === 'PROJECT' ? 'primary.main' : 'warning.main', mr: 1 }}>{categoryLabel}</Box>{title}</Typography>{tabValue !== 0 && ( <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '참여중' ? '#EEF2FF' : (status === '대기중' ? '#FFFBEB' : (status === '승인완료' ? '#ECFDF5' : '#FEF2F2')), color: status === '참여중' ? '#6366F1' : (status === '대기중' ? '#D97706' : (status === '승인완료' ? '#10B981' : '#EF4444')) }} /> )}</Stack><Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{info}</Typography></Box><Stack direction="row" spacing={1}>{tabValue === 0 && ( <> <Button variant="contained" disableElevation onClick={onViewAppsClick} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: 2 }}>지원서 보기</Button> <Button variant="contained" disableElevation onClick={onManageClick} sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button> </> )}{tabValue === 1 && item.status === 'PENDING' && <Button variant="outlined" color="error" onClick={onCancelClick} sx={{ fontWeight: 800, borderRadius: 2 }}>취소하기</Button>}</Stack></Box> );
 };
 const inputStyle = { '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontSize: '0.95rem', fontWeight: 600, '& fieldset': { border: '1px solid #E5E7EB' }, '&.Mui-focused fieldset': { borderWidth: '2px', borderColor: '#6366F1' }, '&.Mui-focused': { bgcolor: 'white' } } };

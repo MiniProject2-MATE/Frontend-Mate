@@ -40,19 +40,18 @@ const PostDetailPage = () => {
     const fetchData = async () => {
       setIsLoading(true);
       try {
-        // v1.1 규격에 맞춰 상세 데이터와 유저 정보를 병렬로 로드하여 성능 최적화
-        const [postData, userData] = await Promise.all([
+        // v1.1 규격에 맞춰 상세 데이터와 내 지원 내역을 병렬로 로드
+        const [postData, myApplies] = await Promise.all([
           postApi.getPostDetail(id),
-          isLoggedIn ? authApi.getUserInfo() : Promise.resolve(null)
+          isLoggedIn ? authApi.getMyApplications() : Promise.resolve([])
         ]);
 
         if (postData) {
           setPost(postData);
           
-          // 로그인 상태인 경우 지원 내역에서 현재 프로젝트 ID 확인
-          if (userData) {
-            const applies = userData.applies || [];
-            const alreadyApplied = applies.some(apply => 
+          // 로그인 상태인 경우 지원 내역 리스트에서 현재 프로젝트 ID 확인
+          if (isLoggedIn && myApplies) {
+            const alreadyApplied = myApplies.some(apply => 
               Number(apply.projectId || apply.id) === Number(id)
             );
             setHasApplied(alreadyApplied);

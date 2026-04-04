@@ -14,7 +14,7 @@ import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import Breadcrumb from '../component/common/Breadcrumb';
 import postApi from '../api/postApi';
-import authApi from '../api/authApi'; // [추가] 지원 내역 확인용
+import authApi from '../api/authApi'; 
 import { POSITION_OPTIONS } from '../constants/techStacks';
 
 const PostApplyPage = () => {
@@ -45,13 +45,14 @@ const PostApplyPage = () => {
       setIsLoading(true);
       try {
         // v1.1 규격에 맞춰 상세 정보와 유저 지원 내역을 병렬로 확인
-        const [postData, userData] = await Promise.all([
+        const [postData, myApplies] = await Promise.all([
           postApi.getPostDetail(id),
-          isLoggedIn ? authApi.getUserInfo() : Promise.resolve(null)
+          isLoggedIn ? authApi.getMyApplications() : Promise.resolve([])
         ]);
         
         if (postData) {
-          const isOwner = user?.nickname === postData.ownerNickname;
+          // 본인 글 여부 확인 (id 또는 ownerId 비교)
+          const isOwner = currentUser?.id === postData.ownerId || user?.nickname === postData.ownerNickname;
           
           if (isOwner) {
             showToast('본인이 작성한 공고에는 지원할 수 없습니다.', 'error');
@@ -60,8 +61,9 @@ const PostApplyPage = () => {
           }
 
           // 지원 여부 확인 (설계서 v1.1: 내 지원 목록에 현재 프로젝트 ID가 있는지 체크)
-          const applies = userData?.applies || [];
-          const alreadyApplied = applies.some(apply => Number(apply.projectId || apply.id) === Number(id));
+          const alreadyApplied = myApplies && myApplies.some(apply => 
+            Number(apply.projectId || apply.id) === Number(id)
+          );
 
           setPostInfo({
             title: postData.title,
