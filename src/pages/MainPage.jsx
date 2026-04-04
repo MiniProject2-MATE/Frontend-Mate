@@ -16,6 +16,7 @@ const MainPage = () => {
   const { 
     posts, 
     isLoading, 
+    error,
     fetchPosts, 
     keyword, 
     setKeyword, 
@@ -26,23 +27,34 @@ const MainPage = () => {
     totalPages 
   } = usePostStore();
 
+  // 에러 발생 시 토스트 알림
+  useEffect(() => {
+    if (error) {
+      showToast(error, 'error');
+    }
+  }, [error, showToast]);
+
   // URL 해시(#) 체크 후 자동 스크롤 로직
   useEffect(() => {
     if (location.hash === '#new-opportunities') {
-      const element = document.getElementById('new-opportunities');
-      if (element) {
-        // 헤더 높이(약 60px)만큼 오프셋을 주기 위해 약간의 여백을 두고 스크롤
-        const headerOffset = 80;
-        const elementPosition = element.getBoundingClientRect().top;
-        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
-
-        window.scrollTo({
-          top: offsetPosition,
-          behavior: 'smooth'
-        });
-      }
+      scrollToOpportunities();
     }
   }, [location]);
+
+  // 기회 섹션으로 부드럽게 스크롤 (헤더 오프셋 반영)
+  const scrollToOpportunities = () => {
+    const element = document.getElementById('new-opportunities');
+    if (element) {
+      const headerOffset = 80;
+      const elementPosition = element.getBoundingClientRect().top;
+      const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+      window.scrollTo({
+        top: offsetPosition,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   useEffect(() => {
     // 카테고리, 검색어, 페이지가 바뀔 때마다 데이터를 실시간으로 가져옴
@@ -55,11 +67,12 @@ const MainPage = () => {
 
   const handlePageChange = (event, value) => {
     setPage(value - 1);
-    // 페이지 변경 시 섹션 상단으로 이동
-    const element = document.getElementById('new-opportunities');
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-    }
+    scrollToOpportunities();
+  };
+
+  const handleSearchClick = () => {
+    setPage(0); // 검색 시 첫 페이지로 이동
+    fetchPosts({ size: 15 });
   };
 
   const handleStartProject = () => {

@@ -41,7 +41,7 @@ const BoardPage = () => {
 
   const [isLoading, setIsLoading] = useState(true);
   const [posts, setPosts] = useState([]);
-  const [projectInfo, setProjectInfo] = useState({ title: "프로젝트 게시판", members: [], owner: null });
+  const [projectInfo, setProjectInfo] = useState({ title: "프로젝트 게시판", members: [], ownerId: null });
   
   const [currentPage, setCurrentPage] = useState(0);
   const [pageInfo, setPageInfo] = useState({ totalPages: 0, totalElements: 0 });
@@ -57,6 +57,12 @@ const BoardPage = () => {
   const [editingComment, setEditingComment] = useState(null);
   const [postMenuAnchor, setPostMenuAnchor] = useState(null);
 
+  // 날짜 포맷팅 유틸리티
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    return dateStr.split('T')[0].replace(/-/g, '.');
+  };
+
   const fetchPosts = useCallback(async (page) => {
     try {
       const response = await boardApi.getBoardPosts(id, page, 10);
@@ -67,9 +73,9 @@ const BoardPage = () => {
           totalElements: response.page.totalElements
         });
       }
-    } catch (error) {
-      console.error("Fetch posts error:", error);
-      showToast('게시글 목록을 불러오지 못했습니다.', 'error');
+    } catch (err) {
+      console.error("Fetch posts error:", err);
+      showToast(err.error?.message || '게시글 목록을 불러오지 못했습니다.', 'error');
     }
   }, [id, showToast]);
 
@@ -77,9 +83,11 @@ const BoardPage = () => {
     const initData = async () => {
       setIsLoading(true);
       try {
-        const [postsRes, projectRes] = await Promise.all([
+        // 설계서 v1.1 규격에 맞춰 상세 정보와 멤버 목록을 병렬 호출
+        const [postsRes, projectRes, membersRes] = await Promise.all([
           boardApi.getBoardPosts(id, 0, 10),
-          boardApi.getProjectDetail(id)
+          boardApi.getProjectDetail(id),
+          boardApi.getProjectMembers(id)
         ]);
 
         if (postsRes && postsRes.content) {
@@ -90,11 +98,14 @@ const BoardPage = () => {
           });
         }
         if (projectRes) {
-          setProjectInfo(projectRes);
+          setProjectInfo({
+            ...projectRes,
+            members: membersRes || []
+          });
         }
-      } catch (error) {
-        console.error("Init board error:", error);
-        showToast('데이터를 불러오는데 실패했습니다.', 'error');
+      } catch (err) {
+        console.error("Init board error:", err);
+        showToast(err.error?.message || '데이터를 불러오는데 실패했습니다.', 'error');
       } finally {
         setIsLoading(false);
       }
@@ -116,11 +127,12 @@ const BoardPage = () => {
         setSelectedPost(response);
         setComments(commentRes || []);
         setIsDetailOpen(true);
-        setPosts(prev => prev.map(p => p.id === post.id ? { ...p, views: p.views + 1 } : p));
+        // 목록 조회수 업데이트
+        setPosts(prev => prev.map(p => p.id === post.id ? { ...p, viewCount: (p.viewCount || 0) + 1 } : p));
       }
-    } catch (error) {
-      console.error("Fetch post detail error:", error);
-      showToast('상세 내용을 불러오지 못했습니다.', 'error');
+    } catch (err) {
+      console.error("Fetch post detail error:", err);
+      showToast(err.error?.message || '상세 내용을 불러오지 못했습니다.', 'error');
     }
   };
 
@@ -144,7 +156,7 @@ const BoardPage = () => {
     }
     try {
       if (isEditing) {
-        await boardApi.updateBoardPost(selectedPost.id, postForm);
+        await boardApi.updateBoardPost(id, selectedPost.id, postForm);
         setSelectedPost({ ...selectedPost, ...postForm });
         showToast('게시글이 수정되었습니다.', 'success');
       } else {
@@ -153,9 +165,9 @@ const BoardPage = () => {
       }
       setIsWriteOpen(false);
       fetchPosts(currentPage);
-    } catch (error) {
-      console.error("Save post error:", error);
-      showToast('처리에 실패했습니다.', 'error');
+    } catch (err) {
+      console.error("Save post error:", err);
+      showToast(err.error?.message || '처리에 실패했습니다.', 'error');
     }
   };
 
@@ -168,13 +180,13 @@ const BoardPage = () => {
       color: 'error',
       onConfirm: async () => {
         try {
-          await boardApi.deleteBoardPost(selectedPost.id);
+          await boardApi.deleteBoardPost(id, selectedPost.id);
           showToast('게시글이 삭제되었습니다.', 'success');
           setIsDetailOpen(false);
           fetchPosts(currentPage);
-        } catch (error) {
-          console.error("Delete post error:", error);
-          showToast('삭제에 실패했습니다.', 'error');
+        } catch (err) {
+          console.error("Delete post error:", err);
+          showToast(err.error?.message || '삭제에 실패했습니다.', 'error');
         }
       }
     });
@@ -188,9 +200,9 @@ const BoardPage = () => {
       const commentRes = await boardApi.getComments(id, selectedPost.id);
       setComments(commentRes || []);
       showToast('댓글이 등록되었습니다.', 'success');
-    } catch (error) {
-      console.error("Create comment error:", error);
-      showToast('댓글 등록 실패', 'error');
+    } catch (err) {
+      console.error("Create comment error:", err);
+      showToast(err.error?.message || '댓글 등록 실패', 'error');
     }
   };
 
@@ -208,9 +220,9 @@ const BoardPage = () => {
       const commentRes = await boardApi.getComments(id, selectedPost.id);
       setComments(commentRes || []);
       showToast('댓글이 수정되었습니다.', 'success');
-    } catch (error) {
-      console.error("Update comment error:", error);
-      showToast('수정 실패', 'error');
+    } catch (err) {
+      console.error("Update comment error:", err);
+      showToast(err.error?.message || '수정 실패', 'error');
     }
   };
 
@@ -226,17 +238,17 @@ const BoardPage = () => {
           const commentRes = await boardApi.getComments(id, selectedPost.id);
           setComments(commentRes || []);
           showToast('댓글이 삭제되었습니다.', 'success');
-        } catch (error) {
-          console.error("Delete comment error:", error);
-          showToast('삭제 실패', 'error');
+        } catch (err) {
+          console.error("Delete comment error:", err);
+          showToast(err.error?.message || '삭제 실패', 'error');
         }
       }
     });
   };
 
-  // 안전한 권한 비교 (Number 사용)
+  // 안전한 권한 비교 (v1.1 ownerId 사용)
   const isPostAuthor = selectedPost && currentUser && Number(selectedPost.authorId) === Number(currentUser.userId);
-  const isProjectOwner = projectInfo.owner && currentUser && Number(projectInfo.owner.userId) === Number(currentUser.userId);
+  const isProjectOwner = projectInfo && currentUser && Number(projectInfo.ownerId) === Number(currentUser.userId);
 
   if (isLoading) return <LinearProgress />;
 
@@ -261,7 +273,7 @@ const BoardPage = () => {
                 <Table sx={{ minWidth: 650 }}>
                   <TableHead><TableRow sx={{ bgcolor: '#F9FAFB' }}><TableCell sx={{ fontWeight: 800, color: '#6B7280', py: 2 }}>구분</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>제목</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>작성자</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>작성일</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280', textAlign: 'center' }}>조회</TableCell></TableRow></TableHead>
                   <TableBody>
-                    {posts.length > 0 ? ( posts.map((post) => ( <TableRow key={post.id} hover onClick={() => handlePostClick(post)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F0F2FF !important' } }}><TableCell sx={{ py: 2.5 }}><Chip label={post.type === 'NOTICE' ? '공지' : post.type === 'QUESTION' ? '질문' : '일반'} size="small" sx={{ bgcolor: post.type === 'NOTICE' ? '#FFFBEB' : (post.type === 'QUESTION' ? '#EFF6FF' : '#F3F4F6'), color: post.type === 'NOTICE' ? '#D97706' : (post.type === 'QUESTION' ? '#2563EB' : '#4B5563'), fontWeight: 900, borderRadius: 1.5 }} /></TableCell><TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1F2937' }}>{post.title}</TableCell><TableCell><Stack direction="row" spacing={1} alignItems="center"><Avatar name={post.author} size="sm" src={post.authorImage} /><Typography variant="body2" sx={{ fontWeight: 600 }}>{post.author}</Typography></Stack></TableCell><TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{post.date}</TableCell><TableCell sx={{ textAlign: 'center' }}><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{post.views}</Typography></TableCell></TableRow> )) ) : ( <TableRow><TableCell colSpan={5} sx={{ py: 10, textAlign: 'center', color: '#9CA3AF' }}>등록된 게시글이 없습니다.</TableCell></TableRow> )}
+                    {posts.length > 0 ? ( posts.map((post) => ( <TableRow key={post.id} hover onClick={() => handlePostClick(post)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F0F2FF !important' } }}><TableCell sx={{ py: 2.5 }}><Chip label={post.type === 'NOTICE' ? '공지' : post.type === 'QUESTION' ? '질문' : '일반'} size="small" sx={{ bgcolor: post.type === 'NOTICE' ? '#FFFBEB' : (post.type === 'QUESTION' ? '#EFF6FF' : '#F3F4F6'), color: post.type === 'NOTICE' ? '#D97706' : (post.type === 'QUESTION' ? '#2563EB' : '#4B5563'), fontWeight: 900, borderRadius: 1.5 }} /></TableCell><TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1F2937' }}>{post.title}</TableCell><TableCell><Stack direction="row" spacing={1} alignItems="center"><Avatar name={post.authorNickname} size="sm" src={post.authorProfileImg} /><Typography variant="body2" sx={{ fontWeight: 600 }}>{post.authorNickname}</Typography></Stack></TableCell><TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(post.createdAt)}</TableCell><TableCell sx={{ textAlign: 'center' }}><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{post.viewCount || 0}</Typography></TableCell></TableRow> )) ) : ( <TableRow><TableCell colSpan={5} sx={{ py: 10, textAlign: 'center', color: '#9CA3AF' }}>등록된 게시글이 없습니다.</TableCell></TableRow> )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -275,7 +287,7 @@ const BoardPage = () => {
               <Stack spacing={2.5}>
                 {projectInfo.members.map((member) => (
                   <Box key={member.nickname} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Stack direction="row" spacing={2} alignItems="center"><Avatar name={member.nickname} size="md" src={member.profileImageUrl} /><Box><Typography variant="body2" sx={{ fontWeight: 800, color: '#111827' }}>{member.nickname}</Typography><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === member.position)?.label || member.position}</Typography></Box></Stack>
+                    <Stack direction="row" spacing={2} alignItems="center"><Avatar name={member.nickname} size="md" src={member.profileImg || member.profileImageUrl} /><Box><Typography variant="body2" sx={{ fontWeight: 800, color: '#111827' }}>{member.nickname}</Typography><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === member.position)?.label || member.position}</Typography></Box></Stack>
                     {member.role === 'OWNER' && <Chip label="OWNER" size="small" sx={{ bgcolor: '#FFFBEB', color: '#B45309', fontWeight: 900, fontSize: '0.65rem', borderRadius: 1 }} />}
                   </Box>
                 ))}
@@ -326,15 +338,15 @@ const BoardPage = () => {
                 </Stack>
               </Stack>
               <Stack direction="row" spacing={2} alignItems="center" sx={{ pb: 4, borderBottom: '1px solid #F3F4F6' }}>
-                <Avatar name={selectedPost.author} size="lg" src={selectedPost.authorImage} />
-                <Box sx={{ flex: 1 }}><Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#111827' }}>{selectedPost.author}</Typography><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{selectedPost.date} · 조회 {selectedPost.views}</Typography></Box>
+                <Avatar name={selectedPost.authorNickname} size="lg" src={selectedPost.authorProfileImg} />
+                <Box sx={{ flex: 1 }}><Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#111827' }}>{selectedPost.authorNickname}</Typography><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{formatDate(selectedPost.createdAt)} · 조회 {selectedPost.viewCount || 0}</Typography></Box>
               </Stack>
             </Box>
             <DialogContent sx={{ px: 5, py: 4 }}>
               <Typography sx={{ whiteSpace: 'pre-line', lineHeight: 2, color: '#374151', fontSize: '1.125rem', mb: 8 }}>{selectedPost.content}</Typography>
               <Divider sx={{ mb: 6 }} />
               <Typography variant="h5" sx={{ fontWeight: 900, mb: 4, color: '#111827' }}>댓글 ({comments.length})</Typography>
-              <Stack spacing={1}>{comments.map((comment) => ( <CommentItem key={comment.id} comment={comment} currentUserId={currentUser?.userId} projectOwnerId={projectInfo.owner?.userId} onEdit={handleEditComment} onDelete={handleDeleteComment} /> ))}</Stack>
+              <Stack spacing={1}>{comments.map((comment) => ( <CommentItem key={comment.id} comment={comment} currentUserId={currentUser?.userId} projectOwnerId={projectInfo.ownerId} onEdit={handleEditComment} onDelete={handleDeleteComment} /> ))}</Stack>
             </DialogContent>
             <Box sx={{ p: 4, bgcolor: '#F9FAFB', borderTop: '1px solid #F3F4F6' }}>
               <Stack direction="row" spacing={2} sx={{ bgcolor: 'white', p: 1, borderRadius: '16px', border: '1px solid #E5E7EB', alignItems: 'center' }}>

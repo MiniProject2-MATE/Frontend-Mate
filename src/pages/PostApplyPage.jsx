@@ -14,12 +14,13 @@ import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import Breadcrumb from '../component/common/Breadcrumb';
 import postApi from '../api/postApi';
+import authApi from '../api/authApi'; // [추가] 지원 내역 확인용
 import { POSITION_OPTIONS } from '../constants/techStacks';
 
 const PostApplyPage = () => {
   const { id } = useParams(); 
   const navigate = useNavigate();
-  const { user } = useAuthStore(); 
+  const { user, isLoggedIn } = useAuthStore(); 
   const { showToast } = useUiStore();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -40,26 +41,33 @@ const PostApplyPage = () => {
   });
 
   useEffect(() => {
-    const fetchPostData = async () => {
+    const fetchInitialData = async () => {
       setIsLoading(true);
       try {
-        const data = await postApi.getPostDetail(id);
+        // v1.1 규격에 맞춰 상세 정보와 유저 지원 내역을 병렬로 확인
+        const [postData, userData] = await Promise.all([
+          postApi.getPostDetail(id),
+          isLoggedIn ? authApi.getUserInfo() : Promise.resolve(null)
+        ]);
         
-        if (data) {
-          const isOwner = user?.nickname === data.ownerNickname;
+        if (postData) {
+          const isOwner = user?.nickname === postData.ownerNickname;
           
-          // [추가] 방장 본인인 경우 접근 차단
           if (isOwner) {
             showToast('본인이 작성한 공고에는 지원할 수 없습니다.', 'error');
             navigate(`/posts/${id}`, { replace: true });
             return;
           }
 
+          // 지원 여부 확인 (설계서 v1.1: 내 지원 목록에 현재 프로젝트 ID가 있는지 체크)
+          const applies = userData?.applies || [];
+          const alreadyApplied = applies.some(apply => Number(apply.projectId || apply.id) === Number(id));
+
           setPostInfo({
-            title: data.title,
+            title: postData.title,
             isOwner: isOwner,
-            isApplied: data.alreadyApplied || false,
-            status: data.status
+            isApplied: alreadyApplied,
+            status: postData.status
           });
         }
       } catch (error) {
@@ -70,8 +78,8 @@ const PostApplyPage = () => {
       }
     };
 
-    fetchPostData();
-  }, [id, user]);
+    fetchInitialData();
+  }, [id, user, isLoggedIn, navigate, showToast]);
 
   const handleChange = (field) => (e) => {
     setFormData({ ...formData, [field]: e.target.value });
@@ -86,15 +94,17 @@ const PostApplyPage = () => {
       await postApi.applyToPost(id, formData);
       showToast('지원이 성공적으로 완료되었습니다!', 'success');
       
+      // 지원 완료 후 마이페이지의 '신청 현황' 탭으로 이동
       navigate('/mypage', { 
         state: { 
           activeTab: 1, 
           scrollTo: 'activity' 
         } 
       }); 
-    } catch (error) {
-      console.error("제출 오류:", error);
-      showToast('제출 중 오류가 발생했습니다. 다시 시도해주세요.', 'error');
+    } catch (err) {
+      console.error("제출 오류:", err);
+      const errorMessage = err.error?.message || '제출 중 오류가 발생했습니다. 다시 시도해주세요.';
+      showToast(errorMessage, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -133,7 +143,7 @@ const PostApplyPage = () => {
             
             <Box sx={{ p: 3, bgcolor: '#F5F7FF', borderRadius: 5, border: '1px dashed #C7D2FE', width: '100%', maxWidth: '600px', mx: 'auto' }}>
               <Typography variant="body2" sx={{ color: '#6366F1', fontWeight: 800, mb: 1 }}>🚀 현재 지원 중인 공고</Typography>
-              <Typography variant="h6" sx={{ fontWeight: 900, color: '#1F2937', lineHeight: 1.4 }}>{postInfo.title.replace(/\[.*?\]/g, '').trim()}</Typography>
+              <Typography variant="h6" sx={{ fontWeight: 900, color: '#1F2937', lineHeight: 1.4 }}>{postInfo.title?.replace(/\[.*?\]/g, '').trim()}</Typography>
             </Box>
           </Box>
 

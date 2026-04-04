@@ -3,6 +3,9 @@
 import { create } from 'zustand'
 import postApi from '../api/postApi'
 
+/**
+ * 프로젝트 모집글 상태 관리 스토어 (REST API 설계서 v1.1 반영)
+ */
 export const usePostStore = create((set, get) => ({
   // 상태
   posts: [],
@@ -24,12 +27,11 @@ export const usePostStore = create((set, get) => ({
     try {
       const state = get();
       
-      // 카테고리 값 서버 규격으로 변환
+      // 카테고리 값 서버 규격(v1.1)으로 변환
       let targetCategory = '';
       if (state.category === '프로젝트') targetCategory = 'PROJECT';
       else if (state.category === '스터디') targetCategory = 'STUDY';
 
-      // 기본값 및 현재 상태 결합
       const currentParams = {
         keyword: state.keyword,
         category: targetCategory,
@@ -41,13 +43,17 @@ export const usePostStore = create((set, get) => ({
       
       const response = await postApi.getPosts(currentParams);
       
-      // 설계서 규격(projectId)과 현재 UI(id) 간의 호환성을 위해 매핑
+      /**
+       * 설계서 v1.1 규격 매핑:
+       * response = { content: [], page: { totalPages, totalElements, ... } }
+       * 기존 컴포넌트 호환성을 위해 id와 projectId를 동일하게 매핑
+       */
       const mappedPosts = (response?.content || []).map(post => ({
         ...post,
-        id: post.projectId || post.id // UI에서 id를 주로 사용하므로 보정
+        id: post.id || post.projectId,
+        projectId: post.projectId || post.id
       }));
 
-      // axiosInstance가 res.data.data를 반환하므로 response는 { content, page } 구조임
       set({ 
         posts: mappedPosts, 
         totalPages: response?.page?.totalPages || 0,
@@ -55,7 +61,10 @@ export const usePostStore = create((set, get) => ({
         isLoading: false 
       })
     } catch (error) {
-      set({ error: error.message, isLoading: false })
+      set({ 
+        error: error.message || '목록을 불러오는 중 오류가 발생했습니다.', 
+        isLoading: false 
+      })
     }
   },
 
@@ -65,29 +74,32 @@ export const usePostStore = create((set, get) => ({
   setSort: (sort) => set({ sort, page: 0 }),
   setPage: (page) => set({ page }),
 
-  // 로딩/에러 설정
-  setLoading: (isLoading) => set({ isLoading }),
-  setError: (error) => set({ error }),
-
   // 모집글 상세 가져오기
   fetchPostDetail: async (projectId) => {
     set({ isLoading: true, error: null })
     try {
       const response = await postApi.getPostDetail(projectId)
       
-      // 상세 데이터에서도 id와 projectId 호환성 유지 및 날짜 정규화
+      // 상세 데이터에서도 id와 projectId 호환성 유지 및 날짜 가공
       const mappedDetail = response ? {
         ...response,
-        id: response.projectId || response.id,
-        // ISO 8601 날짜를 UI에서 사용하는 포맷으로 필요시 변환 (추후 컴포넌트에서도 처리 가능)
+        id: response.id || response.projectId,
+        projectId: response.projectId || response.id,
         endDate: response.endDate ? response.endDate.split('T')[0] : response.endDate 
       } : null;
 
       set({ currentPost: mappedDetail, isLoading: false })
     } catch (error) {
-      set({ error: error.message, isLoading: false })
+      set({ 
+        error: error.message || '상세 정보를 불러오는 데 실패했습니다.', 
+        isLoading: false 
+      })
     }
   },
+
+  // 로딩/에러 설정
+  setLoading: (isLoading) => set({ isLoading }),
+  setError: (error) => set({ error }),
 
   // 초기화
   clearPosts: () => set({ posts: [], totalPages: 0, totalElements: 0 }),

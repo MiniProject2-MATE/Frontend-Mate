@@ -4,10 +4,7 @@ import {
   Link, Divider, Stack, Grid 
 } from '@mui/material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import axios from 'axios';
-
-// 공통 컴포넌트 (프로젝트 구조에 맞춰 경로를 확인하세요)
-import Breadcrumb from '../component/common/Breadcrumb';
+import { authApi } from '../api/authApi';
 
 const FindPasswordPage = () => {
   const navigate = useNavigate();
@@ -16,7 +13,7 @@ const FindPasswordPage = () => {
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [result, setResult] = useState(false);
+  const [result, setResult] = useState(null);
   const [error, setError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
@@ -56,19 +53,16 @@ const FindPasswordPage = () => {
     setIsLoading(true);
 
     try {
-      // 2. MSW(handlers.js)에 정의한 API 호출 (axios 사용)
-      const response = await axios.post('/api/auth/find-password', { 
-        email, 
-        phoneNumber: phoneNumber.replace(/-/g, '') 
-      });
+      // 2. authApi 사용 (v1.1: reset-password)
+      const response = await authApi.resetPassword(email, phoneNumber.replace(/-/g, ''));
       
       // 3. 응답 성공 시 결과 화면으로 전환
-      if (response.data.success) {
-        setResult(true); 
+      if (response) {
+        setResult(response); 
       }
     } catch (err) {
-      // 4. 에러 발생 시 처리 (정보 불일치 등)
-      const msg = err.response?.data?.error?.message || '입력하신 정보가 일치하지 않습니다.';
+      // 4. 에러 발생 시 처리
+      const msg = err.error?.message || err.message || '입력하신 정보가 일치하지 않습니다.';
       setError(msg);
     } finally {
       setIsLoading(false);
@@ -110,7 +104,7 @@ const FindPasswordPage = () => {
             가입 시 등록한 이메일과 휴대폰 번호를 입력해 주세요.
           </Typography>
 
-          {!result ? (
+          {result === null ? (
             /* [1. 입력 폼 화면] */
             <Box component="form" onSubmit={handleSubmit} sx={{ textAlign: 'left' }}>
               <Stack spacing={3} sx={{ mb: 6 }}>
@@ -157,7 +151,7 @@ const FindPasswordPage = () => {
                   임시 비밀번호가 발급되었습니다
                 </Typography>
                 <Typography variant="h4" sx={{ fontWeight: 900, color: '#111827', letterSpacing: 2, mb: 3 }}>
-                  mate7788!@#$
+                  {result}
                 </Typography>
                 <Box sx={{ bgcolor: '#FEF3C7', p: 2, borderRadius: 3 }}>
                   <Typography variant="caption" sx={{ color: '#92400E', fontWeight: 800, display: 'block', mb: 0.5 }}>

@@ -22,12 +22,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import CheckIcon from '@mui/icons-material/Check';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
-import axiosInstance from '../api/axiosInstance'; 
 import Breadcrumb from '../component/common/Breadcrumb';
 import Avatar from '../component/common/Avatar';
 import { useUiStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
 import { TECH_STACK_OPTIONS, POSITION_OPTIONS } from '../constants/techStacks';
+import authApi from '../api/authApi';
 import postApi from '../api/postApi';
 
 const MyPage = () => {
@@ -73,27 +73,43 @@ const MyPage = () => {
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
-  // 유저 데이터 로드 함수
+  // 유저 데이터 및 활동 이력 로드 함수 (v1.1 병렬 처리 반영)
   const fetchUserData = useCallback(async () => {
     try {
-      const data = await axiosInstance.get('/users/me');
-      setUserInfo(data);
+      // 설계서 v1.1에 따라 정보와 활동 목록을 각각 호출하여 병렬로 가져옵니다.
+      const [me, owned, joined, applies] = await Promise.all([
+        authApi.getUserInfo(),
+        authApi.getMyOwnedPosts(),
+        authApi.getMyJoinedPosts(),
+        authApi.getMyApplications()
+      ]);
+
+      const combinedData = {
+        ...me,
+        myPosts: owned || [],
+        acceptedProjects: joined || [],
+        applies: applies || [],
+        postCount: (owned?.length || 0),
+        applyCount: (applies?.length || 0)
+      };
+
+      setUserInfo(combinedData);
       setFormData({
-        nickname: data.nickname || '',
-        position: data.position || '',
-        phoneNumber: data.phoneNumber || '',
-        intro: data.intro || '',
-        techStacks: data.techStacks || []
+        nickname: me.nickname || '',
+        position: me.position || '',
+        phoneNumber: me.phoneNumber || '',
+        intro: me.intro || '',
+        techStacks: me.techStacks || []
       });
-      setLastCheckedNickname(data.nickname || '');
-      setLastCheckedPhone(data.phoneNumber || '');
+      setLastCheckedNickname(me.nickname || '');
+      setLastCheckedPhone(me.phoneNumber || '');
       setIsNicknameChecked(true);
       setIsPhoneChecked(true);
       
-      // Zustand 스토어 업데이트 (안정적인 접근)
-      useAuthStore.getState().updateUser(data);
-    } catch (error) {
-      console.error("회원 정보를 불러오지 못했습니다.", error);
+      // Zustand 스토어 업데이트
+      useAuthStore.getState().updateUser(me);
+    } catch (err) {
+      console.error("회원 정보를 불러오지 못했습니다.", err);
       const currentUser = useAuthStore.getState().user;
       if (currentUser) {
         setUserInfo(currentUser);
@@ -134,9 +150,9 @@ const MyPage = () => {
     try {
       const response = await postApi.getProjectApplications(projectId);
       setApplications(response.data || response);
-    } catch (error) {
-      console.error("지원서 로드 실패:", error);
-      showToast('지원자 목록을 불러오지 못했습니다.', 'error');
+    } catch (err) {
+      console.error("지원서 로드 실패:", err);
+      showToast(err.error?.message || '지원자 목록을 불러오지 못했습니다.', 'error');
     }
   };
 
@@ -148,15 +164,16 @@ const MyPage = () => {
 
   const handleStatusUpdate = async (applicationId, status) => {
     try {
-      await postApi.updateApplicationStatus(applicationId, status);
+      // 설계서 v1.1: 'accept' 또는 'reject' 파라미터 사용
+      const targetStatus = status === 'ACCEPTED' ? 'accept' : 'reject';
+      await postApi.updateApplicationStatus(applicationId, targetStatus);
       showToast(status === 'ACCEPTED' ? '승인되었습니다.' : '거절되었습니다.', 'success');
       if (selectedProjectId) fetchApplications(selectedProjectId);
       setIsAppDetailOpen(false);
-      const data = await axiosInstance.get('/users/me');
-      setUserInfo(data);
-    } catch (error) {
-      console.error("상태 업데이트 실패:", error);
-      showToast('처리 중 오류가 발생했습니다.', 'error');
+      fetchUserData(); // 상태 변경 후 전체 데이터 동기화
+    } catch (err) {
+      console.error("상태 업데이트 실패:", err);
+      showToast(err.error?.message || '처리 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -180,7 +197,6 @@ const MyPage = () => {
       if (onlyNums.length > 11) return;
       setFormData(prev => ({ ...prev, [field]: onlyNums }));
       
-      // 원래 정보와 같거나, 마지막으로 성공적으로 체크한 번호와 같으면 '확인됨'
       if (userInfo && (onlyNums === userInfo.phoneNumber || (lastCheckedPhone && onlyNums === lastCheckedPhone))) {
         setIsPhoneChecked(true);
       } else {
@@ -192,7 +208,6 @@ const MyPage = () => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     
     if (field === 'nickname') {
-      // 원래 정보와 같거나, 마지막으로 성공적으로 체크한 닉네임과 같으면 '확인됨'
       if (userInfo && (value === userInfo.nickname || (lastCheckedNickname && value === lastCheckedNickname))) {
         setIsNicknameChecked(true);
       } else {
@@ -210,14 +225,13 @@ const MyPage = () => {
       showToast('닉네임을 입력해주세요.', 'warning');
       return;
     }
-    // 현재 값이 원래 값과 같으면 체크할 필요 없음
     if (userInfo && formData.nickname === userInfo.nickname) {
       setIsNicknameChecked(true);
       return;
     }
     try {
-      const response = await axiosInstance.get(`/users/check-nickname?nickname=${encodeURIComponent(formData.nickname)}`);
-      const isAvailable = response.data?.isAvailable ?? response.isAvailable;
+      const response = await authApi.checkNickname(formData.nickname);
+      const isAvailable = response.isAvailable ?? response;
       if (isAvailable) {
         showToast('사용 가능한 닉네임입니다!', 'success');
         setIsNicknameChecked(true);
@@ -226,9 +240,9 @@ const MyPage = () => {
         showToast('이미 사용 중인 닉네임입니다.', 'error');
         setIsNicknameChecked(false);
       }
-    } catch (error) {
-      console.error("닉네임 체크 에러:", error);
-      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+    } catch (err) {
+      console.error("닉네임 체크 에러:", err);
+      showToast(err.error?.message || '중복 확인 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -237,14 +251,13 @@ const MyPage = () => {
       showToast('유효한 전화번호를 입력해주세요.', 'warning');
       return;
     }
-    // 현재 값이 원래 값과 같으면 체크할 필요 없음
     if (userInfo && formData.phoneNumber === userInfo.phoneNumber) {
       setIsPhoneChecked(true);
       return;
     }
     try {
-      const response = await axiosInstance.get(`/users/check-phone?phoneNumber=${formData.phoneNumber}`);
-      const isAvailable = response.data?.isAvailable ?? response.isAvailable;
+      const response = await authApi.checkPhone(formData.phoneNumber);
+      const isAvailable = response.isAvailable ?? response;
       if (isAvailable) {
         showToast('사용 가능한 전화번호입니다.', 'success');
         setIsPhoneChecked(true);
@@ -253,9 +266,9 @@ const MyPage = () => {
         showToast('이미 등록된 전화번호입니다.', 'error');
         setIsPhoneChecked(false);
       }
-    } catch (error) {
-      console.error("전화번호 체크 에러:", error);
-      showToast('중복 확인 중 오류가 발생했습니다.', 'error');
+    } catch (err) {
+      console.error("전화번호 체크 에러:", err);
+      showToast(err.error?.message || '중복 확인 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -300,16 +313,16 @@ const MyPage = () => {
         techStacks: formData.techStacks,
         ...(password && { password })
       };
-      await axiosInstance.put('/users/me', updatePayload);
       
-      // 최신 활동 내역을 포함한 전체 데이터를 다시 가져옴
+      // authApi 레이어 사용
+      await authApi.updateUserProfile(updatePayload);
       await fetchUserData();
       
       showToast('프로필 정보가 성공적으로 저장되었습니다!', 'success');
       setPassword(''); setConfirmPassword('');
-    } catch (error) {
-      console.error("프로필 저장 실패:", error);
-      showToast('저장 중 오류가 발생했습니다.', 'error');
+    } catch (err) {
+      console.error("프로필 저장 실패:", err);
+      showToast(err.error?.message || '저장 중 오류가 발생했습니다.', 'error');
     }
   };
 
@@ -319,17 +332,12 @@ const MyPage = () => {
     const formDataObj = new FormData();
     formDataObj.append('profileImage', file);
     try {
-      await axiosInstance.patch('/users/profile-image', formDataObj, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
-      // 이미지 변경 후 전체 데이터 동기화
+      await authApi.updateProfileImage(formDataObj);
       await fetchUserData();
-      
       showToast('프로필 이미지가 변경되었습니다.', 'success');
-    } catch (error) {
-      console.error("이미지 업데이트 실패:", error);
-      showToast('이미지 업데이트 중 오류가 발생했습니다.', 'error');
+    } catch (err) {
+      console.error("이미지 업데이트 실패:", err);
+      showToast(err.error?.message || '이미지 업데이트 중 오류가 발생했습니다.', 'error');
     } finally {
       handleMenuClose();
     }
@@ -337,15 +345,12 @@ const MyPage = () => {
 
   const handleDeleteImage = async () => {
     try {
-      await axiosInstance.delete('/users/profile-image');      
-      
-      // 이미지 삭제 후 전체 데이터 동기화
+      await authApi.deleteProfileImage();      
       await fetchUserData();
-      
       showToast('기본 이미지로 변경되었습니다.', 'success');
-    } catch (error) {
-      console.error("이미지 삭제 실패:", error);
-      showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');
+    } catch (err) {
+      console.error("이미지 삭제 실패:", err);
+      showToast(err.error?.message || '이미지 삭제 중 오류가 발생했습니다.', 'error');
     } finally {
       handleMenuClose();
     }
@@ -359,12 +364,12 @@ const MyPage = () => {
       color: 'error',
       onConfirm: async () => {
         try {
-          await axiosInstance.delete(`/applications/${applyId}`);
+          await postApi.cancelApplication(applyId);
           showToast('지원이 취소되었습니다.', 'success');
           fetchUserData();
-        } catch (error) {
-          console.error("지원 취소 에러:", error);
-          showToast('지원 취소 중 오류가 발생했습니다.', 'error');
+        } catch (err) {
+          console.error("지원 취소 에러:", err);
+          showToast(err.error?.message || '지원 취소 중 오류가 발생했습니다.', 'error');
         }
       }
     });
@@ -378,12 +383,12 @@ const MyPage = () => {
       color: 'error',
       onConfirm: async () => {
         try {
-          await axiosInstance.delete('/users/me');
+          await authApi.withdraw();
           showToast('회원 탈퇴가 완료되었습니다.', 'success');
           logout(); navigate('/');
-        } catch (error) {
-          console.error("탈퇴 에러:", error);
-          showToast('탈퇴 처리 중 오류가 발생했습니다.', 'error');
+        } catch (err) {
+          console.error("탈퇴 에러:", err);
+          showToast(err.error?.message || '탈퇴 처리 중 오류가 발생했습니다.', 'error');
         }
       }
     });
@@ -456,7 +461,7 @@ const MyPage = () => {
                       sx: { 
                         minWidth: 150, 
                         mt: 1.5,
-                        borderRadius: 1.5, // 더 각진 네모난 느낌으로 수정
+                        borderRadius: 1.5,
                         boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
                         border: '1px solid #E5E7EB',
                         overflow: 'visible',
@@ -592,7 +597,7 @@ const MyPage = () => {
             <List sx={{ py: 0 }}>
               {applications.map((app) => (
                 <ListItem key={app.applyId} button onClick={() => { setSelectedApp(app); setIsAppDetailOpen(true); }} sx={{ py: 2.5, px: 4, borderBottom: '1px solid #F9FAFB', transition: '0.2s', '&:hover': { bgcolor: '#F8F9FF' } }}>
-                  <ListItemAvatar><Avatar name={app.nickname} src={app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
+                  <ListItemAvatar><Avatar name={app.nickname} src={app.profileImg || app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
                   <ListItemText primary={<Typography sx={{ fontWeight: 900, color: '#111827', fontSize: '1.05rem' }}>{app.nickname}</Typography>} secondary={<Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === app.position)?.label || app.position} · {app.appliedDate}</Typography>} />
                   <Chip label={app.status === 'PENDING' ? '대기중' : (app.status === 'ACCEPTED' ? '승인됨' : '거절됨')} size="small" sx={{ fontWeight: 900, px: 1, bgcolor: app.status === 'PENDING' ? '#FFFBEB' : (app.status === 'ACCEPTED' ? '#ECFDF5' : '#FEF2F2'), color: app.status === 'PENDING' ? '#D97706' : (app.status === 'ACCEPTED' ? '#10B981' : '#EF4444'), borderRadius: 1.5 }} />
                   <ArrowForwardIosIcon sx={{ fontSize: 14, ml: 2, color: '#D1D5DB' }} />
@@ -656,9 +661,9 @@ const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 80
 const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onViewAppsClick, onCancelClick }) => {
   const categoryLabel = item.category === 'PROJECT' ? '[프로젝트]' : item.category === 'STUDY' ? '[스터디]' : '';
   const title = item.projectTitle || item.title;
-  const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : '승인완료');
-  const info = tabValue === 2 ? `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${item.position || '멤버'}` : `지원 분야: ${item.position || '선택없음'} · 신청일: ${item.appliedDate || item.endDate}`;
-  return ( <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }, transition: '0.2s' }}><Box sx={{ flex: 1 }}><Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" onClick={onTitleClick} sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}><Box component="span" sx={{ color: item.category === 'PROJECT' ? 'primary.main' : 'warning.main', mr: 1 }}>{categoryLabel}</Box>{title}</Typography>{tabValue !== 0 && ( <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '참여중' ? '#EEF2FF' : (status === '대기중' ? '#FFFBEB' : '#ECFDF5'), color: status === '참여중' ? '#6366F1' : (status === '대기중' ? '#D97706' : '#10B981') }} /> )}</Stack><Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{info}</Typography></Box><Stack direction="row" spacing={1}>{tabValue === 0 && ( <> <Button variant="contained" disableElevation onClick={onViewAppsClick} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: 2 }}>지원서 보기</Button> <Button variant="contained" disableElevation onClick={onManageClick} sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button> </> )}{tabValue === 1 && item.status === 'PENDING' && <Button variant="outlined" color="error" onClick={onCancelClick} sx={{ fontWeight: 800, borderRadius: 2 }}>취소하기</Button>}</Stack></Box> );
+  const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : (item.status === 'ACCEPTED' ? '승인완료' : '거절됨'));
+  const info = tabValue === 2 ? `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${item.position || '멤버'}` : `지원 분야: ${item.position || '선택없음'} · 신청일: ${item.appliedDate || item.endDate || '-'}`;
+  return ( <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }, transition: '0.2s' }}><Box sx={{ flex: 1 }}><Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" onClick={onTitleClick} sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}><Box component="span" sx={{ color: item.category === 'PROJECT' ? 'primary.main' : 'warning.main', mr: 1 }}>{categoryLabel}</Box>{title}</Typography>{tabValue !== 0 && ( <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '참여중' ? '#EEF2FF' : (status === '대기중' ? '#FFFBEB' : (status === '승인완료' ? '#ECFDF5' : '#FEF2F2')), color: status === '참여중' ? '#6366F1' : (status === '대기중' ? '#D97706' : (status === '승인완료' ? '#10B981' : '#EF4444')) }} /> )}</Stack><Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{info}</Typography></Box><Stack direction="row" spacing={1}>{tabValue === 0 && ( <> <Button variant="contained" disableElevation onClick={onViewAppsClick} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: 2 }}>지원서 보기</Button> <Button variant="contained" disableElevation onClick={onManageClick} sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button> </> )}{tabValue === 1 && item.status === 'PENDING' && <Button variant="outlined" color="error" onClick={onCancelClick} sx={{ fontWeight: 800, borderRadius: 2 }}>취소하기</Button>}</Stack></Box> );
 };
 const inputStyle = { '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontSize: '0.95rem', fontWeight: 600, '& fieldset': { border: '1px solid #E5E7EB' }, '&.Mui-focused fieldset': { borderWidth: '2px', borderColor: '#6366F1' }, '&.Mui-focused': { bgcolor: 'white' } } };
 

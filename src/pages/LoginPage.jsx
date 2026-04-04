@@ -33,7 +33,12 @@ const LoginPage = () => {
 
     setIsLoading(true);
     try {
-      const response = await authApi.login({ email, password });
+      // 입력값 앞뒤 공백 제거 후 전송
+      const response = await authApi.login({ 
+        email: email.trim(), 
+        password: password.trim() 
+      });
+      
       const { accessToken, refreshToken, user } = response;
       setAuth(accessToken, refreshToken, user);
       
@@ -43,10 +48,8 @@ const LoginPage = () => {
         navigate(from, { replace: true });
       }, 1500);
     } catch (err) {
-      let errorMessage = '로그인 정보를 다시 확인해주세요.';
-      if (err.response?.data?.error?.message) {
-        errorMessage = err.response.data.error.message;
-      }
+      // axiosInstance에서 reject된 response.data 또는 에러 객체가 err로 넘어옵니다.
+      const errorMessage = err.error?.message || err.message || '로그인 정보를 다시 확인해주세요.';
       showToast(errorMessage, 'error');
     } finally {
       setIsLoading(false);

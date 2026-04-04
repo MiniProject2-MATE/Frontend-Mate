@@ -1,28 +1,38 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
+/**
+ * 사용자 인증 상태 관리 스토어 (REST API 설계서 v1.1 반영)
+ * 설계서 규격(id, profileImg)과 프론트엔드 규격(userId, profileImageUrl) 간의 브릿지 역할을 수행합니다.
+ */
 export const useAuthStore = create(
   persist(
     (set) => ({
-      // 상태 초기값 (null로 명시적 설정)
       accessToken: null,
       refreshToken: null,
       user: null,
-      isLoggedIn: false, // 명시적 로그인 상태 추가
+      isLoggedIn: false,
 
-      // 로그인 성공 시 토큰과 유저 정보 저장
-      setAuth: (accessToken, refreshToken, user) => {
-        // 백엔드 응답의 id를 userId로 매핑하여 저장 (일관성 유지)
-        const userWithId = user ? { ...user, userId: user.userId || user.id } : null;
+      // 로그인 성공 시 호출
+      setAuth: (accessToken, refreshToken, userData) => {
+        if (!userData) return;
+
+        // 설계서 v1.1 규격을 프론트엔드 내부 규격으로 매핑
+        const mappedUser = {
+          ...userData,
+          userId: userData.id || userData.userId, // id(v1.1) -> userId
+          profileImageUrl: userData.profileImg || userData.profileImageUrl // profileImg(v1.1) -> profileImageUrl
+        };
+
         set({
           accessToken,
           refreshToken,
-          user: userWithId,
+          user: mappedUser,
           isLoggedIn: !!accessToken,
         });
       },
 
-      // 토큰만 갱신
+      // 토큰 만료 시 갱신용
       setTokens: (accessToken, refreshToken) => {
         set({
           accessToken,
@@ -31,16 +41,24 @@ export const useAuthStore = create(
         });
       },
 
-      // 유저 정보만 부분 업데이트
+      // 유저 정보 부분 업데이트 (마이페이지 등)
       updateUser: (userData) => {
-        set((state) => ({
-          user: state.user 
-            ? { ...state.user, ...userData, userId: userData.userId || userData.id || state.user.userId } 
-            : userData
-        }));
+        if (!userData) return;
+
+        set((state) => {
+          const currentUser = state.user || {};
+          const updatedUser = {
+            ...currentUser,
+            ...userData,
+            userId: userData.id || userData.userId || currentUser.userId,
+            profileImageUrl: userData.profileImg || userData.profileImageUrl || currentUser.profileImageUrl
+          };
+
+          return { user: updatedUser };
+        });
       },
 
-      // 모든 상태 초기화 (로그아웃)
+      // 로그아웃 (상태 및 스토리지 초기화)
       logout: () => {
         set({
           accessToken: null,
@@ -48,12 +66,11 @@ export const useAuthStore = create(
           user: null,
           isLoggedIn: false,
         });
-        // 명시적으로 로컬 스토리지 비우기
         localStorage.removeItem('mate-auth');
       },
     }),
     {
-      name: 'mate-auth', // 로컬 스토리지에 저장될 키 이름
+      name: 'mate-auth',
     }
   )
 );

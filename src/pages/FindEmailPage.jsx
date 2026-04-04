@@ -4,10 +4,7 @@ import {
   Link, Divider, Stack, Grid 
 } from '@mui/material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
-import axios from 'axios';
-
-// 공통 컴포넌트 (프로젝트 구조에 맞게 경로를 확인하세요)
-import Breadcrumb from '../component/common/Breadcrumb';
+import { authApi } from '../api/authApi';
 
 const FindEmailPage = () => {
   const navigate = useNavigate();
@@ -45,13 +42,15 @@ const FindEmailPage = () => {
     
     try {
       const cleaned = phoneNumber.replace(/-/g, '');
-      const response = await axios.post('/api/auth/find-email', { phoneNumber: cleaned });
+      // authApi 사용 및 axiosInstance의 data 반환 규격 적용
+      // 설계서 v1.1: data에 이메일 문자열이 직접 담겨옴
+      const response = await authApi.findEmail(cleaned);
       
-      if (response.data.success) {
-        setResult(response.data.data.email);
+      if (response) {
+        setResult(response);
       }
     } catch (err) {
-      const errorMessage = err.response?.data?.error?.message || '오류가 발생했습니다. 다시 시도해주세요.';
+      const errorMessage = err.error?.message || err.message || '오류가 발생했습니다. 다시 시도해주세요.';
       setError(errorMessage);
     } finally {
       setIsLoading(false);
