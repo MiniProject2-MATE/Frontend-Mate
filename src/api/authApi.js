@@ -6,6 +6,11 @@ export const authApi = {
     return await axiosInstance.post('/auth/login', credentials);
   },
 
+  // 이메일 중복 확인 API
+  checkEmail: async (email) => {
+    return await axiosInstance.get(`/auth/check-email?email=${encodeURIComponent(email)}`);
+  },
+
   // 회원가입 API (Multipart/form-data 규격 준수)
   signup: async (userData, profileImage = null) => {
     const formData = new FormData();

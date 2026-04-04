@@ -20,6 +20,8 @@ const RegisterPage = () => {
     phoneNumber: '',
   });
 
+  const [isEmailChecked, setIsEmailChecked] = useState(false);
+  const [lastCheckedEmail, setLastCheckedEmail] = useState('');
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
   const [lastCheckedNickname, setLastCheckedNickname] = useState('');
   const [isPhoneChecked, setIsPhoneChecked] = useState(false);
@@ -53,10 +55,38 @@ const RegisterPage = () => {
     if (name === 'nickname') {
       setIsNicknameChecked(false);
     }
+    if (name === 'email') {
+      setIsEmailChecked(false);
+    }
   };
 
   const handleTechStacksChange = (event, newValue) => {
     setFormData(prev => ({ ...prev, techStacks: newValue }));
+  };
+
+  const handleCheckEmail = async () => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim() || !emailRegex.test(formData.email)) {
+      showToast('유효한 이메일 형식을 입력해주세요.', 'warning');
+      return;
+    }
+
+    try {
+      const response = await authApi.checkEmail(formData.email);
+      const isAvailable = response.data?.isAvailable ?? response.isAvailable;
+
+      if (isAvailable) {
+        showToast('사용 가능한 이메일입니다!', 'success');
+        setIsEmailChecked(true);
+        setLastCheckedEmail(formData.email);
+      } else {
+        showToast('이미 사용 중인 이메일입니다.', 'error');
+        setIsEmailChecked(false);
+      }
+    } catch (error) {
+      console.error("이메일 중복 확인 실패:", error);
+      showToast('이메일 중복 확인 중 오류가 발생했습니다.', 'error');
+    }
   };
 
   const handleCheckNickname = async () => {
@@ -122,6 +152,10 @@ const RegisterPage = () => {
     // nickname은 필수 항목에서 제외
     if (!email || !password || !position || techStacks.length === 0 || !phoneNumber) {
       setError('모든 필수 항목을 입력해주세요.');
+      return false;
+    }
+    if (!isEmailChecked || email !== lastCheckedEmail) {
+      setError('이메일 중복 확인이 필요합니다.');
       return false;
     }
     if (password !== confirmPassword) {
@@ -207,7 +241,33 @@ const RegisterPage = () => {
           <Box component="form" onSubmit={handleSubmit}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>이메일 *</Typography>
-              <TextField fullWidth name="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} sx={inputStyle} />
+              <Stack direction="row" spacing={1}>
+                <TextField 
+                  fullWidth 
+                  name="email" 
+                  placeholder="email@example.com" 
+                  value={formData.email} 
+                  onChange={handleChange} 
+                  sx={inputStyle} 
+                />
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCheckEmail}
+                  disabled={!formData.email.trim() || (isEmailChecked && formData.email === lastCheckedEmail)}
+                  sx={{ 
+                    whiteSpace: 'nowrap', 
+                    px: 3, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    borderColor: isEmailChecked ? '#10B981' : 'primary.main',
+                    color: isEmailChecked ? '#10B981' : 'primary.main',
+                    '&:hover': { borderColor: 'primary.dark' },
+                    '&:disabled': { borderColor: '#E5E7EB' }
+                  }}
+                >
+                  {isEmailChecked ? '확인됨' : '중복 확인'}
+                </Button>
+              </Stack>
             </Box>
 
             <Box sx={{ mb: 3 }}>

@@ -254,11 +254,19 @@ export const handlers = [
     }), { status: 401 });
   }),
 
-  // 2. 닉네임 중복 확인
+  // 닉네임 중복 확인
   http.get('*/api/auth/check-nickname', ({ request }) => {
     const url = new URL(request.url);
     const nickname = url.searchParams.get('nickname');
     const exists = db.users.some(u => u.nickname === nickname && u.userId !== db.currentUser?.userId);
+    return HttpResponse.json({ success: true, data: { isAvailable: !exists } });
+  }),
+
+  // 이메일 중복 확인
+  http.get('*/api/auth/check-email', ({ request }) => {
+    const url = new URL(request.url);
+    const email = url.searchParams.get('email');
+    const exists = db.users.some(u => u.email === email);
     return HttpResponse.json({ success: true, data: { isAvailable: !exists } });
   }),
 
