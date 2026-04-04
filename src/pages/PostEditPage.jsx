@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   Box, Typography, TextField, Stack, Divider, 
   FormLabel, Chip, Card, CardContent, 
-  Container, Paper, Autocomplete, createFilterOptions, MenuItem
+  Container, Paper, Autocomplete, MenuItem, LinearProgress
 } from '@mui/material';
 
 // Icons
@@ -23,8 +23,6 @@ import CustomButton from '../component/common/Button';
 import { postApi } from '../api/postApi';
 import { useUiStore } from '../store/uiStore';
 import { TECH_STACK_OPTIONS } from '../constants/techStacks';
-
-const filter = createFilterOptions();
 
 /**
  * 모집글 수정 페이지 (REST API 설계서 v1.1 반영)
@@ -340,6 +338,6 @@ const PostEditPage = () => {
   );
 };
 
-const inputStyle = { '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 3, fontWeight: 600, '& fieldset': { border: '1px solid #E5E7EB' } } };
+const inputStyle = { '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 1.5, fontSize: '0.95rem', fontWeight: 600, '& fieldset': { border: '1px solid #E5E7EB' }, '&.Mui-focused fieldset': { borderWidth: '2px', borderColor: '#6366F1' }, '&.Mui-focused': { bgcolor: 'white' } } };
 
 export default PostEditPage;
