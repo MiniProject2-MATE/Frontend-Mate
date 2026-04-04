@@ -533,7 +533,7 @@ const MyPage = () => {
                     <FormLabel text="닉네임" />
                     <Stack direction="row" spacing={1}>
                       <TextField fullWidth value={formData.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} />
-                      <Button 
+                      <Button
                         variant="outlined" onClick={handleCheckNickname}
                         disabled={isNicknameChecked && formData.nickname === (lastCheckedNickname || userInfo?.nickname)}
                         sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800, borderColor: isNicknameChecked ? '#10B981' : '#6366F1', color: isNicknameChecked ? '#10B981' : '#6366F1' }}
@@ -543,26 +543,35 @@ const MyPage = () => {
                     </Stack>
                   </Box>
                   <Box>
-                    <FormLabel text="이메일" />
-                    <TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} />
+                    <FormLabel text="전화번호" />
+                    <Stack direction="row" spacing={1}>
+                      <TextField fullWidth value={formData.phoneNumber} onChange={handleInputChange('phoneNumber')} placeholder="숫자만 입력" sx={inputStyle} />
+                      <Button
+                        variant="outlined" onClick={handleCheckPhone}
+                        disabled={isPhoneChecked && formData.phoneNumber === (lastCheckedPhone || userInfo?.phoneNumber)}
+                        sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800, borderColor: isPhoneChecked ? '#10B981' : '#6366F1', color: isPhoneChecked ? '#10B981' : '#6366F1' }}
+                      >
+                        {isPhoneChecked ? '확인됨' : '중복 확인'}
+                      </Button>
+                    </Stack>
                   </Box>
-                  
+
                   <Box>
                     <FormLabel text="비밀번호 변경" />
-                    <TextField 
+                    <TextField
                       fullWidth type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="새 비밀번호 입력"
                       InputProps={{ endAdornment: ( <InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> )}}
-                      sx={inputStyle} 
+                      sx={inputStyle}
                     />
                   </Box>
                   <Box>
                     <FormLabel text="비밀번호 확인" />
-                    <TextField 
+                    <TextField
                       fullWidth type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="비밀번호 확인 입력"
                       error={password !== confirmPassword && confirmPassword !== ''}
                       helperText={password !== confirmPassword && confirmPassword !== '' ? '비밀번호가 일치하지 않습니다.' : ''}
                       InputProps={{ endAdornment: ( <InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">{showConfirmPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> )}}
-                      sx={inputStyle} 
+                      sx={inputStyle}
                     />
                   </Box>
 
@@ -573,19 +582,9 @@ const MyPage = () => {
                     </TextField>
                   </Box>
                   <Box>
-                    <FormLabel text="전화번호" />
-                    <Stack direction="row" spacing={1}>
-                      <TextField fullWidth value={formData.phoneNumber} onChange={handleInputChange('phoneNumber')} placeholder="숫자만 입력" sx={inputStyle} />
-                      <Button 
-                        variant="outlined" onClick={handleCheckPhone}
-                        disabled={isPhoneChecked && formData.phoneNumber === (lastCheckedPhone || userInfo?.phoneNumber)}
-                        sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800, borderColor: isPhoneChecked ? '#10B981' : '#6366F1', color: isPhoneChecked ? '#10B981' : '#6366F1' }}
-                      >
-                        {isPhoneChecked ? '확인됨' : '중복 확인'}
-                      </Button>
-                    </Stack>
-                  </Box>
-                  
+                    <FormLabel text="이메일" />
+                    <TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} />
+                  </Box>                  
                   {/* [항목 5번 반영] 기술 스택 입력 필드 추가 */}
                   <Box sx={{ gridColumn: '1 / -1' }}>
                     <FormLabel text="기술 스택" />
