@@ -142,28 +142,28 @@ const generateApplies = (users, posts) => {
     {
       applyId: 101, projectId: 2, userId: 2, projectTitle: '모던 자바스크립트 Deep Dive', 
       category: 'STUDY', position: 'BE', status: 'PENDING', appliedDate: '2026-04-01',
-      ownerNickname: '프론트깍이', nickname: '백엔드장인', profileImageUrl: 'https://i.pravatar.cc/150?u=user2',
+      ownerNickname: '프론트깍이', nickname: '백엔드장인', profileImageUrl: users[1].profileImageUrl,
       message: '안녕하세요! 백엔드 개발자이지만 JS 기초를 탄탄히 다지고 싶어 지원합니다. 매주 오프라인 모임에 성실히 참여하겠습니다.',
       contact: 'open.kakao.com/o/sJSStudy_BE', link: 'https://github.com/backend-master'
     },
     {
       applyId: 102, projectId: 2, userId: 3, projectTitle: '모던 자바스크립트 Deep Dive', 
       category: 'STUDY', position: 'DE', status: 'ACCEPTED', appliedDate: '2026-04-02',
-      ownerNickname: '프론트깍이', nickname: '디자인천재', profileImageUrl: 'https://i.pravatar.cc/150?u=user3',
+      ownerNickname: '프론트깍이', nickname: '디자인천재', profileImageUrl: users[2].profileImageUrl,
       message: '디자이너로서 개발자와의 소통을 위해 JS를 배우고 싶습니다. 시각화 라이브러리에도 관심이 많아요!',
       contact: '010-1234-5678', link: 'https://behance.net/design-genius'
     },
     {
       applyId: 103, projectId: 19, userId: 5, projectTitle: '시니어 세대를 위한 커뮤니티', 
       category: 'PROJECT', position: 'BE', status: 'PENDING', appliedDate: '2026-04-03',
-      ownerNickname: '프론트깍이', nickname: '풀스택꿈나무', profileImageUrl: 'https://i.pravatar.cc/150?u=user5',
+      ownerNickname: '프론트깍이', nickname: '풀스택꿈나무', profileImageUrl: users[4].profileImageUrl,
       message: '사회적 가치가 있는 프로젝트라 꼭 참여하고 싶습니다. Node.js와 React 모두 경험이 있어 큰 도움이 될 것 같습니다.',
       contact: 'kakao: fullstack_dream', link: 'https://github.com/fullstack-dream'
     },
     {
       applyId: 104, projectId: 19, userId: 8, projectTitle: '시니어 세대를 위한 커뮤니티', 
       category: 'PROJECT', position: 'DE', status: 'REJECTED', appliedDate: '2026-04-01',
-      ownerNickname: '프론트깍이', nickname: 'UI구조대', profileImageUrl: 'https://i.pravatar.cc/150?u=user8',
+      ownerNickname: '프론트깍이', nickname: 'UI구조대', profileImageUrl: users[7].profileImageUrl,
       message: '접근성 높은 UI 디자인에 자신 있습니다. 시니어 타겟 앱 디자인 경험이 있습니다.',
       contact: '010-8888-9999', link: 'https://portfolio.com/ui-guard'
     },
@@ -172,22 +172,28 @@ const generateApplies = (users, posts) => {
     {
       applyId: 105, projectId: 6, userId: 1, projectTitle: '스프링 부트 핵심 원리 파악', 
       category: 'STUDY', position: 'FE', status: 'PENDING', appliedDate: '2026-04-02',
-      ownerNickname: '백엔드장인', nickname: '프론트깍이', profileImageUrl: 'https://i.pravatar.cc/150?u=user1',
+      ownerNickname: '백엔드장인', nickname: '프론트깍이', profileImageUrl: users[0].profileImageUrl,
       message: '프론트엔드 개발자이지만 백엔드 통신 원리를 깊게 이해하고 싶어 지원했습니다. 잘 부탁드립니다!',
       contact: '010-1111-0001', link: 'https://github.com/front-ggagi'
     },
     {
       applyId: 106, projectId: 3, userId: 1, projectTitle: 'AI 기반 식단 추천 서비스', 
       category: 'PROJECT', position: 'FE', status: 'ACCEPTED', appliedDate: '2026-03-30',
-      ownerNickname: '최종보스', nickname: '프론트깍이', profileImageUrl: 'https://i.pravatar.cc/150?u=user1',
+      ownerNickname: '최종보스', nickname: '프론트깍이', profileImageUrl: users[0].profileImageUrl,
       message: 'AI 모델 결과물을 멋지게 시각화해보고 싶습니다. React 환경 구축에 자신 있습니다.',
       contact: '010-1111-0001', link: 'https://front-ggagi.blog'
+    },
+    // --- 대학생 캘린더 관련 지원 ---
+    {
+      applyId: 107, projectId: 11, userId: 2, projectTitle: '대학생 전용 캘린더 공유 서비스', 
+      category: 'PROJECT', position: 'BE', status: 'ACCEPTED', appliedDate: '2026-04-01',
+      ownerNickname: '네스트고수', nickname: '백엔드장인', profileImageUrl: users[1].profileImageUrl,
+      message: '안녕하세요! 잘 부탁드립니다.', contact: '010-1234-5678', link: ''
     }
   ];
 
-  // 나머지 렌덤 데이터는 최소화하여 수동 데이터의 가독성 확보
   const manualUserIds = [1, 2, 3, 5, 8];
-  const manualProjectIds = [2, 19, 6, 3];
+  const manualProjectIds = [2, 19, 6, 3, 11];
 
   for (let i = 1; i <= 50; i++) {
     const user = users[(i + 10) % users.length];
@@ -224,21 +230,15 @@ const generateApplies = (users, posts) => {
   return applies;
 };
 
-const generateBoardPosts = (posts) => {
-  const boardPosts = [];
-  posts.slice(0, 10).forEach(post => {
-    boardPosts.push({
-      id: post.projectId * 100,
-      projectId: post.projectId,
-      type: "NOTICE",
-      title: "📢 프로젝트 시작 및 규칙 안내",
-      content: "모두 반갑습니다! 우리 프로젝트의 핵심 규칙입니다.\n1. 매주 월요일 오후 8시 회의\n2. PR은 이틀 내 리뷰\n3. 상호 존중",
-      author: post.ownerNickname,
-      date: "2026.03.30",
-      views: 15,
-    });
-  });
-  return boardPosts;
+const generateBoardPosts = (users) => {
+  return [
+    {
+      id: 100, projectId: 11, type: "NOTICE", title: "📢 프로젝트 시작 및 규칙 안내",
+      content: "모두 반갑습니다! 우리 프로젝트의 핵심 규칙입니다.\n1. 매주 월요일 회의",
+      author: '네스트고수', authorId: 18, authorImage: users[17].profileImageUrl,
+      date: "2026.03.30", views: 15, isDeleted: false
+    }
+  ];
 };
 
 // --- Storage Management ---
@@ -246,42 +246,28 @@ const initializeDB = () => {
   const users = generateUsers();
   const posts = generatePosts(users);
   const applies = generateApplies(users, posts);
-  const boardPosts = generateBoardPosts(posts);
+  const boardPosts = generateBoardPosts(users);
   const comments = [
-    { id: 1, boardPostId: 100, author: users[1].nickname, content: "확인했습니다! 화이팅!", date: "2026.04.01 10:00" }
+    { id: 1, boardPostId: 100, author: '백엔드장인', authorId: 2, authorImage: users[1].profileImageUrl, content: "확인했습니다!", date: "2026.04.01 10:00", isDeleted: false }
   ];
 
-  localStorage.setItem('mock-users', JSON.stringify(users));
-  localStorage.setItem('mock-posts', JSON.stringify(posts));
-  localStorage.setItem('mock-applies', JSON.stringify(applies));
-  localStorage.setItem('mock-board-posts', JSON.stringify(boardPosts));
-  localStorage.setItem('mock-comments', JSON.stringify(comments));
-  localStorage.setItem('user-info', JSON.stringify(users[0])); // Initial test account
-  
-  return { users, posts, applies, boardPosts, comments, currentUser: users[0] };
+  const initialDB = { users, posts, applies, boardPosts, comments, currentUser: users[0] };
+  localStorage.setItem('mock-db', JSON.stringify(initialDB));
+  localStorage.setItem('user-info', JSON.stringify(users[0]));
+  return initialDB;
 };
 
 const getDB = () => {
-  const users = JSON.parse(localStorage.getItem('mock-users'));
-  if (!users) return initializeDB();
-
-  return {
-    users,
-    posts: JSON.parse(localStorage.getItem('mock-posts')),
-    applies: JSON.parse(localStorage.getItem('mock-applies')),
-    boardPosts: JSON.parse(localStorage.getItem('mock-board-posts')),
-    comments: JSON.parse(localStorage.getItem('mock-comments')),
-    currentUser: JSON.parse(localStorage.getItem('user-info'))
-  };
+  const data = localStorage.getItem('mock-db');
+  if (!data) return initializeDB();
+  return JSON.parse(data);
 };
 
 const saveDB = (db) => {
-  localStorage.setItem('mock-users', JSON.stringify(db.users));
-  localStorage.setItem('mock-posts', JSON.stringify(db.posts));
-  localStorage.setItem('mock-applies', JSON.stringify(db.applies));
-  localStorage.setItem('mock-board-posts', JSON.stringify(db.boardPosts));
-  localStorage.setItem('mock-comments', JSON.stringify(db.comments));
-  localStorage.setItem('user-info', JSON.stringify(db.currentUser));
+  localStorage.setItem('mock-db', JSON.stringify(db));
+  if (db.currentUser) {
+    localStorage.setItem('user-info', JSON.stringify(db.currentUser));
+  }
 };
 
 let db = getDB();
@@ -319,38 +305,31 @@ export const handlers = [
     return HttpResponse.json({ success: true, data: { isAvailable: !exists } });
   }),
 
-  // 이메일 중복 확인
-  http.get('*/api/auth/check-email', ({ request }) => {
-    const url = new URL(request.url);
-    const email = url.searchParams.get('email');
-    const exists = db.users.some(u => u.email === email);
-    return HttpResponse.json({ success: true, data: { isAvailable: !exists } });
-  }),
-
-  // 3. 회원가입
-  http.post('*/api/auth/signup', async ({ request }) => {
-    const formData = await request.formData();
-    const dataStr = formData.get('data');
-    const userData = JSON.parse(await dataStr.text());
-
-    const newUser = {
-      ...userData,
-      userId: db.users.length + 1,
-      profileImageUrl: `https://i.pravatar.cc/150?u=user${db.users.length + 1}`,
-      techStacks: userData.techStacks || []
-    };
+  // 6. 마이페이지 정보 조회
+  http.get('*/api/users/me', () => {
+    if (!db.currentUser) return new HttpResponse(null, { status: 401 });
     
-    db.users.push(newUser);
-    saveDB(db);
+    const myPosts = db.posts.filter(p => p.ownerNickname === db.currentUser.nickname);
+    const myApplies = db.applies.filter(a => a.userId === db.currentUser.userId);
+    const acceptedProjects = db.applies
+      .filter(a => a.userId === db.currentUser.userId && a.status === 'ACCEPTED')
+      .map(a => db.posts.find(p => p.projectId === a.projectId))
+      .filter(Boolean);
 
-    return HttpResponse.json({ 
-      success: true, 
-      data: newUser, 
-      message: '회원가입이 완료되었습니다.' 
-    }, { status: 201 });
+    return HttpResponse.json({
+      success: true,
+      data: { 
+        ...db.currentUser, 
+        postCount: myPosts.length, 
+        applyCount: myApplies.length, 
+        myPosts, 
+        applies: myApplies, 
+        acceptedProjects 
+      }
+    });
   }),
 
-  // 4. 모집글 목록 조회
+  // 프로젝트 목록 조회
   http.get('*/api/projects', ({ request }) => {
     const url = new URL(request.url);
     const category = url.searchParams.get('category');
@@ -383,62 +362,7 @@ export const handlers = [
     });
   }),
 
-  // 6. 마이페이지 정보 조회
-  http.get('*/api/users/me', () => {
-    if (!db.currentUser) return new HttpResponse(null, { status: 401 });
-    
-    const myPosts = db.posts.filter(p => p.ownerNickname === db.currentUser.nickname);
-    const myApplies = db.applies.filter(a => a.userId === db.currentUser.userId);
-    const acceptedProjects = db.applies
-      .filter(a => a.userId === db.currentUser.userId && a.status === 'ACCEPTED')
-      .map(a => db.posts.find(p => p.projectId === a.projectId))
-      .filter(Boolean);
-
-    return HttpResponse.json({
-      success: true,
-      data: { 
-        ...db.currentUser, 
-        postCount: myPosts.length, 
-        applyCount: myApplies.length, 
-        myPosts, 
-        applies: myApplies, 
-        acceptedProjects 
-      }
-    });
-  }),
-
-  // 모집글 등록
-  http.post('*/api/projects', async ({ request }) => {
-    if (!db.currentUser) return new HttpResponse(null, { status: 401 });
-    
-    try {
-      const newPostData = await request.json();
-      const newId = db.posts.length > 0 ? Math.max(...db.posts.map(p => p.projectId)) + 1 : 1;
-      
-      const newPost = { 
-        ...newPostData,
-        projectId: newId, 
-        status: 'RECRUITING', 
-        currentCount: 1, // 방장 본인 포함
-        ownerNickname: db.currentUser.nickname,
-        date: new Date().toISOString().split('T')[0]
-      };
-      
-      db.posts.unshift(newPost);
-      saveDB(db);
-      
-      return HttpResponse.json({ 
-        success: true, 
-        data: { projectId: newId },
-        message: '모집글이 성공적으로 등록되었습니다.'
-      }, { status: 201 });
-    } catch (error) {
-      console.error('Mock 등록 에러:', error);
-      return new HttpResponse(JSON.stringify({ success: false, message: '등록 중 오류 발생' }), { status: 500 });
-    }
-  }),
-
-  // 15. 모집글 상세 정보
+  // 프로젝트 상세 정보 (userId 필드 추가)
   http.get('*/api/projects/:id', ({ params }) => {
     const post = db.posts.find(p => p.projectId === parseInt(params.id));
     if (!post) return new HttpResponse(null, { status: 404 });
@@ -448,122 +372,51 @@ export const handlers = [
       .filter(a => a.projectId === post.projectId && a.status === 'ACCEPTED')
       .map(a => {
         const u = db.users.find(user => user.userId === a.userId);
-        return { nickname: u?.nickname, position: u?.position, role: 'MEMBER' };
+        return { nickname: u?.nickname, position: u?.position, role: 'MEMBER', userId: u?.userId, profileImageUrl: u?.profileImageUrl };
       });
+
+    const ownerData = { nickname: owner?.nickname, position: owner?.position, userId: owner?.userId, role: 'OWNER', profileImageUrl: owner?.profileImageUrl };
 
     return HttpResponse.json({ 
       success: true, 
       data: { 
         ...post, 
-        owner: { nickname: owner?.nickname, position: owner?.position }, 
-        members: [{ nickname: owner?.nickname, position: owner?.position, role: "OWNER" }, ...members] 
+        owner: ownerData, 
+        members: [ownerData, ...members] 
       } 
-    });
-  }),
-
-  // 17. 모집글 지원하기
-  http.post('*/api/applications', async ({ request }) => {
-    const { postId, message } = await request.json();
-    const project = db.posts.find(p => p.projectId === parseInt(postId));
-    
-    if (!project) return new HttpResponse(null, { status: 404 });
-
-    const newApply = { 
-      applyId: Date.now(), 
-      projectId: project.projectId, 
-      userId: db.currentUser.userId,
-      projectTitle: project.title,
-      category: project.category,
-      position: db.currentUser.position === 'FE' ? '프론트엔드' : '백엔드', 
-      status: "PENDING", 
-      appliedDate: new Date().toISOString().split('T')[0], 
-      ownerNickname: project.ownerNickname,
-      message
-    };
-    
-    db.applies.push(newApply);
-    saveDB(db);
-    
-    return HttpResponse.json({ success: true, data: newApply });
-  }),
-
-  // 지원 상태 변경 (승인/거절)
-  http.patch('*/api/applications/:id/status', async ({ params, request }) => {
-    const { id } = params;
-    const { status } = await request.json();
-    const apply = db.applies.find(a => a.applyId === parseInt(id));
-    
-    if (!apply) return new HttpResponse(null, { status: 404 });
-    
-    apply.status = status;
-    if (status === 'ACCEPTED') {
-      const post = db.posts.find(p => p.projectId === apply.projectId);
-      if (post) post.currentCount += 1;
-    }
-    
-    saveDB(db);
-    return HttpResponse.json({ success: true });
-  }),
-
-  // 특정 모집글의 지원서 목록 조회
-  http.get('*/api/projects/:projectId/applications', ({ params }) => {
-    const { projectId } = params;
-    const projectApplies = db.applies.filter(a => a.projectId === parseInt(projectId));
-    return HttpResponse.json({
-      success: true,
-      data: projectApplies
     });
   }),
 
   // 팀 게시판 목록
   http.get('*/api/posts/:projectId/board', ({ params, request }) => {
     const { projectId } = params;
-    const projectBoardPosts = db.boardPosts.filter(p => p.projectId === parseInt(projectId));
+    const page = parseInt(new URL(request.url).searchParams.get('page') || '0');
+    const size = parseInt(new URL(request.url).searchParams.get('size') || '10');
+
+    const projectBoardPosts = db.boardPosts.filter(p => p.projectId === parseInt(projectId) && !p.isDeleted);
+    const content = projectBoardPosts.slice(page * size, (page + 1) * size);
+
     return HttpResponse.json({
       success: true,
       data: {
-        content: projectBoardPosts,
-        page: { number: 0, size: 10, totalElements: projectBoardPosts.length, totalPages: 1 }
+        content,
+        page: { number: page, size, totalElements: projectBoardPosts.length, totalPages: Math.ceil(projectBoardPosts.length / size) }
       }
     });
   }),
 
-  // 5. 로그아웃
-  http.post('*/api/auth/logout', () => {
-    return HttpResponse.json({ success: true });
-  }),
-
-  // 2-2. 전화번호 중복 확인
-  http.get('*/api/users/check-phone', ({ request }) => {
-    const url = new URL(request.url);
-    const phoneNumber = url.searchParams.get('phoneNumber');
-    const exists = db.users.some(u => u.phoneNumber === phoneNumber && u.userId !== db.currentUser?.userId);
-    return HttpResponse.json({ success: true, data: { isAvailable: !exists } });
-  }),
-
-  // 8. 아이디 찾기
-  http.post('*/api/auth/find-email', async ({ request }) => {
-    const { phoneNumber } = await request.json();
-    const user = db.users.find(u => u.phoneNumber === phoneNumber);
-    if (user) return HttpResponse.json({ success: true, data: { email: user.email } });
-    return new HttpResponse(JSON.stringify({ success: false, error: { message: '정보를 찾을 수 없습니다.' } }), { status: 404 });
-  }),
-
-  // 9. 비밀번호 찾기
-  http.post('*/api/auth/find-password', async ({ request }) => {
-    const { email, phoneNumber } = await request.json();
-    const user = db.users.find(u => u.email === email && u.phoneNumber === phoneNumber);
-    if (user) return HttpResponse.json({ success: true, message: '임시 비밀번호가 발급되었습니다.' });
-    return new HttpResponse(JSON.stringify({ success: false, error: { message: '정보가 일치하지 않습니다.' } }), { status: 400 });
-  }),
-
-  // 팀 게시글 상세 조회
+  // 팀 게시글 상세 조회 (조회수 증가)
   http.get('*/api/posts/:projectId/board/:boardPostId', ({ params }) => {
-    const post = db.boardPosts.find(p => p.id === parseInt(params.boardPostId));
-    return post ? HttpResponse.json({ success: true, data: post }) : new HttpResponse(null, { status: 404 });
+    const post = db.boardPosts.find(p => p.id === parseInt(params.boardPostId) && !p.isDeleted);
+    if (post) {
+      post.views += 1;
+      saveDB(db);
+      return HttpResponse.json({ success: true, data: post });
+    }
+    return new HttpResponse(null, { status: 404 });
   }),
 
-  // 팀 게시글 작성
+  // 팀 게시글 작성 (authorId 포함)
   http.post('*/api/posts/:projectId/board', async ({ params, request }) => {
     const postData = await request.json();
     const newBoardPost = { 
@@ -571,8 +424,11 @@ export const handlers = [
       projectId: parseInt(params.projectId), 
       ...postData, 
       author: db.currentUser.nickname, 
+      authorId: db.currentUser.userId,
+      authorImage: db.currentUser.profileImageUrl,
       date: new Date().toLocaleDateString(), 
-      views: 0 
+      views: 0,
+      isDeleted: false
     };
     db.boardPosts.push(newBoardPost);
     saveDB(db);
@@ -592,29 +448,39 @@ export const handlers = [
     return new HttpResponse(null, { status: 404 });
   }),
 
-  // 팀 게시글 삭제
+  // 팀 게시글 삭제 (Soft Delete)
   http.delete('*/api/board-posts/:boardPostId', ({ params }) => {
     const { boardPostId } = params;
-    db.boardPosts = db.boardPosts.filter(p => p.id !== parseInt(boardPostId));
-    saveDB(db);
-    return HttpResponse.json({ success: true });
+    const post = db.boardPosts.find(p => p.id === parseInt(boardPostId));
+    if (post) {
+      post.isDeleted = true;
+      db.comments = db.comments.map(c => 
+        c.boardPostId === post.id ? { ...c, isDeleted: true } : c
+      );
+      saveDB(db);
+      return HttpResponse.json({ success: true });
+    }
+    return new HttpResponse(null, { status: 404 });
   }),
 
   // 댓글 조회
   http.get('*/api/posts/:projectId/board/:boardPostId/comments', ({ params }) => {
-    const comments = db.comments.filter(c => c.boardPostId === parseInt(params.boardPostId));
+    const comments = db.comments.filter(c => c.boardPostId === parseInt(params.boardPostId) && !c.isDeleted);
     return HttpResponse.json({ success: true, data: comments });
   }),
 
-  // 댓글 작성
+  // 댓글 작성 (authorId 포함)
   http.post('*/api/posts/:projectId/board/:boardPostId/comments', async ({ params, request }) => {
     const { content } = await request.json();
     const newComment = { 
       id: Date.now(), 
       boardPostId: parseInt(params.boardPostId), 
       author: db.currentUser.nickname, 
+      authorId: db.currentUser.userId,
+      authorImage: db.currentUser.profileImageUrl,
       content, 
-      date: new Date().toLocaleString() 
+      date: new Date().toLocaleString(),
+      isDeleted: false
     };
     db.comments.push(newComment);
     saveDB(db);
@@ -634,57 +500,16 @@ export const handlers = [
     return new HttpResponse(null, { status: 404 });
   }),
 
-  // 댓글 삭제
+  // 댓글 삭제 (Soft Delete)
   http.delete('*/api/comments/:commentId', ({ params }) => {
     const { commentId } = params;
-    db.comments = db.comments.filter(c => c.id !== parseInt(commentId));
-    saveDB(db);
-    return HttpResponse.json({ success: true });
-  }),
-
-  // 모집 조기 마감
-  http.patch('*/api/projects/:id/close', ({ params }) => {
-    const { id } = params;
-    const post = db.posts.find(p => p.projectId === parseInt(id));
-    if (post) {
-      post.status = 'CLOSED';
+    const comment = db.comments.find(c => c.id === parseInt(commentId));
+    if (comment) {
+      comment.isDeleted = true;
       saveDB(db);
-      return HttpResponse.json({ success: true, data: { projectId: id, status: 'CLOSED' } });
+      return HttpResponse.json({ success: true });
     }
     return new HttpResponse(null, { status: 404 });
-  }),
-
-  // 재모집 시작
-  http.patch('*/api/projects/:id/reopen', ({ params }) => {
-    const { id } = params;
-    const post = db.posts.find(p => p.projectId === parseInt(id));
-    if (post) {
-      post.status = 'RECRUITING';
-      saveDB(db);
-      return HttpResponse.json({ success: true, data: { projectId: id, status: 'RECRUITING' } });
-    }
-    return new HttpResponse(null, { status: 404 });
-  }),
-
-  // 모집글 수정
-  http.patch('*/api/projects/:id', async ({ params, request }) => {
-    const { id } = params;
-    const updatedData = await request.json();
-    const postIndex = db.posts.findIndex(p => p.projectId === parseInt(id));
-    if (postIndex !== -1) {
-      db.posts[postIndex] = { ...db.posts[postIndex], ...updatedData };
-      saveDB(db);
-      return HttpResponse.json({ success: true, data: db.posts[postIndex] });
-    }
-    return new HttpResponse(null, { status: 404 });
-  }),
-
-  // 모집글 삭제
-  http.delete('*/api/projects/:id', ({ params }) => {
-    const { id } = params;
-    db.posts = db.posts.filter(p => p.projectId !== parseInt(id));
-    saveDB(db);
-    return HttpResponse.json({ success: true });
   }),
 
   // 유저 정보 수정 (마이페이지)
@@ -693,17 +518,14 @@ export const handlers = [
     const oldNickname = db.currentUser.nickname;
     const newNickname = updateData.nickname;
 
-    // 1. 유저 정보 업데이트
     db.currentUser = { ...db.currentUser, ...updateData };
     const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
     if (index !== -1) db.users[index] = db.currentUser;
 
-    // 닉네임이 변경된 경우 관련 데이터 연쇄 업데이트
     if (newNickname && oldNickname !== newNickname) {
       db.posts = db.posts.map(post => 
         post.ownerNickname === oldNickname ? { ...post, ownerNickname: newNickname } : post
       );
-
       db.applies = db.applies.map(apply => {
         let updatedApply = { ...apply };
         if (apply.nickname === oldNickname) updatedApply.nickname = newNickname;
@@ -714,7 +536,6 @@ export const handlers = [
 
     saveDB(db);
 
-    // 응답 시 활동 내역을 다시 계산해서 포함 (중요!)
     const myPosts = db.posts.filter(p => p.ownerNickname === db.currentUser.nickname);
     const myApplies = db.applies.filter(a => a.userId === db.currentUser.userId);
     const acceptedProjects = db.applies
@@ -722,82 +543,30 @@ export const handlers = [
       .map(a => db.posts.find(p => p.projectId === a.projectId))
       .filter(Boolean);
 
-    const fullUserData = {
-      ...db.currentUser,
-      postCount: myPosts.length,
-      applyCount: myApplies.length,
-      myPosts,
-      applies: myApplies,
-      acceptedProjects
-    };
-
-    return HttpResponse.json({ success: true, data: fullUserData });
+    return HttpResponse.json({ success: true, data: { ...db.currentUser, myPosts, applies: myApplies, acceptedProjects } });
   }),
 
   // 프로필 이미지 수정
   http.patch('*/api/users/profile-image', async ({ request }) => {
     try {
       const formData = await request.formData();
-      const profileImageFile = formData.get('profileImage');
-      
-      if (!profileImageFile) {
-        return new HttpResponse(JSON.stringify({ success: false, message: '이미지 파일이 없습니다.' }), { status: 400 });
-      }
-      
-      // Mock 환경에서는 실제 파일을 저장할 수 없으므로, 프리뷰를 위한 임시 URL 생성 (또는 pravatar 활용)
-      // 여기서는 pravatar URL에 타임스탬프를 붙여 변경된 것처럼 시뮬레이션합니다.
       const newImageUrl = `https://i.pravatar.cc/150?u=user${db.currentUser.userId}&t=${Date.now()}`;
-      
       db.currentUser.profileImageUrl = newImageUrl;
       const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
-      if (index !== -1) {
-        db.users[index] = { ...db.users[index], profileImageUrl: newImageUrl };
-      }
-      
+      if (index !== -1) db.users[index].profileImageUrl = newImageUrl;
       saveDB(db);
-      
-      return HttpResponse.json({ 
-        success: true, 
-        data: { profileImageUrl: newImageUrl },
-        message: '프로필 이미지가 성공적으로 변경되었습니다.'
-      });
+      return HttpResponse.json({ success: true, data: { profileImageUrl: newImageUrl } });
     } catch (error) {
-      return new HttpResponse(JSON.stringify({ success: false, message: '이미지 업로드 중 오류 발생' }), { status: 500 });
+      return new HttpResponse(null, { status: 500 });
     }
   }),
 
-  // 프로필 이미지 삭제 (기본 이미지로 변경)
+  // 프로필 이미지 삭제
   http.delete('*/api/users/profile-image', () => {
-    try {
-      if (!db.currentUser) return new HttpResponse(null, { status: 401 });
-
-      // 기본 이미지 (pravatar의 특정 id나 null/빈 값 처리 가능)
-      // 여기서는 아바타 컴포넌트가 name 기반으로 그려줄 수 있도록 null 혹은 기본값을 세팅합니다.
-      const defaultImageUrl = null; 
-      
-      db.currentUser.profileImageUrl = defaultImageUrl;
-      const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
-      if (index !== -1) {
-        db.users[index] = { ...db.users[index], profileImageUrl: defaultImageUrl };
-      }
-      
-      saveDB(db);
-      
-      return HttpResponse.json({ 
-        success: true, 
-        data: { profileImageUrl: defaultImageUrl },
-        message: '기본 이미지로 변경되었습니다.' 
-      });
-    } catch (error) {
-      return new HttpResponse(JSON.stringify({ success: false, message: '이미지 삭제 중 오류 발생' }), { status: 500 });
-    }
-  }),
-
-  // 회원 탈퇴
-  http.delete('*/api/users/me', () => {
-    db.users = db.users.filter(u => u.userId !== db.currentUser.userId);
-    db.currentUser = null;
+    db.currentUser.profileImageUrl = null;
+    const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
+    if (index !== -1) db.users[index].profileImageUrl = null;
     saveDB(db);
-    return new HttpResponse(null, { status: 204 });
+    return HttpResponse.json({ success: true, data: { profileImageUrl: null } });
   }),
 ];
