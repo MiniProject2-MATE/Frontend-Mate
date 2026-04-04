@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { Container, Box, Typography, TextField, Button, Paper, Link, Alert, MenuItem, Autocomplete, Chip, Divider, Stack } from '@mui/material';
+import { Container, Box, Typography, TextField, Button, Paper, Link, MenuItem, Autocomplete, Chip, Divider, Stack, IconButton, InputAdornment } from '@mui/material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import { authApi } from '../api/authApi';
 import axiosInstance from '../api/axiosInstance';
 import { useUiStore } from '../store/uiStore';
@@ -26,8 +28,10 @@ const RegisterPage = () => {
   const [lastCheckedNickname, setLastCheckedNickname] = useState('');
   const [isPhoneChecked, setIsPhoneChecked] = useState(false);
   const [lastCheckedPhone, setLastCheckedPhone] = useState('');
-  const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // 닉네임 미입력 시 사용할 랜덤 닉네임 생성 함수
   const generateRandomNickname = () => {
@@ -158,6 +162,10 @@ const RegisterPage = () => {
       showToast('이메일 중복 확인이 필요합니다.', 'warning');
       return false;
     }
+    if (password.length < 8) {
+      showToast('비밀번호는 최소 8자 이상이어야 합니다.', 'warning');
+      return false;
+    }
     if (password !== confirmPassword) {
       showToast('비밀번호가 일치하지 않습니다.', 'error');
       return false;
@@ -232,12 +240,6 @@ const RegisterPage = () => {
             </Typography>
           </Box>
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 4, borderRadius: 4 }}>
-              {error}
-            </Alert>
-          )}
-
           <Box component="form" onSubmit={handleSubmit}>
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>이메일 *</Typography>
@@ -272,12 +274,46 @@ const RegisterPage = () => {
 
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>비밀번호 *</Typography>
-              <TextField fullWidth type="password" name="password" placeholder="8~20자 영문/숫자/특수문자" value={formData.password} onChange={handleChange} sx={inputStyle} />
+              <TextField 
+                fullWidth 
+                type={showPassword ? 'text' : 'password'}
+                name="password" 
+                placeholder="8~20자 영문/숫자/특수문자" 
+                value={formData.password} 
+                onChange={handleChange} 
+                sx={inputStyle} 
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                        {showPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Box sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>비밀번호 확인 *</Typography>
-              <TextField fullWidth type="password" name="confirmPassword" placeholder="비밀번호 재입력" value={formData.confirmPassword} onChange={handleChange} sx={inputStyle} />
+              <TextField 
+                fullWidth 
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmPassword" 
+                placeholder="비밀번호 재입력" 
+                value={formData.confirmPassword} 
+                onChange={handleChange} 
+                sx={inputStyle} 
+                InputProps={{
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">
+                        {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                }}
+              />
             </Box>
 
             <Divider sx={{ my: 6 }} />
