@@ -1,4 +1,4 @@
-export const generateBoardPosts = (users) => {
+export const generateBoardPosts = () => {
   return [
     {
       id: 100, projectId: 11, type: "NOTICE", title: "📢 프로젝트 시작 및 규칙 안내",

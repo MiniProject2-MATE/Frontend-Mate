@@ -191,10 +191,9 @@ export const handlers = [
     return HttpResponse.json({ success: true, message: "멤버 조회가 완료되었습니다.", data: [ownerData, ...members] });
   }),
 
-  http.delete('*/api/posts/members/:memberId', ({ params }) => {
+  http.delete('*/api/posts/members/:memberId', () => {
     // 실제로는 applies에서 ACCEPTED를 제거하거나 status를 변경해야 함 (Mock 단순화)
-    showToast('멤버가 제외되었습니다.', 'success');
-    return HttpResponse.json({ success: true });
+    return HttpResponse.json({ success: true, message: "멤버가 제외되었습니다." });
   }),
 
   // 5. 지원 (Applications)
