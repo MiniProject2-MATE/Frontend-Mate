@@ -116,7 +116,13 @@ export const handlers = [
     
     let filteredPosts = [...db.posts];
     if (category && category !== '전체') filteredPosts = filteredPosts.filter(p => p.category === category);
-    if (keyword) filteredPosts = filteredPosts.filter(p => p.title.toLowerCase().includes(keyword) || p.content.toLowerCase().includes(keyword));
+    if (keyword) {
+      filteredPosts = filteredPosts.filter(p => 
+        p.title.toLowerCase().includes(keyword) || 
+        p.content.toLowerCase().includes(keyword) ||
+        (p.techStacks && p.techStacks.some(stack => stack.toLowerCase().includes(keyword)))
+      );
+    }
     
     const totalElements = filteredPosts.length;
     const content = filteredPosts.slice(page * size, (page + 1) * size);

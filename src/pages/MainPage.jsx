@@ -34,13 +34,6 @@ const MainPage = () => {
     }
   }, [error, showToast]);
 
-  // URL 해시(#) 체크 후 자동 스크롤 로직
-  useEffect(() => {
-    if (location.hash === '#new-opportunities') {
-      scrollToOpportunities();
-    }
-  }, [location]);
-
   // 기회 섹션으로 부드럽게 스크롤 (헤더 오프셋 반영)
   const scrollToOpportunities = () => {
     const element = document.getElementById('new-opportunities');
@@ -55,6 +48,13 @@ const MainPage = () => {
       });
     }
   };
+
+  // URL 해시(#) 체크 후 자동 스크롤 로직
+  useEffect(() => {
+    if (location.hash === '#new-opportunities') {
+      scrollToOpportunities();
+    }
+  }, [location]);
 
   useEffect(() => {
     // 카테고리, 검색어, 페이지가 바뀔 때마다 데이터를 실시간으로 가져옴
@@ -181,6 +181,7 @@ const MainPage = () => {
               </Box>
               <Button 
                 variant="contained" 
+                onClick={handleSearchClick}
                 sx={{ 
                   px: 6, 
                   py: 1.8,
