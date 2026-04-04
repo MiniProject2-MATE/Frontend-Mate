@@ -300,11 +300,11 @@ const MyPage = () => {
         techStacks: formData.techStacks,
         ...(password && { password })
       };
-      const response = await axiosInstance.put('/users/me', updatePayload);
-      const updatedUser = { ...response, userId: response.userId || response.id };
-      setUserInfo(updatedUser); 
-      setFormData(prev => ({ ...prev, ...updatedUser }));
-      useAuthStore.getState().updateUser(updatedUser); 
+      await axiosInstance.put('/users/me', updatePayload);
+      
+      // 최신 활동 내역을 포함한 전체 데이터를 다시 가져옴
+      await fetchUserData();
+      
       showToast('프로필 정보가 성공적으로 저장되었습니다!', 'success');
       setPassword(''); setConfirmPassword('');
     } catch (error) {
@@ -319,13 +319,14 @@ const MyPage = () => {
     const formDataObj = new FormData();
     formDataObj.append('profileImage', file);
     try {
-      const response = await axiosInstance.patch('/users/profile-image', formDataObj, {
+      await axiosInstance.patch('/users/profile-image', formDataObj, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      const previewUrl = URL.createObjectURL(file);
-      setUserInfo(prev => ({ ...prev, profileImageUrl: previewUrl }));
-      useAuthStore.getState().updateUser({ ...userInfo, profileImageUrl: previewUrl });
-      showToast(response.message || '프로필 이미지가 변경되었습니다.', 'success');
+      
+      // 이미지 변경 후 전체 데이터 동기화
+      await fetchUserData();
+      
+      showToast('프로필 이미지가 변경되었습니다.', 'success');
     } catch (error) {
       console.error("이미지 업데이트 실패:", error);
       showToast('이미지 업데이트 중 오류가 발생했습니다.', 'error');
@@ -336,11 +337,12 @@ const MyPage = () => {
 
   const handleDeleteImage = async () => {
     try {
-      const response = await axiosInstance.delete('/users/profile-image');      
-      const defaultUrl = response.profileImageUrl; 
-      setUserInfo(prev => ({ ...prev, profileImageUrl: defaultUrl }));
-      useAuthStore.getState().updateUser({ ...userInfo, profileImageUrl: defaultUrl });
-      showToast(response.message || '기본 이미지로 변경되었습니다.', 'success');
+      await axiosInstance.delete('/users/profile-image');      
+      
+      // 이미지 삭제 후 전체 데이터 동기화
+      await fetchUserData();
+      
+      showToast('기본 이미지로 변경되었습니다.', 'success');
     } catch (error) {
       console.error("이미지 삭제 실패:", error);
       showToast('이미지 삭제 중 오류가 발생했습니다.', 'error');

@@ -698,30 +698,40 @@ export const handlers = [
     const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
     if (index !== -1) db.users[index] = db.currentUser;
 
-    // 닉네임이 변경된 경우 관련 데이터 연쇄 업데이트 (Mock DB 일관성 유지)
+    // 닉네임이 변경된 경우 관련 데이터 연쇄 업데이트
     if (newNickname && oldNickname !== newNickname) {
-      // 2. 내가 쓴 게시글의 ownerNickname 업데이트
       db.posts = db.posts.map(post => 
         post.ownerNickname === oldNickname ? { ...post, ownerNickname: newNickname } : post
       );
 
-      // 3. 지원 내역 업데이트
       db.applies = db.applies.map(apply => {
         let updatedApply = { ...apply };
-        // 내가 지원자일 때 닉네임 변경
-        if (apply.nickname === oldNickname) {
-          updatedApply.nickname = newNickname;
-        }
-        // 내가 게시글 주인일 때 ownerNickname 변경
-        if (apply.ownerNickname === oldNickname) {
-          updatedApply.ownerNickname = newNickname;
-        }
+        if (apply.nickname === oldNickname) updatedApply.nickname = newNickname;
+        if (apply.ownerNickname === oldNickname) updatedApply.ownerNickname = newNickname;
         return updatedApply;
       });
     }
 
     saveDB(db);
-    return HttpResponse.json({ success: true, data: db.currentUser });
+
+    // 응답 시 활동 내역을 다시 계산해서 포함 (중요!)
+    const myPosts = db.posts.filter(p => p.ownerNickname === db.currentUser.nickname);
+    const myApplies = db.applies.filter(a => a.userId === db.currentUser.userId);
+    const acceptedProjects = db.applies
+      .filter(a => a.userId === db.currentUser.userId && a.status === 'ACCEPTED')
+      .map(a => db.posts.find(p => p.projectId === a.projectId))
+      .filter(Boolean);
+
+    const fullUserData = {
+      ...db.currentUser,
+      postCount: myPosts.length,
+      applyCount: myApplies.length,
+      myPosts,
+      applies: myApplies,
+      acceptedProjects
+    };
+
+    return HttpResponse.json({ success: true, data: fullUserData });
   }),
 
   // 프로필 이미지 수정
