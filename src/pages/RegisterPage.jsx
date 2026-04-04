@@ -151,24 +151,24 @@ const RegisterPage = () => {
     const { email, password, confirmPassword, nickname, position, techStacks, phoneNumber } = formData;
     // nickname은 필수 항목에서 제외
     if (!email || !password || !position || techStacks.length === 0 || !phoneNumber) {
-      setError('모든 필수 항목을 입력해주세요.');
+      showToast('모든 필수 항목(*)을 입력해주세요.', 'warning');
       return false;
     }
     if (!isEmailChecked || email !== lastCheckedEmail) {
-      setError('이메일 중복 확인이 필요합니다.');
+      showToast('이메일 중복 확인이 필요합니다.', 'warning');
       return false;
     }
     if (password !== confirmPassword) {
-      setError('비밀번호가 일치하지 않습니다.');
+      showToast('비밀번호가 일치하지 않습니다.', 'error');
       return false;
     }
     // 닉네임을 입력한 경우에만 중복 확인 체크
     if (nickname.trim() && (!isNicknameChecked || nickname !== lastCheckedNickname)) {
-      setError('닉네임 중복 확인이 필요합니다.');
+      showToast('닉네임 중복 확인이 필요합니다.', 'warning');
       return false;
     }
     if (!isPhoneChecked || phoneNumber !== lastCheckedPhone) {
-      setError('전화번호 중복 확인이 필요합니다.');
+      showToast('전화번호 중복 확인이 필요합니다.', 'warning');
       return false;
     }
     return true;
@@ -176,7 +176,6 @@ const RegisterPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
     if (!validate()) return;
     setIsLoading(true);
     try {
@@ -195,7 +194,8 @@ const RegisterPage = () => {
       showToast(`${finalNickname}님, 환영합니다! 회원가입이 완료되었습니다.`, 'success');
       navigate('/login');
     } catch (err) {
-      setError(err.response?.data?.message || err.message || '회원가입에 실패했습니다.');
+      console.error('회원가입 에러:', err);
+      showToast(err.response?.data?.message || '회원가입에 실패했습니다. 다시 시도해주세요.', 'error');
     } finally {
       setIsLoading(false);
     }
