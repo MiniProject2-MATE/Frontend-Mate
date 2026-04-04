@@ -690,26 +690,97 @@ export const handlers = [
   // 유저 정보 수정 (마이페이지)
   http.put('*/api/users/me', async ({ request }) => {
     const updateData = await request.json();
+    const oldNickname = db.currentUser.nickname;
+    const newNickname = updateData.nickname;
+
+    // 1. 유저 정보 업데이트
     db.currentUser = { ...db.currentUser, ...updateData };
     const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
     if (index !== -1) db.users[index] = db.currentUser;
+
+    // 닉네임이 변경된 경우 관련 데이터 연쇄 업데이트 (Mock DB 일관성 유지)
+    if (newNickname && oldNickname !== newNickname) {
+      // 2. 내가 쓴 게시글의 ownerNickname 업데이트
+      db.posts = db.posts.map(post => 
+        post.ownerNickname === oldNickname ? { ...post, ownerNickname: newNickname } : post
+      );
+
+      // 3. 지원 내역 업데이트
+      db.applies = db.applies.map(apply => {
+        let updatedApply = { ...apply };
+        // 내가 지원자일 때 닉네임 변경
+        if (apply.nickname === oldNickname) {
+          updatedApply.nickname = newNickname;
+        }
+        // 내가 게시글 주인일 때 ownerNickname 변경
+        if (apply.ownerNickname === oldNickname) {
+          updatedApply.ownerNickname = newNickname;
+        }
+        return updatedApply;
+      });
+    }
+
     saveDB(db);
     return HttpResponse.json({ success: true, data: db.currentUser });
   }),
 
   // 프로필 이미지 수정
   http.patch('*/api/users/profile-image', async ({ request }) => {
-    const formData = await request.formData();
-    const profileImageFile = formData.get('profileImage');
-    if (!profileImageFile) return new HttpResponse(null, { status: 400 });
-    
-    // In mock, we just keep the current one or set a placeholder
-    db.currentUser.profileImageUrl = `https://i.pravatar.cc/150?u=user${db.currentUser.userId}&t=${Date.now()}`;
-    const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
-    if (index !== -1) db.users[index] = db.currentUser;
-    saveDB(db);
-    
-    return HttpResponse.json({ success: true, data: { profileImageUrl: db.currentUser.profileImageUrl } });
+    try {
+      const formData = await request.formData();
+      const profileImageFile = formData.get('profileImage');
+      
+      if (!profileImageFile) {
+        return new HttpResponse(JSON.stringify({ success: false, message: '이미지 파일이 없습니다.' }), { status: 400 });
+      }
+      
+      // Mock 환경에서는 실제 파일을 저장할 수 없으므로, 프리뷰를 위한 임시 URL 생성 (또는 pravatar 활용)
+      // 여기서는 pravatar URL에 타임스탬프를 붙여 변경된 것처럼 시뮬레이션합니다.
+      const newImageUrl = `https://i.pravatar.cc/150?u=user${db.currentUser.userId}&t=${Date.now()}`;
+      
+      db.currentUser.profileImageUrl = newImageUrl;
+      const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
+      if (index !== -1) {
+        db.users[index] = { ...db.users[index], profileImageUrl: newImageUrl };
+      }
+      
+      saveDB(db);
+      
+      return HttpResponse.json({ 
+        success: true, 
+        data: { profileImageUrl: newImageUrl },
+        message: '프로필 이미지가 성공적으로 변경되었습니다.'
+      });
+    } catch (error) {
+      return new HttpResponse(JSON.stringify({ success: false, message: '이미지 업로드 중 오류 발생' }), { status: 500 });
+    }
+  }),
+
+  // 프로필 이미지 삭제 (기본 이미지로 변경)
+  http.delete('*/api/users/profile-image', () => {
+    try {
+      if (!db.currentUser) return new HttpResponse(null, { status: 401 });
+
+      // 기본 이미지 (pravatar의 특정 id나 null/빈 값 처리 가능)
+      // 여기서는 아바타 컴포넌트가 name 기반으로 그려줄 수 있도록 null 혹은 기본값을 세팅합니다.
+      const defaultImageUrl = null; 
+      
+      db.currentUser.profileImageUrl = defaultImageUrl;
+      const index = db.users.findIndex(u => u.userId === db.currentUser.userId);
+      if (index !== -1) {
+        db.users[index] = { ...db.users[index], profileImageUrl: defaultImageUrl };
+      }
+      
+      saveDB(db);
+      
+      return HttpResponse.json({ 
+        success: true, 
+        data: { profileImageUrl: defaultImageUrl },
+        message: '기본 이미지로 변경되었습니다.' 
+      });
+    } catch (error) {
+      return new HttpResponse(JSON.stringify({ success: false, message: '이미지 삭제 중 오류 발생' }), { status: 500 });
+    }
   }),
 
   // 회원 탈퇴

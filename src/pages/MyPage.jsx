@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Box, Container, Typography, Paper, Avatar, Stack, 
+  Box, Container, Typography, Paper, Stack, 
   Button, Divider, TextField, Chip, IconButton, Tabs, Tab, LinearProgress, InputAdornment, MenuItem, Menu, Autocomplete,
   Dialog, DialogTitle, DialogContent, List, ListItem, ListItemAvatar, ListItemText, Link
 } from '@mui/material';
@@ -24,6 +24,7 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 import axiosInstance from '../api/axiosInstance'; 
 import Breadcrumb from '../component/common/Breadcrumb';
+import Avatar from '../component/common/Avatar';
 import { useUiStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
 import { TECH_STACK_OPTIONS, POSITION_OPTIONS } from '../constants/techStacks';
@@ -178,14 +179,25 @@ const MyPage = () => {
       const onlyNums = value.replace(/[^0-9]/g, '');
       if (onlyNums.length > 11) return;
       setFormData(prev => ({ ...prev, [field]: onlyNums }));
-      if (userInfo && onlyNums !== userInfo.phoneNumber) setIsPhoneChecked(false);
-      else setIsPhoneChecked(true);
+      
+      // 원래 정보와 같거나, 마지막으로 성공적으로 체크한 번호와 같으면 '확인됨'
+      if (userInfo && (onlyNums === userInfo.phoneNumber || (lastCheckedPhone && onlyNums === lastCheckedPhone))) {
+        setIsPhoneChecked(true);
+      } else {
+        setIsPhoneChecked(false);
+      }
       return;
     }
+    
     setFormData((prev) => ({ ...prev, [field]: value }));
+    
     if (field === 'nickname') {
-      if (userInfo && value !== userInfo.nickname) setIsNicknameChecked(false);
-      else setIsNicknameChecked(true);
+      // 원래 정보와 같거나, 마지막으로 성공적으로 체크한 닉네임과 같으면 '확인됨'
+      if (userInfo && (value === userInfo.nickname || (lastCheckedNickname && value === lastCheckedNickname))) {
+        setIsNicknameChecked(true);
+      } else {
+        setIsNicknameChecked(false);
+      }
     }
   };
 
@@ -198,8 +210,13 @@ const MyPage = () => {
       showToast('닉네임을 입력해주세요.', 'warning');
       return;
     }
+    // 현재 값이 원래 값과 같으면 체크할 필요 없음
+    if (userInfo && formData.nickname === userInfo.nickname) {
+      setIsNicknameChecked(true);
+      return;
+    }
     try {
-      const response = await axiosInstance.get(`/users/check-nickname?nickname=${formData.nickname}`);
+      const response = await axiosInstance.get(`/users/check-nickname?nickname=${encodeURIComponent(formData.nickname)}`);
       const isAvailable = response.data?.isAvailable ?? response.isAvailable;
       if (isAvailable) {
         showToast('사용 가능한 닉네임입니다!', 'success');
@@ -218,6 +235,11 @@ const MyPage = () => {
   const handleCheckPhone = async () => {
     if (!formData.phoneNumber.trim() || formData.phoneNumber.length < 10) {
       showToast('유효한 전화번호를 입력해주세요.', 'warning');
+      return;
+    }
+    // 현재 값이 원래 값과 같으면 체크할 필요 없음
+    if (userInfo && formData.phoneNumber === userInfo.phoneNumber) {
+      setIsPhoneChecked(true);
       return;
     }
     try {
@@ -406,13 +428,60 @@ const MyPage = () => {
                 <Box sx={{ height: 100, background: 'linear-gradient(135deg, #A78BFA 0%, #6366F1 100%)' }} />
                 <Box sx={{ px: 3, pb: 4, textAlign: 'center', mt: -6 }}>
                   <Box sx={{ position: 'relative', display: 'inline-block' }}>
-                    <Avatar src={userInfo.profileImageUrl} onClick={handleAvatarClick} sx={{ width: 110, height: 110, mx: 'auto', border: '5px solid white', bgcolor: '#6366F1', cursor: 'pointer', '&:hover': { opacity: 0.8 } }}>{userInfo.nickname ? userInfo.nickname[0] : 'U'}</Avatar>
-                    <IconButton onClick={handleAvatarClick} sx={{ position: 'absolute', bottom: 0, right: 0, bgcolor: 'white', border: '1px solid #E5E7EB', width: 32, height: 32 }}><PhotoCameraIcon sx={{ fontSize: 18, color: '#6B7280' }} /></IconButton>
+                    <Box onClick={handleAvatarClick} sx={{ cursor: 'pointer', transition: '0.2s', '&:hover': { opacity: 0.8, transform: 'scale(1.02)' } }}>
+                      <Avatar name={userInfo.nickname} src={userInfo.profileImageUrl} size="xl" />
+                    </Box>
+                    <IconButton 
+                      onClick={handleAvatarClick} 
+                      sx={{ 
+                        position: 'absolute', bottom: 0, right: 0, 
+                        bgcolor: 'white', border: '1px solid #E5E7EB', 
+                        width: 36, height: 32, borderRadius: 2,
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
+                        '&:hover': { bgcolor: '#F9FAFB' }
+                      }}
+                    >
+                      <PhotoCameraIcon sx={{ fontSize: 18, color: '#6B7280' }} />
+                    </IconButton>
                   </Box>
-                  <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} PaperProps={{ sx: { minWidth: 180, border: '1px solid #E5E7EB' } }} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} transformOrigin={{ vertical: 'top', horizontal: 'center' }}>
-                    <MenuItem onClick={() => { fileInputRef.current.click(); handleMenuClose(); }} sx={{ fontWeight: 800, py: 1.5 }}><EditIcon sx={{ mr: 1.5, color: '#6366F1' }} /> 이미지 변경</MenuItem>
-                    <Divider sx={{ my: 0 }} />
-                    <MenuItem onClick={handleDeleteImage} sx={{ fontWeight: 800, py: 1.5 }}><DeleteIcon sx={{ mr: 1.5, color: '#F43F5E' }} /> 이미지 삭제</MenuItem>
+                  <Menu 
+                    anchorEl={anchorEl} 
+                    open={Boolean(anchorEl)} 
+                    onClose={handleMenuClose} 
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }} 
+                    transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+                    PaperProps={{ 
+                      sx: { 
+                        minWidth: 150, 
+                        mt: 1.5,
+                        borderRadius: 1.5, // 더 각진 네모난 느낌으로 수정
+                        boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+                        border: '1px solid #E5E7EB',
+                        overflow: 'visible',
+                        '&:before': {
+                          content: '""',
+                          display: 'block',
+                          position: 'absolute',
+                          top: 0,
+                          left: '50%',
+                          width: 10,
+                          height: 10,
+                          bgcolor: 'background.paper',
+                          transform: 'translateX(-50%) translateY(-50%) rotate(45deg)',
+                          zIndex: 0,
+                          borderLeft: '1px solid #E5E7EB',
+                          borderTop: '1px solid #E5E7EB',
+                        },
+                      } 
+                    }} 
+                  >
+                    <MenuItem onClick={() => { fileInputRef.current.click(); handleMenuClose(); }} sx={{ fontWeight: 700, py: 1.2, fontSize: '0.85rem' }}>
+                      <EditIcon sx={{ mr: 1.2, color: '#6366F1', fontSize: 18 }} /> 이미지 변경
+                    </MenuItem>
+                    <Divider sx={{ my: 0, opacity: 0.5 }} />
+                    <MenuItem onClick={handleDeleteImage} sx={{ fontWeight: 700, py: 1.2, fontSize: '0.85rem', color: '#F43F5E' }}>
+                      <DeleteIcon sx={{ mr: 1.2, color: 'inherit', fontSize: 18 }} /> 이미지 삭제
+                    </MenuItem>
                   </Menu>
                   <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleImageChange} />
                   <Typography variant="h5" sx={{ fontWeight: 900, mt: 2 }}>{userInfo.nickname}</Typography>
@@ -443,8 +512,52 @@ const MyPage = () => {
               <Paper ref={profileRef} elevation={0} sx={{ p: { xs: 4, md: 6 }, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="h6" sx={{ fontWeight: 900, mb: 5, display: 'flex', alignItems: 'center' }}><Box component="span" sx={{ width: 5, height: 20, bgcolor: '#6366F1', mr: 2, borderRadius: 1 }} />프로필 정보</Typography>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 4 }}>
-                  <Box><FormLabel text="닉네임" /><Stack direction="row" spacing={1}><TextField fullWidth value={formData.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} /><Button variant="outlined" onClick={handleCheckNickname} sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800 }}>중복 확인</Button></Stack></Box>
-                  <Box><FormLabel text="전화번호" /><Stack direction="row" spacing={1}><TextField fullWidth value={formData.phoneNumber} onChange={handleInputChange('phoneNumber')} placeholder="숫자만 입력" sx={inputStyle} /><Button variant="outlined" onClick={handleCheckPhone} sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800 }}>중복 확인</Button></Stack></Box>
+                  <Box>
+                    <FormLabel text="닉네임" />
+                    <Stack direction="row" spacing={1}>
+                      <TextField fullWidth value={formData.nickname} onChange={handleInputChange('nickname')} sx={inputStyle} />
+                      <Button 
+                        variant="outlined" 
+                        onClick={handleCheckNickname} 
+                        disabled={isNicknameChecked}
+                        sx={{ 
+                          whiteSpace: 'nowrap', 
+                          px: 3, 
+                          borderRadius: 3, 
+                          fontWeight: 800,
+                          borderColor: isNicknameChecked ? '#10B981' : 'primary.main',
+                          color: isNicknameChecked ? '#10B981' : 'primary.main',
+                          '&:hover': { borderColor: 'primary.dark' },
+                          '&:disabled': { borderColor: '#10B981', color: '#10B981', opacity: 0.8 }
+                        }}
+                      >
+                        {isNicknameChecked ? '확인됨' : '중복 확인'}
+                      </Button>
+                    </Stack>
+                  </Box>
+                  <Box>
+                    <FormLabel text="전화번호" />
+                    <Stack direction="row" spacing={1}>
+                      <TextField fullWidth value={formData.phoneNumber} onChange={handleInputChange('phoneNumber')} placeholder="숫자만 입력" sx={inputStyle} />
+                      <Button 
+                        variant="outlined" 
+                        onClick={handleCheckPhone} 
+                        disabled={isPhoneChecked}
+                        sx={{ 
+                          whiteSpace: 'nowrap', 
+                          px: 3, 
+                          borderRadius: 3, 
+                          fontWeight: 800,
+                          borderColor: isPhoneChecked ? '#10B981' : 'primary.main',
+                          color: isPhoneChecked ? '#10B981' : 'primary.main',
+                          '&:hover': { borderColor: 'primary.dark' },
+                          '&:disabled': { borderColor: '#10B981', color: '#10B981', opacity: 0.8 }
+                        }}
+                      >
+                        {isPhoneChecked ? '확인됨' : '중복 확인'}
+                      </Button>
+                    </Stack>
+                  </Box>
                   <Box><FormLabel text="비밀번호 변경" /><TextField fullWidth type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="새 비밀번호 입력" InputProps={{ endAdornment: ( <InputAdornment position="end"><IconButton onClick={() => setShowPassword(!showPassword)} edge="end">{showPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> )}} sx={inputStyle} /></Box>
                   <Box><FormLabel text="비밀번호 확인" /><TextField fullWidth type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="비밀번호 확인 입력" InputProps={{ endAdornment: ( <InputAdornment position="end"><IconButton onClick={() => setShowConfirmPassword(!showConfirmPassword)} edge="end">{showConfirmPassword ? <VisibilityOff /> : <Visibility />}</IconButton></InputAdornment> )}} sx={inputStyle} /></Box>
                   <Box><FormLabel text="포지션" /><TextField select fullWidth value={formData.position} onChange={handleInputChange('position')} sx={inputStyle}>{POSITION_OPTIONS.map((o) => ( <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem> ))}</TextField></Box>
@@ -477,7 +590,7 @@ const MyPage = () => {
             <List sx={{ py: 0 }}>
               {applications.map((app) => (
                 <ListItem key={app.applyId} button onClick={() => { setSelectedApp(app); setIsAppDetailOpen(true); }} sx={{ py: 2.5, px: 4, borderBottom: '1px solid #F9FAFB', transition: '0.2s', '&:hover': { bgcolor: '#F8F9FF' } }}>
-                  <ListItemAvatar><Avatar src={app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
+                  <ListItemAvatar><Avatar name={app.nickname} src={app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
                   <ListItemText primary={<Typography sx={{ fontWeight: 900, color: '#111827', fontSize: '1.05rem' }}>{app.nickname}</Typography>} secondary={<Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === app.position)?.label || app.position} · {app.appliedDate}</Typography>} />
                   <Chip label={app.status === 'PENDING' ? '대기중' : (app.status === 'ACCEPTED' ? '승인됨' : '거절됨')} size="small" sx={{ fontWeight: 900, px: 1, bgcolor: app.status === 'PENDING' ? '#FFFBEB' : (app.status === 'ACCEPTED' ? '#ECFDF5' : '#FEF2F2'), color: app.status === 'PENDING' ? '#D97706' : (app.status === 'ACCEPTED' ? '#10B981' : '#EF4444'), borderRadius: 1.5 }} />
                   <ArrowForwardIosIcon sx={{ fontSize: 14, ml: 2, color: '#D1D5DB' }} />
