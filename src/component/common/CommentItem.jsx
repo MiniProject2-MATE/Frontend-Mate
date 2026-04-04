@@ -14,6 +14,18 @@ export default function CommentItem({ comment, currentUserId, projectOwnerId, on
   // 삭제 권한: 본인 또는 프로젝트 방장
   const canDelete = isAuthor || isProjectOwner;
 
+  // 날짜 포맷팅 유틸리티 (createdAt: ISO 8601 -> YYYY.MM.DD HH:mm)
+  const formatDateTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const min = String(date.getMinutes()).padStart(2, '0');
+    return `${y}.${m}.${d} ${h}:${min}`;
+  };
+
   return (
     <Box sx={{ 
       display: 'flex', 
@@ -22,12 +34,12 @@ export default function CommentItem({ comment, currentUserId, projectOwnerId, on
       borderBottom: '1px solid #F3F4F6',
       '&:last-child': { borderBottom: 'none' }
     }}>
-      <Avatar name={comment.author} size="lg" src={comment.authorImage} />
+      <Avatar name={comment.authorNickname} size="lg" src={comment.authorProfileImg} />
       <Box sx={{ flex: 1 }}>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 1 }}>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#111827' }}>
-              {comment.author}
+              {comment.authorNickname}
             </Typography>
             {projectOwnerId && Number(comment.authorId) === Number(projectOwnerId) && (
               <Box component="span" sx={{ 
@@ -36,7 +48,7 @@ export default function CommentItem({ comment, currentUserId, projectOwnerId, on
               }}>방장</Box>
             )}
             <Typography sx={{ fontSize: '0.85rem', color: '#9CA3AF', fontWeight: 500 }}>
-              {comment.date}
+              {formatDateTime(comment.createdAt)}
             </Typography>
           </Stack>
           
