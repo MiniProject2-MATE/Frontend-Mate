@@ -51,9 +51,9 @@ const PostApplyPage = () => {
         ]);
         
         if (postData) {
-          // 본인 글 여부 확인 (id 또는 ownerId 비교)
-          const isOwner = currentUser?.id === postData.ownerId || user?.nickname === postData.ownerNickname;
-          
+          // 본인 글 여부 확인 (userId(FE)와 ownerId(API) 비교)
+          const isOwner = user && postData.ownerId && Number(user.userId) === Number(postData.ownerId);
+
           if (isOwner) {
             showToast('본인이 작성한 공고에는 지원할 수 없습니다.', 'error');
             navigate(`/posts/${id}`, { replace: true });
