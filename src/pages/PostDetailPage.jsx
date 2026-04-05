@@ -59,8 +59,20 @@ const PostDetailPage = () => {
         }
       } catch (err) {
         console.error("데이터 로드 실패:", err);
-        showToast(err.error?.message || '정보를 불러오지 못했습니다.', 'error');
-        setPost(null);
+        // 404 에러 발생 시 에러 페이지로 이동
+        if (err.status === 404 || err.response?.status === 404) {
+          navigate('/error', { 
+            state: { 
+              status: 404, 
+              code: 'PROJECT_NOT_FOUND',
+              message: '해당 프로젝트를 찾을 수 없거나 이미 삭제되었습니다.' 
+            },
+            replace: true 
+          });
+        } else {
+          showToast(err.error?.message || '정보를 불러오지 못했습니다.', 'error');
+          navigate('/posts');
+        }
       } finally {
         setIsLoading(false);
       }
