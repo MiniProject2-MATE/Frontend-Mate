@@ -49,6 +49,7 @@ export default function PostCard({ post, isLoading }) {
     currentCount,
     endDate,
     ownerNickname,
+    ownerProfileImg,
     techStacks = [],
   } = post;
 
@@ -159,7 +160,7 @@ export default function PostCard({ post, isLoading }) {
 
       <Box sx={{ p: 2, borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#FAFAFF' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Avatar name={ownerNickname} size="sm" />
+          <Avatar name={ownerNickname} src={ownerProfileImg} size="sm" />
           <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '0.8rem' }}>
             {ownerNickname}
           </Typography>

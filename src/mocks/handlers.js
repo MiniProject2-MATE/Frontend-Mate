@@ -21,24 +21,7 @@ const initializeDB = () => {
 const getDB = () => {
   const data = localStorage.getItem('mock-db');
   if (!data) return initializeDB();
-  
-  const parsed = JSON.parse(data);
-  // [보정] 구버전 데이터 호환성 유지
-  if (parsed.applies) {
-    parsed.applies = parsed.applies.map(a => ({
-      ...a,
-      applicantNickname: a.applicantNickname || a.nickname,
-      applicantPosition: a.applicantPosition || a.position,
-      createdAt: a.createdAt || a.appliedDate
-    }));
-  }
-  if (parsed.users) {
-    parsed.users = parsed.users.map(u => ({
-      ...u,
-      profileImg: u.profileImg || u.profileImageUrl
-    }));
-  }
-  return parsed;
+  return JSON.parse(data);
 };
 
 const saveDB = (db) => {
@@ -125,7 +108,16 @@ export const handlers = [
     }
     
     const totalElements = filteredPosts.length;
-    const content = filteredPosts.slice(page * size, (page + 1) * size);
+    const content = filteredPosts.slice(page * size, (page + 1) * size).map(post => {
+      // [중요] 각 게시글에 작성자 프로필 정보 결합
+      const owner = db.users.find(u => u.id === post.ownerId);
+      return {
+        ...post,
+        ownerNickname: owner?.nickname || post.ownerNickname,
+        ownerProfileImg: owner?.profileImg || post.ownerProfileImg,
+        ownerPosition: owner?.position || post.ownerPosition
+      };
+    });
     
     return HttpResponse.json({ 
       success: true, 
@@ -141,23 +133,45 @@ export const handlers = [
     return HttpResponse.json({ 
       success: true, 
       message: "프로젝트 상세 조회가 완료되었습니다.",
-      data: { ...post, ownerNickname: owner?.nickname, owner: db.currentUser?.id === post.ownerId } 
+      data: { 
+        ...post, 
+        ownerNickname: owner?.nickname, 
+        ownerProfileImg: owner?.profileImg,
+        owner: db.currentUser?.id === post.ownerId 
+      } 
     });
   }),
 
   http.post('*/api/projects', async ({ request }) => {
     const data = await request.json();
     const newId = Date.now();
-    const newPost = { ...data, id: newId, ownerId: db.currentUser.id, status: 'RECRUITING', currentCount: 1, createdAt: new Date().toISOString() };
+    const user = db.currentUser;
+    
+    const newPost = { 
+      ...data, 
+      id: newId, 
+      ownerId: user.id, 
+      ownerNickname: user.nickname,
+      ownerProfileImg: user.profileImg,
+      ownerPosition: user.position,
+      status: 'RECRUITING', 
+      currentCount: 1, 
+      viewCount: 0,
+      createdAt: new Date().toISOString() 
+    };
     db.posts.unshift(newPost);
     saveDB(db);
-    return HttpResponse.json({ success: true, message: "프로젝트가 생성되었습니다.", data: { id: newId } }, { status: 201 });
+    return HttpResponse.json({ success: true, message: "프로젝트가 성공적으로 생성되었습니다.", data: { id: newId } }, { status: 201 });
   }),
 
   http.patch('*/api/projects/:id', async ({ params, request }) => {
     const data = await request.json();
     const index = db.posts.findIndex(p => p.id === parseInt(params.id));
-    if (index !== -1) { db.posts[index] = { ...db.posts[index], ...data }; saveDB(db); return HttpResponse.json({ success: true, data: db.posts[index] }); }
+    if (index !== -1) { 
+      db.posts[index] = { ...db.posts[index], ...data }; 
+      saveDB(db); 
+      return HttpResponse.json({ success: true, message: "프로젝트 정보가 성공적으로 수정되었습니다.", data: db.posts[index] }); 
+    }
     return new HttpResponse(null, { status: 404 });
   }),
 
@@ -199,27 +213,15 @@ export const handlers = [
 
   http.delete('*/api/posts/members/:memberId', ({ params }) => {
     const userId = parseInt(params.memberId);
-    
-    // 1. 해당 유저의 'ACCEPTED' 상태인 지원 내역을 찾아서 삭제 (또는 상태 변경)
-    // 어떤 프로젝트인지 특정하기 위해 현재 db.applies를 필터링
     const targetApply = db.applies.find(a => a.applicantId === userId && a.status === 'ACCEPTED');
-    
     if (targetApply) {
       const projectId = targetApply.projectId;
-      
-      // 2. 지원 내역 삭제
       db.applies = db.applies.filter(a => !(a.applicantId === userId && a.projectId === projectId));
-      
-      // 3. 해당 프로젝트의 currentCount 감소
       const project = db.posts.find(p => p.id === projectId);
-      if (project && project.currentCount > 1) {
-        project.currentCount -= 1;
-      }
-      
+      if (project && project.currentCount > 1) project.currentCount -= 1;
       saveDB(db);
       return HttpResponse.json({ success: true, message: "멤버가 팀에서 제외되었습니다." });
     }
-    
     return new HttpResponse(JSON.stringify({ success: false, message: "해당 멤버를 찾을 수 없습니다." }), { status: 404 });
   }),
 
@@ -294,7 +296,7 @@ export const handlers = [
 
   http.delete('*/api/posts/:projectId/board/:postId', ({ params }) => {
     const post = db.boardPosts.find(p => p.id === parseInt(params.postId));
-    if (post) { post.isDeleted = true; saveDB(db); return HttpResponse.json({ success: true, message: "삭제되었습니다." }); }
+    if (post) { post.isDeleted = true; db.comments = db.comments.map(c => c.postId === post.id ? { ...c, isDeleted: true } : c); saveDB(db); return HttpResponse.json({ success: true, message: "삭제되었습니다." }); }
     return new HttpResponse(null, { status: 404 });
   }),
 
