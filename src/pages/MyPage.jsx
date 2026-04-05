@@ -492,7 +492,9 @@ const MyPage = () => {
                   </Menu>
                   <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleImageChange} />
                   <Typography variant="h5" sx={{ fontWeight: 900, mt: 2 }}>{userInfo.nickname}</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 3 }}>@{userInfo.nickname?.toLowerCase()} · {userInfo.position}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600, mb: 3 }}>
+                    @{userInfo.nickname?.toLowerCase()} · {POSITION_OPTIONS.find(p => p.value === userInfo.position)?.label || userInfo.position}
+                  </Typography>
                   <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, mb: 3 }}>
                     <Box sx={{ cursor: 'pointer' }} onClick={() => scrollToSection(activityRef, 0)}><Typography variant="h6" sx={{ fontWeight: 900 }}>{userInfo.postCount || 0}</Typography><Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>내 모집글</Typography></Box>
                     <Divider orientation="vertical" flexItem />
@@ -663,9 +665,10 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onViewAppsC
   const title = item.projectTitle || item.title;
   const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : (item.status === 'ACCEPTED' ? '승인완료' : '거절됨'));
   
-  // 설계서 v1.1 규격 반영 및 탭별 기본값 설정
-  const defaultPosition = tabValue === 0 ? '시니어메이트' : '선택없음';
-  const position = item.applicantPosition || item.position || defaultPosition;
+  // 설계서 v1.1 규격 반영 및 상세 명칭 변환 (POSITION_OPTIONS 매핑)
+  const rawPosition = item.applicantPosition || item.position || (tabValue === 0 ? '시니어메이트' : '선택없음');
+  const position = POSITION_OPTIONS.find(p => p.value === rawPosition)?.label || rawPosition;
+  
   const date = (item.createdAt || item.appliedDate || item.endDate || '-').split('T')[0];
   
   // 탭별 정보 텍스트 구성
