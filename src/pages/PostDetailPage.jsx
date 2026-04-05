@@ -256,7 +256,7 @@ const PostDetailPage = () => {
                       {post.ownerNickname}
                     </Typography>
                     <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 700, mb: 1 }}>
-                      {post.ownerPosition || '시니어 메이트'}
+                      시니어 메이트
                     </Typography>
                     <Chip 
                       label={POSITION_OPTIONS.find(p => p.value === post.ownerPosition)?.label || post.ownerPosition || 'FE'} 

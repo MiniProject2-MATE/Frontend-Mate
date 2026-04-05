@@ -123,7 +123,7 @@ const PostWritePage = () => {
         ...formData,
         ownerId: currentUser.userId, // v1.1 규격: ownerId 명시
         onOffline: mapOnOffline(formData.onOffline),
-        recruitCount: Number(formData.recruitCount),
+        recruitCount: Number(formData.recruitCount) + 1, // 본인 포함 전체 정원으로 변환
         status: 'RECRUITING' // 초기 상태 설정
       };
 

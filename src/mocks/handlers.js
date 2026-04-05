@@ -109,7 +109,6 @@ export const handlers = [
     
     const totalElements = filteredPosts.length;
     const content = filteredPosts.slice(page * size, (page + 1) * size).map(post => {
-      // [중요] 각 게시글에 작성자 프로필 정보 결합
       const owner = db.users.find(u => u.id === post.ownerId);
       return {
         ...post,
@@ -137,6 +136,7 @@ export const handlers = [
         ...post, 
         ownerNickname: owner?.nickname, 
         ownerProfileImg: owner?.profileImg,
+        ownerPosition: owner?.position, // [중요] 상세 조회 시에도 유저 테이블에서 포지션 정보를 합쳐서 반환
         owner: db.currentUser?.id === post.ownerId 
       } 
     });

@@ -83,7 +83,7 @@ const PostEditPage = () => {
         setFormData({
           category: post.category || 'PROJECT',
           title: post.title || '',
-          recruitCount: post.recruitCount || '',
+          recruitCount: post.recruitCount ? post.recruitCount - 1 : '', // 전체 정원에서 본인 제외
           techStacks: post.techStacks || [],
           endDate: post.endDate || '',
           onOffline: post.onOffline || '온라인',
@@ -138,15 +138,17 @@ const PostEditPage = () => {
       return;
     }
 
-    if (Number(formData.recruitCount) < formData.currentCount) {
-      showToast(`모집 인원은 현재 참여 중인 팀원(${formData.currentCount}명)보다 적을 수 없습니다.`, 'error');
+    const totalRecruitCount = Number(formData.recruitCount) + 1;
+
+    if (totalRecruitCount < formData.currentCount) {
+      showToast(`전체 정원(${totalRecruitCount}명)은 현재 참여 중인 팀원(${formData.currentCount}명)보다 적을 수 없습니다.`, 'error');
       return;
     }
 
     try {
       await postApi.updatePost(id, {
         ...formData,
-        recruitCount: Number(formData.recruitCount)
+        recruitCount: totalRecruitCount
       });
       showToast('수정이 완료되었습니다! 🚀', 'success');
       navigate(`/posts/${id}`);
@@ -178,9 +180,10 @@ const PostEditPage = () => {
   // 재모집 (v1.1: PATCH /api/projects/{id}/reopen)
   const handleReopenPost = () => {
     const targetDate = new Date(formData.endDate);
+    const totalRecruitCount = Number(formData.recruitCount) + 1;
 
-    if (Number(formData.recruitCount) <= formData.currentCount) {
-      showToast(`현재 참여 인원(${formData.currentCount}명)보다 많은 모집 인원이 필요합니다.`, 'warning');
+    if (totalRecruitCount <= formData.currentCount) {
+      showToast(`현재 참여 인원(${formData.currentCount}명)보다 많은 전체 정원이 필요합니다.`, 'warning');
       return;
     }
 
@@ -199,7 +202,7 @@ const PostEditPage = () => {
           // 정보 수정 후 재모집 호출
           await postApi.updatePost(id, {
             ...formData,
-            recruitCount: Number(formData.recruitCount)
+            recruitCount: totalRecruitCount
           });
           await postApi.reopenPost(id);
           showToast('재모집이 시작되었습니다!', 'success');
@@ -275,7 +278,7 @@ const PostEditPage = () => {
                 </Stack>
                 <Stack spacing={4}>
                   <Stack direction="row" spacing={3}>
-                    <Box sx={{ flex: 0.7 }}><FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>모집 인원 *</FormLabel><TextField fullWidth type="number" value={formData.recruitCount} onChange={handleChange('recruitCount')} helperText={`현재 참여: ${formData.currentCount}명`} sx={inputStyle} /></Box>
+                    <Box sx={{ flex: 0.7 }}><FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>모집 인원 *</FormLabel><TextField fullWidth type="number" value={formData.recruitCount} onChange={handleChange('recruitCount')} helperText={`현재 참여: ${formData.currentCount}명 (본인 포함)`} placeholder="본인 제외 인원" sx={inputStyle} /></Box>
                     <Box sx={{ flex: 1.3 }}>
                       <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>마감 일자 *</FormLabel>
                       <Stack direction="row" spacing={1}>
@@ -322,7 +325,7 @@ const PostEditPage = () => {
               <Card elevation={0} sx={{ borderRadius: 5, border: '1px solid #EEEEEE' }}>
                 <CardContent sx={{ p: 4 }}>
                   <Typography sx={{ fontWeight: 900, mb: 3 }}>✅ 수정 체크리스트</Typography>
-                  {[ { label: '제목 및 유형 확인', done: formData.title.trim().length > 0 }, { label: '모집 인원 검토', done: Number(formData.recruitCount) >= formData.currentCount }, { label: '마감일 설정', done: !!formData.endDate }, { label: '기술 스택 (최소 1개)', done: formData.techStacks.length > 0 } ].map((item, i) => (
+                  {[ { label: '제목 및 유형 확인', done: formData.title.trim().length > 0 }, { label: '모집 인원 검토', done: (Number(formData.recruitCount) + 1) >= formData.currentCount }, { label: '마감일 설정', done: !!formData.endDate }, { label: '기술 스택 (최소 1개)', done: formData.techStacks.length > 0 } ].map((item, i) => (
                     <Stack key={i} direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
                       <CheckCircleIcon sx={{ fontSize: 22, color: item.done ? '#22C55E' : '#E5E7EB' }} />
                       <Typography variant="body2" sx={{ fontWeight: item.done ? 800 : 500, color: item.done ? '#1F2937' : '#9CA3AF' }}>{item.label}</Typography>
