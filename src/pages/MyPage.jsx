@@ -663,13 +663,20 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onViewAppsC
   const title = item.projectTitle || item.title;
   const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : (item.status === 'ACCEPTED' ? '승인완료' : '거절됨'));
   
-  // 설계서 v1.1 규격 반영: applicantPosition, createdAt 사용
-  const position = item.applicantPosition || item.position || '선택없음';
+  // 설계서 v1.1 규격 반영 및 탭별 기본값 설정
+  const defaultPosition = tabValue === 0 ? '시니어메이트' : '선택없음';
+  const position = item.applicantPosition || item.position || defaultPosition;
   const date = (item.createdAt || item.appliedDate || item.endDate || '-').split('T')[0];
   
-  const info = tabValue === 2 
-    ? `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${position}` 
-    : `지원 분야: ${position} · 신청일: ${date}`;
+  // 탭별 정보 텍스트 구성
+  let info = '';
+  if (tabValue === 0) {
+    info = `내 역할: ${position} · 등록일: ${date}`;
+  } else if (tabValue === 2) {
+    info = `팀장: ${item.ownerNickname || '알수없음'} | 역할: ${position}`;
+  } else {
+    info = `지원 분야: ${position} · 신청일: ${date}`;
+  }
 
   return ( <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }, transition: '0.2s' }}><Box sx={{ flex: 1 }}><Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" onClick={onTitleClick} sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}><Box component="span" sx={{ color: item.category === 'PROJECT' ? 'primary.main' : 'warning.main', mr: 1 }}>{categoryLabel}</Box>{title}</Typography>{tabValue !== 0 && ( <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '참여중' ? '#EEF2FF' : (status === '대기중' ? '#FFFBEB' : (status === '승인완료' ? '#ECFDF5' : '#FEF2F2')), color: status === '참여중' ? '#6366F1' : (status === '대기중' ? '#D97706' : (status === '승인완료' ? '#10B981' : '#EF4444')) }} /> )}</Stack><Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{info}</Typography></Box><Stack direction="row" spacing={1}>{tabValue === 0 && ( <> <Button variant="contained" disableElevation onClick={onViewAppsClick} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: 2 }}>지원서 보기</Button> <Button variant="contained" disableElevation onClick={onManageClick} sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button> </> )}{tabValue === 1 && item.status === 'PENDING' && <Button variant="outlined" color="error" onClick={onCancelClick} sx={{ fontWeight: 800, borderRadius: 2 }}>취소하기</Button>}</Stack></Box> );
 };
