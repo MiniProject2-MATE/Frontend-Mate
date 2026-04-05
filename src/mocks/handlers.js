@@ -79,8 +79,21 @@ export const handlers = [
   }),
 
   http.get('*/api/users/me/posts/joined', () => {
-    const joinedIds = db.applies.filter(a => a.applicantId === db.currentUser?.id && a.status === 'ACCEPTED').map(a => a.projectId);
-    const joined = db.posts.filter(p => joinedIds.includes(p.id));
+    if (!db.currentUser) return new HttpResponse(null, { status: 401 });
+    
+    // 1. 내가 지원해서 승인된(ACCEPTED) 내역들을 가져옴
+    const myAcceptedApplies = db.applies.filter(a => a.applicantId === db.currentUser.id && a.status === 'ACCEPTED');
+    
+    // 2. 승인된 프로젝트 상세 정보에 내가 지원했던 포지션 정보를 합쳐서 반환
+    const joined = myAcceptedApplies.map(apply => {
+      const project = db.posts.find(p => p.id === apply.projectId);
+      if (!project) return null;
+      return {
+        ...project,
+        applicantPosition: apply.applicantPosition // 지원서에 적힌 내 포지션 정보 추가
+      };
+    }).filter(Boolean);
+
     return HttpResponse.json({ success: true, message: "참여 중인 프로젝트 조회가 완료되었습니다.", data: joined });
   }),
 
@@ -230,7 +243,19 @@ export const handlers = [
     const { message, position } = await request.json();
     const projectId = parseInt(params.projectId);
     const project = db.posts.find(p => p.id === projectId);
-    const newApply = { id: Date.now(), projectId, applicantId: db.currentUser.id, projectTitle: project?.title, applicantPosition: position || 'FE', status: "PENDING", createdAt: new Date().toISOString(), applicantNickname: db.currentUser.nickname, message };
+    
+    const newApply = { 
+      id: Date.now(), 
+      projectId, 
+      applicantId: db.currentUser.id, 
+      projectTitle: project?.title, 
+      category: project?.category, // 카테고리 정보 추가
+      applicantPosition: position || 'FE', 
+      status: "PENDING", 
+      createdAt: new Date().toISOString(), 
+      applicantNickname: db.currentUser.nickname, 
+      message 
+    };
     db.applies.push(newApply);
     saveDB(db);
     return HttpResponse.json({ success: true, message: "지원이 완료되었습니다.", data: newApply });
