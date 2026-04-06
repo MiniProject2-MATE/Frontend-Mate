@@ -30,12 +30,18 @@ export const authApi = {
 
   // 아이디(이메일) 찾기 (POST /api/auth/find-email)
   findEmail: async (phoneNumber) => {
-    return await axiosInstance.post('/auth/find-email', { phoneNumber });
+    // 설계서 v1.1: Request Query Parameter로phoneNumber 전달
+    return await axiosInstance.post('/auth/find-email', null, { 
+      params: { phoneNumber } 
+    });
   },
 
   // 비밀번호 재설정 (POST /api/auth/reset-password)
   resetPassword: async (email, phoneNumber) => {
-    return await axiosInstance.post('/auth/reset-password', { email, phoneNumber });
+    // 백엔드 로그 확인 결과 @RequestParam을 사용하므로 params로 전달
+    return await axiosInstance.post('/auth/reset-password', null, { 
+      params: { email, phoneNumber } 
+    });
   },
 
   // 로그아웃 API (POST /api/auth/logout)
