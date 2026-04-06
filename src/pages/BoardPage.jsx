@@ -66,12 +66,8 @@ const BoardPage = () => {
       color: 'error',
       onConfirm: async () => {
         try {
-          // 설계서 v1.1: 4.4.2 팀원 강제 퇴출 (memberId 사용)
-          // member.id 또는 member.userId 중 존재하는 값을 사용
           await boardApi.kickMember(member.id || member.userId);
           showToast(`${member.nickname}님이 팀에서 제외되었습니다.`, 'success');
-          
-          // 멤버 목록 새로고침
           const membersRes = await boardApi.getProjectMembers(id);
           setProjectInfo(prev => ({ ...prev, members: membersRes || [] }));
         } catch (err) {
@@ -88,14 +84,26 @@ const BoardPage = () => {
     return dateStr.split('T')[0].replace(/-/g, '.');
   };
 
+  // 💡 데이터 추출 로직 수정: response.data 혹은 response 자체가 배열인 경우 대응
   const fetchPosts = useCallback(async (page) => {
     try {
       const response = await boardApi.getBoardPosts(id, page, 10);
-      if (response && response.content) {
-        setPosts(response.content);
+      
+      // API 응답 구조에 따른 데이터 매핑 (배열 직접 할당)
+      const postData = response.data || response.content || (Array.isArray(response) ? response : []);
+      setPosts(postData);
+
+      // 페이징 정보 처리
+      if (response.page) {
         setPageInfo({
-          totalPages: response.page.totalPages,
-          totalElements: response.page.totalElements
+          totalPages: response.page.totalPages || 0,
+          totalElements: response.page.totalElements || 0
+        });
+      } else {
+        // 페이징 정보가 없는 단일 배열 응답일 경우 처리
+        setPageInfo({
+          totalPages: 1,
+          totalElements: postData.length
         });
       }
     } catch (err) {
@@ -108,20 +116,23 @@ const BoardPage = () => {
     const initData = async () => {
       setIsLoading(true);
       try {
-        // 설계서 v1.1 규격에 맞춰 상세 정보와 멤버 목록을 병렬 호출
         const [postsRes, projectRes, membersRes] = await Promise.all([
           boardApi.getBoardPosts(id, 0, 10),
           boardApi.getProjectDetail(id),
           boardApi.getProjectMembers(id)
         ]);
 
-        if (postsRes && postsRes.content) {
-          setPosts(postsRes.content);
+        // 게시글 데이터 매핑
+        const postData = postsRes.data || postsRes.content || (Array.isArray(postsRes) ? postsRes : []);
+        setPosts(postData);
+        
+        if (postsRes.page) {
           setPageInfo({
-            totalPages: postsRes.page.totalPages,
-            totalElements: postsRes.page.totalElements
+            totalPages: postsRes.page.totalPages || 0,
+            totalElements: postsRes.page.totalElements || 0
           });
         }
+
         if (projectRes) {
           setProjectInfo({
             ...projectRes,
@@ -152,7 +163,6 @@ const BoardPage = () => {
         setSelectedPost(response);
         setComments(commentRes || []);
         setIsDetailOpen(true);
-        // 목록 조회수 업데이트
         setPosts(prev => prev.map(p => p.id === post.id ? { ...p, viewCount: (p.viewCount || 0) + 1 } : p));
       }
     } catch (err) {
@@ -182,14 +192,14 @@ const BoardPage = () => {
     try {
       if (isEditing) {
         await boardApi.updateBoardPost(id, selectedPost.id, postForm);
-        setSelectedPost({ ...selectedPost, ...postForm });
         showToast('게시글이 수정되었습니다.', 'success');
       } else {
         await boardApi.createBoardPost(id, postForm);
         showToast('게시글이 등록되었습니다.', 'success');
+        setCurrentPage(0); 
       }
       setIsWriteOpen(false);
-      fetchPosts(currentPage);
+      fetchPosts(isEditing ? currentPage : 0);
     } catch (err) {
       console.error("Save post error:", err);
       showToast(err.error?.message || '처리에 실패했습니다.', 'error');
@@ -271,7 +281,6 @@ const BoardPage = () => {
     });
   };
 
-  // 안전한 권한 비교 (v1.1 ownerId 사용)
   const isPostAuthor = selectedPost && currentUser && Number(selectedPost.authorId) === Number(currentUser.userId);
   const isProjectOwner = projectInfo && currentUser && Number(projectInfo.ownerId) === Number(currentUser.userId);
 
@@ -298,7 +307,7 @@ const BoardPage = () => {
                 <Table sx={{ minWidth: 650 }}>
                   <TableHead><TableRow sx={{ bgcolor: '#F9FAFB' }}><TableCell sx={{ fontWeight: 800, color: '#6B7280', py: 2 }}>구분</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>제목</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>작성자</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>작성일</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280', textAlign: 'center' }}>조회</TableCell></TableRow></TableHead>
                   <TableBody>
-                    {posts.length > 0 ? ( posts.map((post) => ( <TableRow key={post.id} hover onClick={() => handlePostClick(post)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F0F2FF !important' } }}><TableCell sx={{ py: 2.5 }}><Chip label={post.type === 'NOTICE' ? '공지' : post.type === 'QUESTION' ? '질문' : '일반'} size="small" sx={{ bgcolor: post.type === 'NOTICE' ? '#FFFBEB' : (post.type === 'QUESTION' ? '#EFF6FF' : '#F3F4F6'), color: post.type === 'NOTICE' ? '#D97706' : (post.type === 'QUESTION' ? '#2563EB' : '#4B5563'), fontWeight: 900, borderRadius: 1.5 }} /></TableCell><TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1F2937' }}>{post.title}</TableCell><TableCell><Stack direction="row" spacing={1} alignItems="center"><Avatar name={post.authorNickname} size="sm" src={post.authorProfileImg} /><Typography variant="body2" sx={{ fontWeight: 600 }}>{post.authorNickname}</Typography></Stack></TableCell><TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(post.createdAt)}</TableCell><TableCell sx={{ textAlign: 'center' }}><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{post.viewCount || 0}</Typography></TableCell></TableRow> )) ) : ( <TableRow><TableCell colSpan={5} sx={{ py: 10, textAlign: 'center', color: '#9CA3AF' }}>등록된 게시글이 없습니다.</TableCell></TableRow> )}
+                    {posts && posts.length > 0 ? ( posts.map((post) => ( <TableRow key={post.id} hover onClick={() => handlePostClick(post)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F0F2FF !important' } }}><TableCell sx={{ py: 2.5 }}><Chip label={post.type === 'NOTICE' ? '공지' : post.type === 'QUESTION' ? '질문' : '일반'} size="small" sx={{ bgcolor: post.type === 'NOTICE' ? '#FFFBEB' : (post.type === 'QUESTION' ? '#EFF6FF' : '#F3F4F6'), color: post.type === 'NOTICE' ? '#D97706' : (post.type === 'QUESTION' ? '#2563EB' : '#4B5563'), fontWeight: 900, borderRadius: 1.5 }} /></TableCell><TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1F2937' }}>{post.title}</TableCell><TableCell><Stack direction="row" spacing={1} alignItems="center"><Avatar name={post.authorNickname} size="sm" src={post.authorProfileImg} /><Typography variant="body2" sx={{ fontWeight: 600 }}>{post.authorNickname}</Typography></Stack></TableCell><TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(post.createdAt)}</TableCell><TableCell sx={{ textAlign: 'center' }}><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{post.viewCount || 0}</Typography></TableCell></TableRow> )) ) : ( <TableRow><TableCell colSpan={5} sx={{ py: 10, textAlign: 'center', color: '#9CA3AF' }}>등록된 게시글이 없습니다.</TableCell></TableRow> )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -321,12 +330,10 @@ const BoardPage = () => {
                         </Typography>
                       </Box>
                     </Stack>
-                    
                     <Stack direction="row" spacing={1} alignItems="center">
                       {member.role === 'OWNER' ? (
                         <Chip label="OWNER" size="small" sx={{ bgcolor: '#FFFBEB', color: '#B45309', fontWeight: 900, fontSize: '0.65rem', borderRadius: 1 }} />
                       ) : (
-                        // 내가 방장이고, 대상이 일반 팀원인 경우에만 퇴출 버튼 표시
                         isProjectOwner && (
                           <IconButton 
                             size="small" 
@@ -348,7 +355,7 @@ const BoardPage = () => {
 
       {/* 작성/수정 모달 */}
       <Dialog open={isWriteOpen} onClose={() => setIsWriteOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '24px' } }}>
-        <DialogTitle sx={{ p: 4, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <DialogTitle component="div" sx={{ p: 4, pb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Typography variant="h5" sx={{ fontWeight: 900, color: '#111827' }}>{isEditing ? '게시글 수정' : '새로운 소식 작성'}</Typography>
           <IconButton onClick={() => setIsWriteOpen(false)} sx={{ color: '#9CA3AF' }}><CloseIcon fontSize="small" /></IconButton>
         </DialogTitle>
@@ -372,7 +379,6 @@ const BoardPage = () => {
                   <Chip label={selectedPost.type === 'NOTICE' ? '📢 공지사항' : '💬 일반'} sx={{ fontWeight: 900, borderRadius: '8px', mb: 2 }} />
                   <Typography variant="h3" sx={{ fontWeight: 900, color: '#111827' }}>{selectedPost.title}</Typography>
                 </Box>
-                
                 <Stack direction="row" spacing={1} sx={{ mt: -1, mr: -1 }}>
                   {(isPostAuthor || isProjectOwner) && (
                     <Box>
