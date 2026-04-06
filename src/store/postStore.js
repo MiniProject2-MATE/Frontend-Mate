@@ -44,20 +44,26 @@ export const usePostStore = create((set, get) => ({
       const response = await postApi.getPosts(currentParams);
       
       /**
-       * 설계서 v1.1 규격 매핑:
-       * response = { content: [], page: { totalPages, totalElements, ... } }
-       * 기존 컴포넌트 호환성을 위해 id와 projectId를 동일하게 매핑
+       * 설계서 v1.1 규격 및 실구현 대응:
+       * 1. response 자체가 배열인 경우 (비페이징)
+       * 2. response.content가 배열인 경우 (페이징)
        */
-      const mappedPosts = (response?.content || []).map(post => ({
+      const rawPosts = Array.isArray(response) ? response : (response?.content || []);
+      
+      const mappedPosts = rawPosts.map(post => ({
         ...post,
         id: post.id || post.projectId,
         projectId: post.projectId || post.id
       }));
 
+      // 페이징 정보 추출 (설계서 v1.1: response.page.totalPages / 일반 Page: response.totalPages)
+      const totalPages = response?.page?.totalPages ?? response?.totalPages ?? (Array.isArray(response) ? 1 : 0);
+      const totalElements = response?.page?.totalElements ?? response?.totalElements ?? rawPosts.length;
+
       set({ 
         posts: mappedPosts, 
-        totalPages: response?.page?.totalPages || 0,
-        totalElements: response?.page?.totalElements || 0,
+        totalPages: totalPages,
+        totalElements: totalElements,
         isLoading: false 
       })
     } catch (error) {
