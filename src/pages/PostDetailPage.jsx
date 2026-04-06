@@ -79,7 +79,7 @@ const PostDetailPage = () => {
     };
 
     fetchData();
-  }, [id, isLoggedIn, showToast]);
+  }, [id, isLoggedIn, showToast, navigate]);
 
   // 게시글 삭제 핸들러 (v1.1: DELETE /api/projects/{id})
   const handleDeletePost = () => {
@@ -132,6 +132,17 @@ const PostDetailPage = () => {
 
   // 본인 글 여부 확인 (서버 flag 또는 ID 비교)
   const isOwner = post.owner === true || (currentUser && Number(currentUser.userId) === Number(post.ownerId));
+
+  // 💡 [이미지 경로 최적화 함수] 
+  // 슬래시가 겹치거나 누락되는 문제를 방지합니다.
+  const getProfileImageUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    const baseUrl = "http://localhost:8080";
+    // path가 /로 시작하면 baseUrl의 마지막 /를 제거하고 합침
+    const formattedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${baseUrl}${formattedPath}`;
+  };
 
   return (
     <Box sx={{ bgcolor: '#F9FAFB', minHeight: '100vh', pt: '100px', pb: 10 }}>
@@ -260,7 +271,11 @@ const PostDetailPage = () => {
               <Paper elevation={0} sx={{ p: 4, borderRadius: 6, border: '1px solid #EEEEEE', bgcolor: 'white' }}>
                 <Typography variant="body2" sx={{ color: '#9CA3AF', fontWeight: 900, mb: 3, letterSpacing: '0.05em' }}>PROJECT OWNER</Typography>
                 <Stack direction="row" spacing={2.5} alignItems="center" sx={{ mb: isOwner ? 3 : 0 }}>
-                  <Avatar src={post.ownerProfileImg} sx={{ width: 64, height: 64, bgcolor: '#6C63FF', fontSize: '1.5rem', fontWeight: 900 }}>
+                  {/* 💡 최적화된 URL 함수를 사용하여 이미지를 불러옵니다. */}
+                  <Avatar 
+                    src={getProfileImageUrl(post.ownerProfileImg || post.ownerProfileImageUrl)} 
+                    sx={{ width: 64, height: 64, bgcolor: '#6C63FF', fontSize: '1.5rem', fontWeight: 900 }}
+                  >
                     {post.ownerNickname?.[0].toUpperCase()}
                   </Avatar>
                   <Box>

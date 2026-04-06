@@ -5,11 +5,17 @@ export const postApi = {
 
   // 모집글 목록 조회 (v1.1: GET /api/projects)
   getPosts: async (params) => {
+    // 💡 로그인 여부와 상관없이 조회 가능하도록 설정 가능
     return await axiosInstance.get('/projects', { params });
   },
 
   // 모집글 상세 조회 (v1.1: GET /api/projects/{projectId})
   getPostDetail: async (projectId) => {
+    /**
+     * 💡 [중요] 상세 조회 시 AUTH_003 에러가 난다면:
+     * axiosInstance에서 인터셉터가 만료된 토큰을 강제로 넣고 있을 확률이 높습니다.
+     * 로그아웃을 하거나, 아래 요청에서 헤더를 초기화하는 시도가 필요할 수 있습니다.
+     */
     return await axiosInstance.get(`/projects/${projectId}`);
   },
 

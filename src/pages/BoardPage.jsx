@@ -84,23 +84,18 @@ const BoardPage = () => {
     return dateStr.split('T')[0].replace(/-/g, '.');
   };
 
-  // 💡 데이터 추출 로직 수정: response.data 혹은 response 자체가 배열인 경우 대응
   const fetchPosts = useCallback(async (page) => {
     try {
       const response = await boardApi.getBoardPosts(id, page, 10);
-      
-      // API 응답 구조에 따른 데이터 매핑 (배열 직접 할당)
       const postData = response.data || response.content || (Array.isArray(response) ? response : []);
       setPosts(postData);
 
-      // 페이징 정보 처리
       if (response.page) {
         setPageInfo({
           totalPages: response.page.totalPages || 0,
           totalElements: response.page.totalElements || 0
         });
       } else {
-        // 페이징 정보가 없는 단일 배열 응답일 경우 처리
         setPageInfo({
           totalPages: 1,
           totalElements: postData.length
@@ -122,7 +117,6 @@ const BoardPage = () => {
           boardApi.getProjectMembers(id)
         ]);
 
-        // 게시글 데이터 매핑
         const postData = postsRes.data || postsRes.content || (Array.isArray(postsRes) ? postsRes : []);
         setPosts(postData);
         
@@ -210,7 +204,7 @@ const BoardPage = () => {
     setPostMenuAnchor(null);
     openModal('confirm', {
       title: '게시글 삭제',
-      message: '정말로 이 게시글을 삭제하시겠습니까?',
+      message: '정말로 이 게시글을 삭제하시습니까?',
       confirmText: '삭제하기',
       color: 'error',
       onConfirm: async () => {
@@ -307,7 +301,12 @@ const BoardPage = () => {
                 <Table sx={{ minWidth: 650 }}>
                   <TableHead><TableRow sx={{ bgcolor: '#F9FAFB' }}><TableCell sx={{ fontWeight: 800, color: '#6B7280', py: 2 }}>구분</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>제목</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>작성자</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280' }}>작성일</TableCell><TableCell sx={{ fontWeight: 800, color: '#6B7280', textAlign: 'center' }}>조회</TableCell></TableRow></TableHead>
                   <TableBody>
-                    {posts && posts.length > 0 ? ( posts.map((post) => ( <TableRow key={post.id} hover onClick={() => handlePostClick(post)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F0F2FF !important' } }}><TableCell sx={{ py: 2.5 }}><Chip label={post.type === 'NOTICE' ? '공지' : post.type === 'QUESTION' ? '질문' : '일반'} size="small" sx={{ bgcolor: post.type === 'NOTICE' ? '#FFFBEB' : (post.type === 'QUESTION' ? '#EFF6FF' : '#F3F4F6'), color: post.type === 'NOTICE' ? '#D97706' : (post.type === 'QUESTION' ? '#2563EB' : '#4B5563'), fontWeight: 900, borderRadius: 1.5 }} /></TableCell><TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1F2937' }}>{post.title}</TableCell><TableCell><Stack direction="row" spacing={1} alignItems="center"><Avatar name={post.authorNickname} size="sm" src={post.authorProfileImg} /><Typography variant="body2" sx={{ fontWeight: 600 }}>{post.authorNickname}</Typography></Stack></TableCell><TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(post.createdAt)}</TableCell><TableCell sx={{ textAlign: 'center' }}><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{post.viewCount || 0}</Typography></TableCell></TableRow> )) ) : ( <TableRow><TableCell colSpan={5} sx={{ py: 10, textAlign: 'center', color: '#9CA3AF' }}>등록된 게시글이 없습니다.</TableCell></TableRow> )}
+                    {posts && posts.length > 0 ? ( posts.map((post) => ( <TableRow key={post.id} hover onClick={() => handlePostClick(post)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F0F2FF !important' } }}><TableCell sx={{ py: 2.5 }}><Chip label={post.type === 'NOTICE' ? '공지' : post.type === 'QUESTION' ? '질문' : '일반'} size="small" sx={{ bgcolor: post.type === 'NOTICE' ? '#FFFBEB' : (post.type === 'QUESTION' ? '#EFF6FF' : '#F3F4F6'), color: post.type === 'NOTICE' ? '#D97706' : (post.type === 'QUESTION' ? '#2563EB' : '#4B5563'), fontWeight: 900, borderRadius: 1.5 }} /></TableCell><TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1F2937' }}>{post.title}</TableCell>
+                    <TableCell><Stack direction="row" spacing={1} alignItems="center">
+                      {/* 💡 작성자의 최신 프로필 이미지를 src에 연결 (필드명 보강) */}
+                      <Avatar name={post.authorNickname} size="sm" src={post.authorProfileImg || post.authorProfileImageUrl} />
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{post.authorNickname}</Typography></Stack></TableCell>
+                    <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(post.createdAt)}</TableCell><TableCell sx={{ textAlign: 'center' }}><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{post.viewCount || 0}</Typography></TableCell></TableRow> )) ) : ( <TableRow><TableCell colSpan={5} sx={{ py: 10, textAlign: 'center', color: '#9CA3AF' }}>등록된 게시글이 없습니다.</TableCell></TableRow> )}
                   </TableBody>
                 </Table>
               </TableContainer>
@@ -322,6 +321,7 @@ const BoardPage = () => {
                 {projectInfo.members.map((member) => (
                   <Box key={member.nickname} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Stack direction="row" spacing={2} alignItems="center">
+                      {/* 💡 팀 멤버의 최신 프로필 이미지를 src에 연결 (필드명 보강) */}
                       <Avatar name={member.nickname} size="md" src={member.profileImg || member.profileImageUrl} />
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 800, color: '#111827' }}>{member.nickname}</Typography>
@@ -393,7 +393,8 @@ const BoardPage = () => {
                 </Stack>
               </Stack>
               <Stack direction="row" spacing={2} alignItems="center" sx={{ pb: 4, borderBottom: '1px solid #F3F4F6' }}>
-                <Avatar name={selectedPost.authorNickname} size="lg" src={selectedPost.authorProfileImg} />
+                {/* 💡 상세 모달 내부 작성자의 최신 프로필 이미지 (필드명 보강) */}
+                <Avatar name={selectedPost.authorNickname} size="lg" src={selectedPost.authorProfileImg || selectedPost.authorProfileImageUrl} />
                 <Box sx={{ flex: 1 }}><Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#111827' }}>{selectedPost.authorNickname}</Typography><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{formatDate(selectedPost.createdAt)} · 조회 {selectedPost.viewCount || 0}</Typography></Box>
               </Stack>
             </Box>
