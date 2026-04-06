@@ -22,23 +22,31 @@ export const usePostStore = create((set, get) => ({
   page: 0,
 
   // 모집글 목록 가져오기
-  fetchPosts: async (params) => {
+  fetchPosts: async (params = {}) => {
     set({ isLoading: true, error: null })
     try {
       const state = get();
       
-      // 카테고리 값 서버 규격(v1.1)으로 변환
-      let targetCategory = '';
-      if (state.category === '프로젝트') targetCategory = 'PROJECT';
-      else if (state.category === '스터디') targetCategory = 'STUDY';
+      // 1. 현재 UI의 최신 상태(params)가 있다면 우선 사용하고, 없으면 스토어의 state 사용
+      const currentCategory = params.category || state.category;
+      const currentKeyword = params.keyword !== undefined ? params.keyword : state.keyword;
+      const currentPage = params.page !== undefined ? params.page : state.page;
+      const currentSort = params.sort || state.sort;
 
+      // 2. 카테고리 값 서버 규격(v1.1)으로 변환
+      let targetCategory = '';
+      if (currentCategory === '프로젝트') targetCategory = 'PROJECT';
+      else if (currentCategory === '스터디') targetCategory = 'STUDY';
+
+      // 3. 최종 요청 파라미터 구성
+      // 💡 포인트: ...params를 앞에 두고, 우리가 변환한 대문자 값을 뒤에 배치하여 덮어씌움
       const currentParams = {
-        keyword: state.keyword,
-        category: targetCategory,
-        sort: state.sort,
-        page: state.page,
         size: 15,
-        ...params
+        ...params,            // 1. 외부 주입값 먼저 전개
+        keyword: currentKeyword,
+        category: targetCategory, // 2. 대문자(PROJECT/STUDY)로 강제 고정
+        sort: currentSort,
+        page: currentPage,
       }
       
       const response = await postApi.getPosts(currentParams);
@@ -74,11 +82,24 @@ export const usePostStore = create((set, get) => ({
     }
   },
 
-  // 필터 변경 액션
-  setKeyword: (keyword) => set({ keyword, page: 0 }),
-  setCategory: (category) => set({ category, page: 0 }),
-  setSort: (sort) => set({ sort, page: 0 }),
-  setPage: (page) => set({ page }),
+  // 💡 필터 변경 액션: 상태 변경 후 즉시 fetchPosts를 호출하여 실시간 반영
+  setKeyword: (keyword) => {
+    set({ keyword, page: 0 });
+    get().fetchPosts();
+  },
+  setCategory: (category) => {
+    set({ category, page: 0 });
+    // 새 카테고리 값을 직접 전달하여 즉각 반영되도록 함
+    get().fetchPosts({ category, page: 0 }); 
+  },
+  setSort: (sort) => {
+    set({ sort, page: 0 });
+    get().fetchPosts();
+  },
+  setPage: (page) => {
+    set({ page });
+    get().fetchPosts();
+  },
 
   // 모집글 상세 가져오기
   fetchPostDetail: async (projectId) => {
