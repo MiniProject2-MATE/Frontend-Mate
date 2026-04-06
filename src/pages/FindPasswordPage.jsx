@@ -58,13 +58,13 @@ const FindPasswordPage = () => {
       const response = await authApi.resetPassword(email, phoneNumber.replace(/-/g, ''));
       
       // 3. 응답 성공 시 결과 화면으로 전환
-      // response.data 구조에 따라 임시 비밀번호를 가져옴
+      // axiosInstance interceptor에서 이미 response.data.data를 반환하므로 response는 문자열(임시비번)입니다.
       if (response) {
-        setResult(response.data || 'mate1234!'); 
+        setResult(response); 
       }
     } catch (err) {
       // 4. 에러 발생 시 처리
-      const msg = err.response?.data?.error?.message || err.message || '입력하신 정보가 일치하지 않습니다.';
+      const msg = err.error?.message || err.message || '입력하신 정보가 일치하지 않습니다.';
       setError(msg);
     } finally {
       setIsLoading(false);
