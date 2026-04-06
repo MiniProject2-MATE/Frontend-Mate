@@ -6,6 +6,15 @@ import Tag from './Tag';
 import Avatar from './Avatar';
 import { getDynamicStatus } from '../../utils/statusUtils';
 
+// 💡 [이미지 경로 최적화 함수]
+const getProfileImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const baseUrl = "http://localhost:8080";
+  const formattedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${formattedPath}`;
+};
+
 export default function PostCard({ post, isLoading }) {
   const navigate = useNavigate();
 
@@ -56,7 +65,6 @@ export default function PostCard({ post, isLoading }) {
   const displayId = projectId || id;
   const categoryLabel = category === 'PROJECT' ? '[프로젝트]' : category === 'STUDY' ? '[스터디]' : '';
 
-  // 카드 스타일 정의
   const cardStyle = {
     width: '100%',
     height: 300, 
@@ -83,7 +91,6 @@ export default function PostCard({ post, isLoading }) {
     })
   };
 
-  // 애니메이션 정의
   const pulseKeyframes = {
     '@keyframes pulse': {
       '0%': { transform: 'scale(1)', opacity: 1 },
@@ -160,7 +167,8 @@ export default function PostCard({ post, isLoading }) {
 
       <Box sx={{ p: 2, borderTop: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: '#FAFAFF' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Avatar name={ownerNickname} src={ownerProfileImg} size="sm" />
+          {/* 💡 프로필 이미지 URL 변환 적용 */}
+          <Avatar name={ownerNickname} src={getProfileImageUrl(ownerProfileImg)} size="sm" />
           <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 700, fontSize: '0.8rem' }}>
             {ownerNickname}
           </Typography>
