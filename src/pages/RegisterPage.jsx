@@ -222,7 +222,30 @@ const RegisterPage = () => {
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>이메일 *</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField fullWidth name="email" placeholder="email@example.com" value={formData.email} onChange={handleChange} sx={inputStyle} />
-                <Button variant="outlined" onClick={handleCheckEmail} disabled={!formData.email.trim()} sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800 }}>중복 확인</Button>
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCheckEmail} 
+                  disabled={!formData.email.trim() || isEmailChecked} 
+                  sx={{ 
+                    whiteSpace: 'nowrap', 
+                    px: 3, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    borderColor: isEmailChecked ? '#10B981' : 'primary.main',
+                    color: isEmailChecked ? '#10B981' : 'primary.main',
+                    '&:hover': { 
+                      borderColor: isEmailChecked ? '#10B981' : 'primary.dark',
+                      bgcolor: isEmailChecked ? 'transparent' : 'rgba(108, 99, 255, 0.04)'
+                    },
+                    '&:disabled': { 
+                      borderColor: isEmailChecked ? '#10B981' : '#E5E7EB', 
+                      color: isEmailChecked ? '#10B981' : '#9CA3AF', 
+                      opacity: isEmailChecked ? 0.8 : 1
+                    }
+                  }}
+                >
+                  {isEmailChecked ? '확인됨' : '중복 확인'}
+                </Button>
               </Stack>
             </Box>
 
@@ -242,7 +265,30 @@ const RegisterPage = () => {
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>닉네임 (선택)</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField fullWidth name="nickname" placeholder="미입력 시 이메일 기반 자동 생성" value={formData.nickname} onChange={handleChange} sx={inputStyle} />
-                <Button variant="outlined" onClick={handleCheckNickname} disabled={!formData.nickname.trim()} sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800 }}>중복 확인</Button>
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCheckNickname} 
+                  disabled={!formData.nickname.trim() || isNicknameChecked} 
+                  sx={{ 
+                    whiteSpace: 'nowrap', 
+                    px: 3, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    borderColor: isNicknameChecked ? '#10B981' : 'primary.main',
+                    color: isNicknameChecked ? '#10B981' : 'primary.main',
+                    '&:hover': { 
+                      borderColor: isNicknameChecked ? '#10B981' : 'primary.dark',
+                      bgcolor: isNicknameChecked ? 'transparent' : 'rgba(108, 99, 255, 0.04)'
+                    },
+                    '&:disabled': { 
+                      borderColor: isNicknameChecked ? '#10B981' : '#E5E7EB', 
+                      color: isNicknameChecked ? '#10B981' : '#9CA3AF', 
+                      opacity: isNicknameChecked ? 0.8 : 1
+                    }
+                  }}
+                >
+                  {isNicknameChecked ? '확인됨' : '중복 확인'}
+                </Button>
               </Stack>
             </Box>
 
@@ -250,7 +296,30 @@ const RegisterPage = () => {
               <Typography variant="body2" sx={{ fontWeight: 700, mb: 1.5, ml: 0.5 }}>휴대폰 번호 *</Typography>
               <Stack direction="row" spacing={1}>
                 <TextField fullWidth name="phoneNumber" placeholder="숫자만 입력" value={formData.phoneNumber} onChange={handleChange} sx={inputStyle} />
-                <Button variant="outlined" onClick={handleCheckPhone} disabled={!formData.phoneNumber.trim()} sx={{ whiteSpace: 'nowrap', px: 3, borderRadius: 3, fontWeight: 800 }}>중복 확인</Button>
+                <Button 
+                  variant="outlined" 
+                  onClick={handleCheckPhone} 
+                  disabled={!formData.phoneNumber.trim() || isPhoneChecked} 
+                  sx={{ 
+                    whiteSpace: 'nowrap', 
+                    px: 3, 
+                    borderRadius: 3, 
+                    fontWeight: 800,
+                    borderColor: isPhoneChecked ? '#10B981' : 'primary.main',
+                    color: isPhoneChecked ? '#10B981' : 'primary.main',
+                    '&:hover': { 
+                      borderColor: isPhoneChecked ? '#10B981' : 'primary.dark',
+                      bgcolor: isPhoneChecked ? 'transparent' : 'rgba(108, 99, 255, 0.04)'
+                    },
+                    '&:disabled': { 
+                      borderColor: isPhoneChecked ? '#10B981' : '#E5E7EB', 
+                      color: isPhoneChecked ? '#10B981' : '#9CA3AF', 
+                      opacity: isPhoneChecked ? 0.8 : 1
+                    }
+                  }}
+                >
+                  {isPhoneChecked ? '확인됨' : '중복 확인'}
+                </Button>
               </Stack>
             </Box>
 
