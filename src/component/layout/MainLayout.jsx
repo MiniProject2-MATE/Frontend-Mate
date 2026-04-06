@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Footer from './Footer';
@@ -14,27 +14,25 @@ const MainLayout = () => {
   const [lastToast, setLastToast] = useState({ message: '', type: 'success' });
   const [lastModal, setLastModal] = useState({ title: '확인', message: '', confirmText: '확인', cancelText: '취소', color: 'primary', onConfirm: () => {} });
 
-  useEffect(() => {
-    if (toast) {
-      setLastToast({
-        message: toast.message,
-        type: toast.type
-      });
-    }
-  }, [toast]);
+  // 1. Toast 데이터 동기화 (Render 단계에서 처리하여 Cascading Render 방지)
+  if (toast && (toast.message !== lastToast.message || toast.type !== lastToast.type)) {
+    setLastToast({
+      message: toast.message,
+      type: toast.type
+    });
+  }
 
-  useEffect(() => {
-    if (modal?.data) {
-      setLastModal({
-        title: modal.data.title || '확인',
-        message: modal.data.message || '',
-        confirmText: modal.data.confirmText || '확인',
-        cancelText: modal.data.cancelText || '취소',
-        color: modal.data.color || 'primary',
-        onConfirm: modal.data.onConfirm || (() => {})
-      });
-    }
-  }, [modal]);
+  // 2. Modal 데이터 동기화
+  if (modal?.data && (modal.data.message !== lastModal.message || modal.data.title !== lastModal.title)) {
+    setLastModal({
+      title: modal.data.title || '확인',
+      message: modal.data.message || '',
+      confirmText: modal.data.confirmText || '확인',
+      cancelText: modal.data.cancelText || '취소',
+      color: modal.data.color || 'primary',
+      onConfirm: modal.data.onConfirm || (() => {})
+    });
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
