@@ -131,6 +131,12 @@ const PostEditPage = () => {
     setFormData({ ...formData, techStacks: processedValue });
   };
 
+  // 진행 방식 한글 -> 영문 매핑 (v1.1 규격)
+  const mapOnOffline = (value) => {
+    const map = { '온라인': 'ONLINE', '오프라인': 'OFFLINE', '혼합': 'BOTH' };
+    return map[value] || 'ONLINE';
+  };
+
   // 수정 제출 (v1.1: PATCH /api/projects/{id})
   const handleSubmit = async () => {
     if (!formData.title || !formData.recruitCount || formData.techStacks.length === 0 || !formData.content || !formData.endDate) {
@@ -151,10 +157,17 @@ const PostEditPage = () => {
     }
 
     try {
-      await postApi.updatePost(id, {
-        ...formData,
-        recruitCount: totalRecruitCount
-      });
+      const updateData = {
+        category: formData.category,
+        title: formData.title,
+        content: formData.content,
+        recruitCount: totalRecruitCount,
+        onOffline: mapOnOffline(formData.onOffline),
+        endDate: formData.endDate,
+        techStacks: formData.techStacks
+      };
+
+      await postApi.updatePost(id, updateData);
       showToast('수정이 완료되었습니다! 🚀', 'success');
       navigate(`/posts/${id}`);
     } catch (err) {

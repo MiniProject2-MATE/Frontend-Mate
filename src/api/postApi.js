@@ -68,11 +68,10 @@ export const postApi = {
     return await axiosInstance.patch(`/applications/${applicationId}/status`, { status });
   },
 
-  // 특정 모집글의 지원자 목록 조회 (v1.1: GET /api/projects/{id}/applications)
+  // 특정 모집글의 지원자 목록 조회 (v1.1: GET /api/applications/projects/{projectId})
   getProjectApplications: async (projectId) => {
-    return await axiosInstance.get(`/projects/${projectId}/applications`);
+    return await axiosInstance.get(`/applications/projects/${projectId}`);  
   },
-
 
   // --- 3. 마이페이지 연동 ---
 
