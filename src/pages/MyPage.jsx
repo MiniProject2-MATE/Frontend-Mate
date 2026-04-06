@@ -30,6 +30,16 @@ import { TECH_STACK_OPTIONS, POSITION_OPTIONS } from '../constants/techStacks';
 import authApi from '../api/authApi';
 import postApi from '../api/postApi';
 
+// 💡 [이미지 경로 최적화 함수]
+// 슬래시가 겹치거나 누락되는 문제를 방지합니다.
+const getProfileImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const baseUrl = "http://localhost:8080";
+  const formattedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${formattedPath}`;
+};
+
 const MyPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -434,7 +444,8 @@ const MyPage = () => {
                 <Box sx={{ px: 3, pb: 4, textAlign: 'center', mt: -6 }}>
                   <Box sx={{ position: 'relative', display: 'inline-block' }}>
                     <Box onClick={handleAvatarClick} sx={{ cursor: 'pointer', transition: '0.2s', '&:hover': { opacity: 0.8, transform: 'scale(1.02)' } }}>
-                      <Avatar name={userInfo.nickname} src={userInfo.profileImg || userInfo.profileImageUrl} size="xl" />
+                      {/* 💡 내 프로필 이미지 URL 변환 적용 */}
+                      <Avatar name={userInfo.nickname} src={getProfileImageUrl(userInfo.profileImg || userInfo.profileImageUrl)} size="xl" />
                     </Box>
                     <IconButton 
                       onClick={handleAvatarClick} 
@@ -596,7 +607,10 @@ const MyPage = () => {
             <List sx={{ py: 0 }}>
               {applications.map((app) => (
                 <ListItem key={app.id || app.applyId} button onClick={() => { setSelectedApp(app); setIsAppDetailOpen(true); }} sx={{ py: 2.5, px: 4, borderBottom: '1px solid #F9FAFB', transition: '0.2s', '&:hover': { bgcolor: '#F8F9FF' } }}>
-                  <ListItemAvatar><Avatar name={app.applicantNickname} src={app.profileImg || app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
+                  <ListItemAvatar>
+                    {/* 💡 지원자 목록 모달 프로필 이미지 URL 변환 적용 */}
+                    <Avatar name={app.applicantNickname} src={getProfileImageUrl(app.profileImg || app.profileImageUrl)} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} />
+                  </ListItemAvatar>
                   <ListItemText primary={<Typography sx={{ fontWeight: 900, color: '#111827', fontSize: '1.05rem' }}>{app.applicantNickname}</Typography>} secondary={<Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === app.applicantPosition)?.label || app.applicantPosition} · {app.createdAt?.split('T')[0]}</Typography>} />
                   <Chip label={app.status === 'PENDING' ? '대기중' : (app.status === 'ACCEPTED' ? '승인됨' : '거절됨')} size="small" sx={{ fontWeight: 900, px: 1, bgcolor: app.status === 'PENDING' ? '#FFFBEB' : (app.status === 'ACCEPTED' ? '#ECFDF5' : '#FEF2F2'), color: app.status === 'PENDING' ? '#D97706' : (app.status === 'ACCEPTED' ? '#10B981' : '#EF4444'), borderRadius: 1.5 }} />
                   <ArrowForwardIosIcon sx={{ fontSize: 14, ml: 2, color: '#D1D5DB' }} />
