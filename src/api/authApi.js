@@ -72,7 +72,7 @@ export const authApi = {
 
   // 프로필 이미지 삭제 (DELETE /api/users/profile-image)
   deleteProfileImage: async () => {
-    return await axiosInstance.delete('/api/users/profile-image');
+    return await axiosInstance.delete('/users/profile-image');
   },
 
   // 회원 탈퇴 (DELETE /api/users/me)
