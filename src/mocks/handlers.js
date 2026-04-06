@@ -66,6 +66,57 @@ export const handlers = [
     return HttpResponse.json({ success: true, message: exists ? "이미 사용 중인 닉네임입니다." : "사용 가능한 닉네임입니다.", data: { isAvailable: !exists } });
   }),
 
+  // 아이디(이메일) 찾기 (POST /api/auth/find-email)
+  http.post('*/api/auth/find-email', async ({ request }) => {
+    const { phoneNumber } = await request.json();
+    
+    // DB에서 해당 전화번호를 가진 유저 찾기
+    const user = db.users.find(u => u.phoneNumber === phoneNumber.replace(/-/g, ''));
+
+    if (user) {
+      return HttpResponse.json({
+        success: true,
+        message: "이메일 찾기에 성공하였습니다.",
+        data: user.email // 혹은 설계서에 따라 user.email 자체를 반환
+      });
+    }
+
+    return new HttpResponse(
+      JSON.stringify({ 
+        success: false, 
+        error: { code: 'AUTH_002', message: '해당 휴대폰 번호로 가입된 계정이 없습니다.' } 
+      }), 
+      { status: 404 }
+    );
+  }),
+
+  // 전화번호 중복/존재 확인 (GET /api/auth/check-phone)
+  http.get('*/api/auth/check-phone', ({ request }) => {
+    const url = new URL(request.url);
+    const phoneNumber = url.searchParams.get('phoneNumber')?.replace(/-/g, '');
+    const exists = db.users.some(u => u.phoneNumber === phoneNumber);
+    
+    return HttpResponse.json({ 
+      success: true, 
+      message: exists ? "이미 사용 중인 번호입니다." : "사용 가능한 번호입니다.", 
+      data: { isAvailable: !exists } 
+    });
+  }),
+
+  // 비밀번호 재설정 (POST /api/auth/reset-password)
+  http.post('*/api/auth/reset-password', async ({ request }) => {
+    const { email, phoneNumber } = await request.json();
+    const user = db.users.find(u => u.email === email && u.phoneNumber === phoneNumber.replace(/-/g, ''));
+
+    if (user) {
+      return HttpResponse.json({ success: true, message: "비밀번호 재설정 이메일이 발송되었습니다." });
+    }
+    return new HttpResponse(
+      JSON.stringify({ success: false, message: "일치하는 사용자 정보를 찾을 수 없습니다." }), 
+      { status: 404 }
+    );
+  }),
+
   // 2. 유저/마이페이지 (Users)
   http.get('*/api/users/me', () => {
     if (!db.currentUser) return new HttpResponse(null, { status: 401 });
