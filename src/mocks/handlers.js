@@ -124,6 +124,21 @@ export const handlers = [
     return HttpResponse.json({ success: true, message: "내 정보 조회가 완료되었습니다.", data: user });
   }),
 
+  // [추가된 프로필 수정 로직]
+  http.patch('*/api/users/me', async ({ request }) => {
+    if (!db.currentUser) return new HttpResponse(null, { status: 401 });
+    const updateData = await request.json();
+    const userIndex = db.users.findIndex(u => u.id === db.currentUser.id);
+    
+    if (userIndex !== -1) {
+      db.users[userIndex] = { ...db.users[userIndex], ...updateData };
+      db.currentUser = db.users[userIndex];
+      saveDB(db);
+      return HttpResponse.json({ success: true, message: "프로필 정보가 성공적으로 수정되었습니다.", data: db.currentUser });
+    }
+    return new HttpResponse(null, { status: 404 });
+  }),
+
   http.get('*/api/users/me/posts/owned', () => {
     const owned = db.posts.filter(p => p.ownerId === db.currentUser?.id);
     return HttpResponse.json({ success: true, message: "내 모집글 조회가 완료되었습니다.", data: owned });
