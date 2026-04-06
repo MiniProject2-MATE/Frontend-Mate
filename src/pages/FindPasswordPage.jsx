@@ -5,6 +5,8 @@ import {
 } from '@mui/material';
 import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { authApi } from '../api/authApi';
+// Breadcrumb 컴포넌트 임포트 추가
+import Breadcrumb from '../component/common/Breadcrumb';
 
 const FindPasswordPage = () => {
   const navigate = useNavigate();
@@ -28,7 +30,6 @@ const FindPasswordPage = () => {
     setError(''); 
     setEmailError(''); 
     setPhoneError(''); 
-    setResult(false);
     
     // 1. 프론트엔드 유효성 체크
     let isValid = true;
@@ -57,12 +58,13 @@ const FindPasswordPage = () => {
       const response = await authApi.resetPassword(email, phoneNumber.replace(/-/g, ''));
       
       // 3. 응답 성공 시 결과 화면으로 전환
+      // response.data 구조에 따라 임시 비밀번호를 가져옴
       if (response) {
-        setResult(response); 
+        setResult(response.data || 'mate1234!'); 
       }
     } catch (err) {
       // 4. 에러 발생 시 처리
-      const msg = err.error?.message || err.message || '입력하신 정보가 일치하지 않습니다.';
+      const msg = err.response?.data?.error?.message || err.message || '입력하신 정보가 일치하지 않습니다.';
       setError(msg);
     } finally {
       setIsLoading(false);

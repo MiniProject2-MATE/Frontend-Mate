@@ -103,16 +103,36 @@ export const handlers = [
     });
   }),
 
-  // 비밀번호 재설정 (POST /api/auth/reset-password)
+  // 비밀번호 재설정 (POST */api/auth/reset-password)
   http.post('*/api/auth/reset-password', async ({ request }) => {
     const { email, phoneNumber } = await request.json();
-    const user = db.users.find(u => u.email === email && u.phoneNumber === phoneNumber.replace(/-/g, ''));
+    
+    // DB에서 이메일과 전화번호가 모두 일치하는 유저 찾기
+    const user = db.users.find(u => 
+      u.email === email && 
+      u.phoneNumber === phoneNumber.replace(/-/g, '')
+    );
 
     if (user) {
-      return HttpResponse.json({ success: true, message: "비밀번호 재설정 이메일이 발송되었습니다." });
+      // 임시 비밀번호 생성 (예시)
+      const temporaryPassword = "mate" + Math.random().toString(36).substring(2, 7) + "!";
+      
+      // 실제 DB(Mock)의 비밀번호도 임시 비밀번호로 변경 (로그인 가능하게 함)
+      user.password = temporaryPassword;
+      saveDB(db);
+
+      return HttpResponse.json({ 
+        success: true, 
+        message: "비밀번호 재설정 이메일이 발송되었습니다.",
+        data: temporaryPassword // 화면에 보여줄 임시 비밀번호 전달
+      });
     }
+
     return new HttpResponse(
-      JSON.stringify({ success: false, message: "일치하는 사용자 정보를 찾을 수 없습니다." }), 
+      JSON.stringify({ 
+        success: false, 
+        error: { code: 'AUTH_003', message: "일치하는 사용자 정보를 찾을 수 없습니다." } 
+      }), 
       { status: 404 }
     );
   }),
@@ -122,6 +142,21 @@ export const handlers = [
     if (!db.currentUser) return new HttpResponse(null, { status: 401 });
     const user = db.users.find(u => u.id === db.currentUser.id);
     return HttpResponse.json({ success: true, message: "내 정보 조회가 완료되었습니다.", data: user });
+  }),
+
+  // [추가된 프로필 수정 로직]
+  http.patch('*/api/users/me', async ({ request }) => {
+    if (!db.currentUser) return new HttpResponse(null, { status: 401 });
+    const updateData = await request.json();
+    const userIndex = db.users.findIndex(u => u.id === db.currentUser.id);
+    
+    if (userIndex !== -1) {
+      db.users[userIndex] = { ...db.users[userIndex], ...updateData };
+      db.currentUser = db.users[userIndex];
+      saveDB(db);
+      return HttpResponse.json({ success: true, message: "프로필 정보가 성공적으로 수정되었습니다.", data: db.currentUser });
+    }
+    return new HttpResponse(null, { status: 404 });
   }),
 
   http.get('*/api/users/me/posts/owned', () => {
