@@ -73,10 +73,9 @@ const MyPage = () => {
   const profileRef = useRef(null);
   const activityRef = useRef(null);
 
-  // 유저 데이터 및 활동 이력 로드 함수 (v1.1 병렬 처리 반영)
+  // 유저 데이터 및 활동 이력 로드 함수
   const fetchUserData = useCallback(async () => {
     try {
-      // 설계서 v1.1에 따라 정보와 활동 목록을 각각 호출하여 병렬로 가져옵니다.
       const [me, owned, joined, applies] = await Promise.all([
         authApi.getUserInfo(),
         authApi.getMyOwnedPosts(),
@@ -106,7 +105,6 @@ const MyPage = () => {
       setIsNicknameChecked(true);
       setIsPhoneChecked(true);
       
-      // Zustand 스토어 업데이트
       useAuthStore.getState().updateUser(me);
     } catch (err) {
       console.error("회원 정보를 불러오지 못했습니다.", err);
@@ -126,12 +124,10 @@ const MyPage = () => {
     }
   }, []);
 
-  // 마운트 시 1회 실행
   useEffect(() => {
     fetchUserData();
   }, [fetchUserData]);
 
-  // 외부 페이지 이동 처리
   useEffect(() => {
     if (location.state?.activeTab !== undefined && !isLoading) {
       setTabValue(location.state.activeTab); 
@@ -164,13 +160,12 @@ const MyPage = () => {
 
   const handleStatusUpdate = async (applicationId, status) => {
     try {
-      // 설계서 v1.1: 'accept' 또는 'reject' 파라미터 사용
       const targetStatus = status === 'ACCEPTED' ? 'accept' : 'reject';
       await postApi.updateApplicationStatus(applicationId, targetStatus);
       showToast(status === 'ACCEPTED' ? '승인되었습니다.' : '거절되었습니다.', 'success');
       if (selectedProjectId) fetchApplications(selectedProjectId);
       setIsAppDetailOpen(false);
-      fetchUserData(); // 상태 변경 후 전체 데이터 동기화
+      fetchUserData();
     } catch (err) {
       console.error("상태 업데이트 실패:", err);
       showToast(err.error?.message || '처리 중 오류가 발생했습니다.', 'error');
@@ -314,7 +309,6 @@ const MyPage = () => {
         ...(password && { password })
       };
       
-      // authApi 레이어 사용
       await authApi.updateUserProfile(updatePayload);
       await fetchUserData();
       
@@ -397,6 +391,7 @@ const MyPage = () => {
   const handleAvatarClick = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
+  // 💡 수정된 필터링 로직: 대소문자 통일 및 프로젝트 객체 내부 경로 체크
   const getFilteredData = useCallback(() => {
     if (!userInfo) return [];
     let sourceData = [];
@@ -405,10 +400,17 @@ const MyPage = () => {
     else if (tabValue === 2) sourceData = userInfo.acceptedProjects || [];
 
     if (categoryFilter === '전체') return sourceData;
+    
     return sourceData.filter(item => {
-      const category = item?.category || "";
+      // 데이터가 위치할 수 있는 모든 경로 체크 후 대문자 변환
+      const rawValue = item?.category || 
+                       item?.projectCategory || 
+                       item?.project?.category || "";
+      
+      const itemCategory = rawValue.toUpperCase();
       const categoryMap = { '프로젝트': 'PROJECT', '스터디': 'STUDY' };
-      return category === categoryMap[categoryFilter];
+      
+      return itemCategory === categoryMap[categoryFilter];
     });
   }, [userInfo, tabValue, categoryFilter]);
 
@@ -660,18 +662,21 @@ const MyPage = () => {
 
 const MenuButton = ({ icon, label, count, onClick }) => ( <Button fullWidth startIcon={icon} onClick={onClick} sx={{ justifyContent: 'flex-start', px: 2.5, py: 1.8, borderRadius: 3, fontWeight: 800, color: '#6B7280', '&:hover': { bgcolor: '#F9FAFB', color: '#6366F1' } }}><Box sx={{ flexGrow: 1, textAlign: 'left' }}>{label}</Box>{count !== undefined && <Chip label={count} size="small" sx={{ height: 22, fontWeight: 900, bgcolor: '#F3F4F6' }} />}</Button> );
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
+
+// 💡 ActivityItem에서도 데이터 추출 경로를 안전하게 수정하여 [프로젝트] 라벨이 정확히 뜨도록 함
 const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onViewAppsClick, onCancelClick }) => {
-  const categoryLabel = item.category === 'PROJECT' ? '[프로젝트]' : item.category === 'STUDY' ? '[스터디]' : '';
-  const title = item.projectTitle || item.title;
+  const rawValue = item?.category || item?.projectCategory || item?.project?.category || "";
+  const rawCategory = rawValue.toUpperCase();
+  const categoryLabel = rawCategory === 'PROJECT' ? '[프로젝트]' : rawCategory === 'STUDY' ? '[스터디]' : '';
+    
+  const title = item.projectTitle || item.title || "제목 없음";
   const status = tabValue === 2 ? '참여중' : (item.status === 'PENDING' ? '대기중' : (item.status === 'ACCEPTED' ? '승인완료' : '거절됨'));
   
-  // 설계서 v1.1 규격 반영 및 상세 명칭 변환 (POSITION_OPTIONS 매핑)
-  const rawPosition = item.applicantPosition || item.position || (tabValue === 0 ? '시니어메이트' : '선택없음');
+  const rawPosition = item.applicantPosition || item.position || (tabValue === 0 ? 'OWNER' : '선택없음');
   const position = POSITION_OPTIONS.find(p => p.value === rawPosition)?.label || rawPosition;
   
   const date = (item.createdAt || item.appliedDate || item.endDate || '-').split('T')[0];
   
-  // 탭별 정보 텍스트 구성
   let info = '';
   if (tabValue === 0) {
     info = `내 역할: ${position} · 등록일: ${date}`;
@@ -681,8 +686,9 @@ const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onViewAppsC
     info = `지원 분야: ${position} · 신청일: ${date}`;
   }
 
-  return ( <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }, transition: '0.2s' }}><Box sx={{ flex: 1 }}><Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" onClick={onTitleClick} sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}><Box component="span" sx={{ color: item.category === 'PROJECT' ? 'primary.main' : 'warning.main', mr: 1 }}>{categoryLabel}</Box>{title}</Typography>{tabValue !== 0 && ( <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '참여중' ? '#EEF2FF' : (status === '대기중' ? '#FFFBEB' : (status === '승인완료' ? '#ECFDF5' : '#FEF2F2')), color: status === '참여중' ? '#6366F1' : (status === '대기중' ? '#D97706' : (status === '승인완료' ? '#10B981' : '#EF4444')) }} /> )}</Stack><Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{info}</Typography></Box><Stack direction="row" spacing={1}>{tabValue === 0 && ( <> <Button variant="contained" disableElevation onClick={onViewAppsClick} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: 2 }}>지원서 보기</Button> <Button variant="contained" disableElevation onClick={onManageClick} sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button> </> )}{tabValue === 1 && item.status === 'PENDING' && <Button variant="outlined" color="error" onClick={onCancelClick} sx={{ fontWeight: 800, borderRadius: 2 }}>취소하기</Button>}</Stack></Box> );
+  return ( <Box sx={{ p: 4, borderRadius: 5, bgcolor: '#F9FAFB', border: '1px solid #F3F4F6', display: 'flex', justifyContent: 'space-between', alignItems: 'center', '&:hover': { bgcolor: 'white', boxShadow: '0 8px 24px rgba(0,0,0,0.05)' }, transition: '0.2s' }}><Box sx={{ flex: 1 }}><Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1.5 }}><Typography variant="h6" onClick={onTitleClick} sx={{ fontWeight: 900, fontSize: '1.1rem', cursor: 'pointer', '&:hover': { color: '#6366F1', textDecoration: 'underline' } }}><Box component="span" sx={{ color: rawCategory === 'PROJECT' ? 'primary.main' : 'warning.main', mr: 1 }}>{categoryLabel}</Box>{title}</Typography>{tabValue !== 0 && ( <Chip label={status} size="small" sx={{ fontWeight: 900, bgcolor: status === '참여중' ? '#EEF2FF' : (status === '대기중' ? '#FFFBEB' : (status === '승인완료' ? '#ECFDF5' : '#FEF2F2')), color: status === '참여중' ? '#6366F1' : (status === '대기중' ? '#D97706' : (status === '승인완료' ? '#10B981' : '#EF4444')) }} /> )}</Stack><Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 600 }}>{info}</Typography></Box><Stack direction="row" spacing={1}>{tabValue === 0 && ( <> <Button variant="contained" disableElevation onClick={onViewAppsClick} sx={{ bgcolor: '#6366F1', color: 'white', fontWeight: 900, borderRadius: 2 }}>지원서 보기</Button> <Button variant="contained" disableElevation onClick={onManageClick} sx={{ bgcolor: '#E0E7FF', color: '#4338CA', fontWeight: 900, borderRadius: 2 }}>관리</Button> </> )}{tabValue === 1 && item.status === 'PENDING' && <Button variant="outlined" color="error" onClick={onCancelClick} sx={{ fontWeight: 800, borderRadius: 2 }}>취소하기</Button>}</Stack></Box> );
 };
+
 const inputStyle = { '& .MuiOutlinedInput-root': { bgcolor: '#F9FAFB', borderRadius: 1.5, fontSize: '0.95rem', fontWeight: 600, '& fieldset': { border: '1px solid #E5E7EB' }, '&.Mui-focused fieldset': { borderWidth: '2px', borderColor: '#6366F1' }, '&.Mui-focused': { bgcolor: 'white' } } };
 
 export default MyPage;
