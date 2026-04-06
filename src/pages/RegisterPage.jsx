@@ -127,7 +127,7 @@ const RegisterPage = () => {
 
   // 폼 유효성 검사
   const validate = () => {
-    const { email, password, confirmPassword, nickname, position, techStacks, phoneNumber } = formData;
+    const { email, password, confirmPassword, nickname, techStacks, phoneNumber } = formData;
     
     // 필수 항목 체크 (설계서 규칙 준수)
     if (!email || !password || !phoneNumber) {

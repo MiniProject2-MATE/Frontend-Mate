@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   Box, Typography, TextField, Stack, Divider, 
   FormLabel, Chip, Card, CardContent, 
-  Container, Paper, Autocomplete, createFilterOptions, MenuItem, LinearProgress
+  Container, Paper, Autocomplete, MenuItem, LinearProgress
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,8 +21,6 @@ import { postApi } from '../api/postApi';
 import { useUiStore } from '../store/uiStore';
 import { useAuthStore } from '../store/authStore';
 import { TECH_STACK_OPTIONS } from '../constants/techStacks';
-
-const filter = createFilterOptions();
 
 /**
  * 모집글 작성 페이지 (REST API 설계서 v1.1 반영)
