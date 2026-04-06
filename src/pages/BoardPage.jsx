@@ -33,6 +33,16 @@ import boardApi from '../api/boardApi';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 
+// 💡 [이미지 경로 최적화 함수]
+// 슬래시가 겹치거나 누락되는 문제를 방지합니다.
+const getProfileImageUrl = (path) => {
+  if (!path) return null;
+  if (path.startsWith('http')) return path;
+  const baseUrl = "http://localhost:8080";
+  const formattedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${formattedPath}`;
+};
+
 const BoardPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -303,8 +313,8 @@ const BoardPage = () => {
                   <TableBody>
                     {posts && posts.length > 0 ? ( posts.map((post) => ( <TableRow key={post.id} hover onClick={() => handlePostClick(post)} sx={{ cursor: 'pointer', '&:hover': { bgcolor: '#F0F2FF !important' } }}><TableCell sx={{ py: 2.5 }}><Chip label={post.type === 'NOTICE' ? '공지' : post.type === 'QUESTION' ? '질문' : '일반'} size="small" sx={{ bgcolor: post.type === 'NOTICE' ? '#FFFBEB' : (post.type === 'QUESTION' ? '#EFF6FF' : '#F3F4F6'), color: post.type === 'NOTICE' ? '#D97706' : (post.type === 'QUESTION' ? '#2563EB' : '#4B5563'), fontWeight: 900, borderRadius: 1.5 }} /></TableCell><TableCell sx={{ fontWeight: 700, fontSize: '1rem', color: '#1F2937' }}>{post.title}</TableCell>
                     <TableCell><Stack direction="row" spacing={1} alignItems="center">
-                      {/* 💡 작성자의 최신 프로필 이미지를 src에 연결 (필드명 보강) */}
-                      <Avatar name={post.authorNickname} size="sm" src={post.authorProfileImg || post.authorProfileImageUrl} />
+                      {/* 💡 작성자의 프로필 이미지 URL 변환 적용 */}
+                      <Avatar name={post.authorNickname} size="sm" src={getProfileImageUrl(post.authorProfileImg || post.authorProfileImageUrl)} />
                       <Typography variant="body2" sx={{ fontWeight: 600 }}>{post.authorNickname}</Typography></Stack></TableCell>
                     <TableCell sx={{ color: '#9CA3AF', fontSize: '0.85rem' }}>{formatDate(post.createdAt)}</TableCell><TableCell sx={{ textAlign: 'center' }}><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{post.viewCount || 0}</Typography></TableCell></TableRow> )) ) : ( <TableRow><TableCell colSpan={5} sx={{ py: 10, textAlign: 'center', color: '#9CA3AF' }}>등록된 게시글이 없습니다.</TableCell></TableRow> )}
                   </TableBody>
@@ -321,8 +331,8 @@ const BoardPage = () => {
                 {projectInfo.members.map((member) => (
                   <Box key={member.nickname} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Stack direction="row" spacing={2} alignItems="center">
-                      {/* 💡 팀 멤버의 최신 프로필 이미지를 src에 연결 (필드명 보강) */}
-                      <Avatar name={member.nickname} size="md" src={member.profileImg || member.profileImageUrl} />
+                      {/* 💡 팀 멤버의 프로필 이미지 URL 변환 적용 */}
+                      <Avatar name={member.nickname} size="md" src={getProfileImageUrl(member.profileImg || member.profileImageUrl)} />
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 800, color: '#111827' }}>{member.nickname}</Typography>
                         <Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>
@@ -393,8 +403,8 @@ const BoardPage = () => {
                 </Stack>
               </Stack>
               <Stack direction="row" spacing={2} alignItems="center" sx={{ pb: 4, borderBottom: '1px solid #F3F4F6' }}>
-                {/* 💡 상세 모달 내부 작성자의 최신 프로필 이미지 (필드명 보강) */}
-                <Avatar name={selectedPost.authorNickname} size="lg" src={selectedPost.authorProfileImg || selectedPost.authorProfileImageUrl} />
+                {/* 💡 상세 모달 내부 작성자의 프로필 이미지 URL 변환 적용 */}
+                <Avatar name={selectedPost.authorNickname} size="lg" src={getProfileImageUrl(selectedPost.authorProfileImg || selectedPost.authorProfileImageUrl)} />
                 <Box sx={{ flex: 1 }}><Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#111827' }}>{selectedPost.authorNickname}</Typography><Typography variant="caption" sx={{ color: '#9CA3AF', fontWeight: 600 }}>{formatDate(selectedPost.createdAt)} · 조회 {selectedPost.viewCount || 0}</Typography></Box>
               </Stack>
             </Box>
