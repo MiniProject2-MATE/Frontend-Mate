@@ -52,7 +52,6 @@ const MyPage = () => {
     nickname: '',
     position: '',
     phoneNumber: '',
-    intro: '',
     techStacks: []
   });
 
@@ -97,7 +96,6 @@ const MyPage = () => {
         nickname: me.nickname || '',
         position: me.position || '',
         phoneNumber: me.phoneNumber || '',
-        intro: me.intro || '',
         techStacks: me.techStacks || []
       });
       setLastCheckedNickname(me.nickname || '');
@@ -273,7 +271,6 @@ const MyPage = () => {
       formData.nickname === userInfo.nickname &&
       formData.position === userInfo.position &&
       formData.phoneNumber === userInfo.phoneNumber &&
-      formData.intro === userInfo.intro &&
       JSON.stringify(formData.techStacks) === JSON.stringify(userInfo.techStacks);
     
     const isPasswordEmpty = !password && !confirmPassword;
@@ -304,7 +301,6 @@ const MyPage = () => {
         nickname: formData.nickname,
         position: formData.position,
         phoneNumber: formData.phoneNumber,
-        intro: formData.intro,
         techStacks: formData.techStacks,
         ...(password && { password })
       };
@@ -574,7 +570,6 @@ const MyPage = () => {
                   <Box><FormLabel text="포지션" /><TextField select fullWidth value={formData.position} onChange={handleInputChange('position')} sx={inputStyle}>{POSITION_OPTIONS.map((o) => ( <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem> ))}</TextField></Box>
                   <Box><FormLabel text="이메일" /><TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} /></Box>
                   <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="기술 스택" /><Autocomplete multiple options={TECH_STACK_OPTIONS} value={formData.techStacks} onChange={handleTechStacksChange} freeSolo renderTags={(val, getTagProps) => val.map((opt, i) => { const { key, ...p } = getTagProps({ index: i }); return ( <Chip key={key} label={opt} {...p} variant="filled" color="primary" sx={{ borderRadius: 2, fontWeight: 700 }} /> ); })} renderInput={(p) => ( <TextField {...p} variant="outlined" placeholder="스택 선택 또는 입력" sx={inputStyle} /> )} /></Box>
-                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={formData.intro} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}><Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1' }}>저장하기</Button></Box>
               </Paper>
