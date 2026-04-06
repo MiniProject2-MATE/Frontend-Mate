@@ -641,6 +641,30 @@ const MyPage = () => {
                   </Stack>
                 </Box>
                 <Box>
+                  <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>보유 기술 스택</Typography>
+                  <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
+                    {selectedApp.techStacks && selectedApp.techStacks.length > 0 ? (
+                      selectedApp.techStacks.map((stack) => (
+                        <Chip 
+                          key={stack} 
+                          label={stack} 
+                          size="small" 
+                          sx={{ 
+                            bgcolor: '#F3F4F6', 
+                            color: '#4B5563', 
+                            fontWeight: 700, 
+                            borderRadius: 1.5 
+                          }} 
+                        />
+                      ))
+                    ) : (
+                      <Typography variant="body2" sx={{ color: '#9CA3AF', fontStyle: 'italic', pl: 0.5 }}>
+                        등록된 기술 스택이 없습니다.
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+                <Box>
                   <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>지원 메시지</Typography>
                   <Typography sx={{ bgcolor: '#F9FAFB', p: 2.5, borderRadius: 2, border: '1px solid #F3F4F6', fontSize: '0.95rem', lineHeight: 1.7, fontWeight: 500, color: '#374151', whiteSpace: 'pre-line' }}>{selectedApp.message}</Typography>
                 </Box>
