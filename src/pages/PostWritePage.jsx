@@ -114,6 +114,12 @@ const PostWritePage = () => {
       return;
     }
 
+      // 💡 모집 인원 최대 제한 (본인 포함 +1 해서 보내므로 19명까지)
+    if (Number(formData.recruitCount) > 19) {
+      showToast('모집 인원은 본인 제외 최대 19명까지 가능합니다.', 'warning');
+      return;
+    }
+
     if (!currentUser) {
       showToast('로그인이 필요합니다.', 'error');
       navigate('/login');
