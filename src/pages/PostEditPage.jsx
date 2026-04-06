@@ -138,6 +138,11 @@ const PostEditPage = () => {
       return;
     }
 
+    if (formData.title.trim().length < 5) {
+      showToast('제목은 5글자 이상 입력해주세요.', 'warning');
+      return;
+    }
+
     const totalRecruitCount = Number(formData.recruitCount) + 1;
 
     if (totalRecruitCount < formData.currentCount) {
@@ -266,7 +271,7 @@ const PostEditPage = () => {
                 </Box>
                 <Box>
                   <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>제목 *</FormLabel>
-                  <TextField fullWidth value={formData.title} onChange={handleChange('title')} sx={inputStyle} />
+                  <TextField fullWidth value={formData.title} onChange={handleChange('title')} placeholder="함께하고 싶은 열정이 느껴지는 제목을 지어주세요! (5글자 이상)" sx={inputStyle} />
                 </Box>
               </Paper>
 

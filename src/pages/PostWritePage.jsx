@@ -109,6 +109,11 @@ const PostWritePage = () => {
       return;
     }
 
+    if (formData.title.trim().length < 5) {
+      showToast('제목은 5글자 이상 입력해주세요.', 'warning');
+      return;
+    }
+
     if (!currentUser) {
       showToast('로그인이 필요합니다.', 'error');
       navigate('/login');
@@ -168,7 +173,7 @@ const PostWritePage = () => {
                 </Box>
                 <Box>
                   <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>제목 *</FormLabel>
-                  <TextField fullWidth value={formData.title} onChange={handleChange('title')} placeholder="함께하고 싶은 열정이 느껴지는 제목을 지어주세요!" variant="outlined" sx={inputStyle} />
+                  <TextField fullWidth value={formData.title} onChange={handleChange('title')} placeholder="함께하고 싶은 열정이 느껴지는 제목을 지어주세요! (5글자 이상)" variant="outlined" sx={inputStyle} />
                 </Box>
               </Paper>
 
