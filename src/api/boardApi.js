@@ -55,12 +55,12 @@ const boardApi = {
 
   // 댓글 수정 (v1.1 요약표 규격: PATCH /api/comments/{commentId})
   updateComment: async (commentId, content) => {
-    return await axiosInstance.patch(`/comments/${commentId}`, { content });
+    return await axiosInstance.put(`/posts/comments/${commentId}`, { content });
   },
 
   // 댓글 삭제 (v1.1 요약표 규격: DELETE /api/comments/{commentId})
   deleteComment: async (commentId) => {
-    return await axiosInstance.delete(`/comments/${commentId}`);
+    return await axiosInstance.delete(`/posts/comments/${commentId}`);
   },
 };
 
