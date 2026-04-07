@@ -6,7 +6,6 @@ import {
 } from '@mui/material';
 
 // Icons
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import GroupsIcon from '@mui/icons-material/Groups';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -183,9 +182,6 @@ const PostDetailPage = () => {
                   }}>
                     <span style={{ fontSize: '1.2rem' }}>●</span> 
                     {dynamicStatus === 'RECRUITING' ? '모집중' : (dynamicStatus === 'DEADLINE_SOON' ? '마감임박' : '모집종료')}
-                  </Typography>
-                  <Typography variant="caption" sx={{ color: '#9CA3AF', display: 'flex', alignItems: 'center', gap: 0.5, fontWeight: 700, fontSize: '0.9rem' }}>
-                    <VisibilityIcon sx={{ fontSize: 18 }} /> 조회 {post.viewCount || 0}
                   </Typography>
                 </Box>
 
