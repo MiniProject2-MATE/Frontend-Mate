@@ -643,10 +643,27 @@ const getFilteredData = useCallback(() => {
               <Stack spacing={3.5}>
                 <Box>
                   <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>지원 정보</Typography>
-                  <Stack direction="row" spacing={1}>
+                  <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
                     <Chip label={POSITION_OPTIONS.find(p => p.value === selectedApp.applicantPosition)?.label || selectedApp.applicantPosition} sx={{ bgcolor: '#EEF2FF', color: '#6366F1', fontWeight: 900, borderRadius: 1.5 }} />
                     <Chip label={selectedApp.createdAt?.split('T')[0]} variant="outlined" sx={{ fontWeight: 700, borderRadius: 1.5, borderColor: '#E5E7EB' }} />
                   </Stack>
+                  
+                  {/* 💡 기술 스택 섹션 추가 */}
+                  {selectedApp.techStacks && selectedApp.techStacks.length > 0 && (
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="caption" sx={{ color: '#6B7280', fontWeight: 800, display: 'block', mb: 1 }}>보유 기술 스택</Typography>
+                      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
+                        {selectedApp.techStacks.map((stack) => (
+                          <Chip 
+                            key={stack} 
+                            label={stack} 
+                            size="small" 
+                            sx={{ bgcolor: '#F3F4F6', fontWeight: 700, borderRadius: 1, fontSize: '0.75rem' }} 
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
+                  )}
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>지원 메시지</Typography>

@@ -200,7 +200,7 @@ const RegisterPage = () => {
 
   const inputStyle = {
     '& .MuiOutlinedInput-root': { 
-      borderRadius: 4, bgcolor: '#F9FAFB',
+      borderRadius: 1.5, bgcolor: '#F9FAFB',
       '& fieldset': { borderColor: 'transparent' },
       '&:hover fieldset': { borderColor: 'primary.light' },
       '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: 2 }
