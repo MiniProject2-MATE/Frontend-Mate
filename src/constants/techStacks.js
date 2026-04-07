@@ -35,6 +35,7 @@ export const TECH_STACK_OPTIONS = [
 ].sort((a, b) => a.localeCompare(b, 'en', { sensitivity: 'base' }));
 
 export const POSITION_OPTIONS = [
+  { value: 'FS', label: '풀스택 (FS)'},
   { value: 'FE', label: '프론트엔드 (FE)' },
   { value: 'BE', label: '백엔드 (BE)' },
   { value: 'DE', label: '디자이너 (DE)' },
