@@ -328,7 +328,15 @@ const BoardPage = () => {
             <Paper elevation={0} sx={{ p: 4, borderRadius: 5, border: '1px solid #EEEEEE', position: 'sticky', top: '100px' }}>
               <Typography variant="caption" sx={{ fontWeight: 900, color: '#D1D5DB', display: 'block', mb: 3, letterSpacing: '0.1em' }}>TEAM MEMBERS ({projectInfo.members.length})</Typography>
               <Stack spacing={2.5}>
-                {projectInfo.members.map((member) => (
+                {[...projectInfo.members]
+                  .sort((a, b) => {
+                    // 1. OWNER 우선 정렬
+                    if (a.role === 'OWNER') return -1;
+                    if (b.role === 'OWNER') return 1;
+                    // 2. 그 외에는 닉네임 가나다순 정렬
+                    return a.nickname.localeCompare(b.nickname);
+                  })
+                  .map((member) => (
                   <Box key={member.nickname} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <Stack direction="row" spacing={2} alignItems="center">
                       {/* 💡 팀 멤버의 프로필 이미지 URL 변환 적용 */}
