@@ -18,7 +18,7 @@ export const usePostStore = create((set, get) => ({
   // 필터/검색 상태
   keyword: '',
   category: '전체',
-  sort: 'latest',
+  sort: 'createdAt',
   page: 0,
 
   // 모집글 목록 가져오기
