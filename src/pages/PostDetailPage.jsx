@@ -21,7 +21,7 @@ import authApi from '../api/authApi';
 import { useAuthStore } from '../store/authStore';
 import { useUiStore } from '../store/uiStore';
 import { POSITION_OPTIONS } from '../constants/techStacks';
-import { getDynamicStatus } from '../utils/statusUtils';
+import { getDynamicStatus, getOnOfflineLabel } from '../utils/statusUtils';
 
 /**
  * 모집글 상세 페이지 (REST API 설계서 v1.1 반영)
@@ -200,7 +200,7 @@ const PostDetailPage = () => {
                 <Stack direction="row" spacing={2} sx={{ mb: 4, width: '100%' }}>
                   {[
                     { icon: <GroupsIcon />, label: '모집 인원', value: `${recruitCount}명`, color: '#6366F1', bgColor: '#EEF2FF' },
-                    { icon: <LocationOnIcon />, label: '진행 방식', value: post.onOffline || '온라인', color: '#10B981', bgColor: '#ECFDF5' },
+                    { icon: <LocationOnIcon />, label: '진행 방식', value: getOnOfflineLabel(post.onOffline), color: '#10B981', bgColor: '#ECFDF5' },
                     { icon: <CalendarMonthIcon />, label: '모집 마감', value: post.endDate, color: '#F59E0B', bgColor: '#FFFBEB' },
                   ].map((info, index) => (
                     <Box key={index} sx={{ 

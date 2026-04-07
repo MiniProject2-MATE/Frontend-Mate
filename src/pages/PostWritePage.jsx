@@ -98,7 +98,7 @@ const PostWritePage = () => {
 
   // 진행 방식 한글 -> 영문 매핑 (v1.1 규격)
   const mapOnOffline = (value) => {
-    const map = { '온라인': 'ONLINE', '오프라인': 'OFFLINE', '혼합': 'BOTH' };
+    const map = { '온라인': 'ONLINE', '오프라인': 'OFFLINE', '온/오프라인': 'BOTH' };
     return map[value] || 'ONLINE';
   };
 
@@ -200,7 +200,7 @@ const PostWritePage = () => {
                   </Stack>
                   <Box>
                     <FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>진행 방식 *</FormLabel>
-                    <Stack direction="row" sx={{ bgcolor: '#F3F4F6', borderRadius: 3, p: 0.5 }}>{['온라인', '오프라인', '혼합'].map((m) => ( <Box key={m} onClick={() => setFormData({...formData, onOffline: m})} sx={{ flex: 1, py: 1.5, textAlign: 'center', cursor: 'pointer', borderRadius: 2.5, bgcolor: formData.onOffline === m ? 'white' : 'transparent', color: formData.onOffline === m ? '#6C63FF' : '#6B7280', fontWeight: 800, transition: '0.2s', boxShadow: formData.onOffline === m ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>{m}</Box> ))}</Stack>
+                    <Stack direction="row" sx={{ bgcolor: '#F3F4F6', borderRadius: 3, p: 0.5 }}>{['온라인', '오프라인', '온/오프라인'].map((m) => ( <Box key={m} onClick={() => setFormData({...formData, onOffline: m})} sx={{ flex: 1, py: 1.5, textAlign: 'center', cursor: 'pointer', borderRadius: 2.5, bgcolor: formData.onOffline === m ? 'white' : 'transparent', color: formData.onOffline === m ? '#6C63FF' : '#6B7280', fontWeight: 800, transition: '0.2s', boxShadow: formData.onOffline === m ? '0 2px 8px rgba(0,0,0,0.05)' : 'none' }}>{m}</Box> ))}</Stack>
                   </Box>
                   <Box><FormLabel sx={{ fontWeight: 800, mb: 1.5, display: 'block', color: '#374151' }}>기술 스택 *</FormLabel><Autocomplete multiple freeSolo value={formData.techStacks} onChange={handleTechStacksChange} options={TECH_STACK_OPTIONS} renderInput={(params) => <TextField {...params} placeholder="스택 선택 또는 입력" sx={inputStyle} />} renderTags={(val, getTagProps) => val.map((opt, i) => { const { key, ...p } = getTagProps({ index: i }); return <Chip key={key} label={opt} {...p} sx={{ bgcolor: '#EEF2FF', color: '#4F46E5', fontWeight: 800 }} />; })} /></Box>
                 </Stack>

@@ -1,4 +1,22 @@
 /**
+ * 온/오프라인 진행 방식 한글 매핑 (v1.1 규격 반영)
+ */
+export const ON_OFFLINE_MAP = {
+  ONLINE: '온라인',
+  OFFLINE: '오프라인',
+  BOTH: '온/오프라인'
+};
+
+/**
+ * 온/오프라인 값을 한글로 변환합니다.
+ * @param {string} value - 'ONLINE' | 'OFFLINE' | 'BOTH'
+ * @returns {string} - '온라인' | '오프라인' | '온/오프라인 혼합'
+ */
+export const getOnOfflineLabel = (value) => {
+  return ON_OFFLINE_MAP[value] || value || '온라인';
+};
+
+/**
  * 모집글의 상태를 동적으로 계산합니다. (REST API 설계서 v1.1 반영)
  * @param {Object} post - 모집글 데이터
  * @returns {string} - 'RECRUITING' | 'DEADLINE_SOON' | 'CLOSED'
