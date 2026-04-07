@@ -30,15 +30,15 @@ import { TECH_STACK_OPTIONS, POSITION_OPTIONS } from '../constants/techStacks';
 import authApi from '../api/authApi';
 import postApi from '../api/postApi';
 
-// 💡 [이미지 경로 최적화 함수]
-// 슬래시가 겹치거나 누락되는 문제를 방지합니다.
-const getProfileImageUrl = (path) => {
-  if (!path) return null;
-  if (path.startsWith('http')) return path;
-  const baseUrl = "http://localhost:8080";
-  const formattedPath = path.startsWith('/') ? path : `/${path}`;
-  return `${baseUrl}${formattedPath}`;
-};
+// // 💡 [이미지 경로 최적화 함수]
+// // 슬래시가 겹치거나 누락되는 문제를 방지합니다.
+// const getProfileImageUrl = (path) => {
+//   if (!path) return null;
+//   if (path.startsWith('http')) return path;
+//   const baseUrl = "http://localhost:8080";
+//   const formattedPath = path.startsWith('/') ? path : `/${path}`;
+//   return `${baseUrl}${formattedPath}`;
+// };
 
 const MyPage = () => {
   const navigate = useNavigate();
@@ -62,6 +62,7 @@ const MyPage = () => {
     nickname: '',
     position: '',
     phoneNumber: '',
+    intro: '',
     techStacks: []
   });
 
@@ -106,6 +107,7 @@ const MyPage = () => {
         nickname: me.nickname || '',
         position: me.position || '',
         phoneNumber: me.phoneNumber || '',
+        intro: me.intro || '',
         techStacks: me.techStacks || []
       });
       setLastCheckedNickname(me.nickname || '');
@@ -281,6 +283,7 @@ const MyPage = () => {
       formData.nickname === userInfo.nickname &&
       formData.position === userInfo.position &&
       formData.phoneNumber === userInfo.phoneNumber &&
+      formData.intro === userInfo.intro &&
       JSON.stringify(formData.techStacks) === JSON.stringify(userInfo.techStacks);
     
     const isPasswordEmpty = !password && !confirmPassword;
@@ -311,6 +314,7 @@ const MyPage = () => {
         nickname: formData.nickname,
         position: formData.position,
         phoneNumber: formData.phoneNumber,
+        intro: formData.intro,
         techStacks: formData.techStacks,
         ...(password && { password })
       };
@@ -397,26 +401,40 @@ const MyPage = () => {
   const handleAvatarClick = (event) => setAnchorEl(event.currentTarget);
   const handleMenuClose = () => setAnchorEl(null);
 
-  // 💡 수정된 필터링 로직: 대소문자 통일 및 프로젝트 객체 내부 경로 체크
-  const getFilteredData = useCallback(() => {
+  // 💡 수정된 필터링 로직: 신청 현황(tabValue === 1)에서도 카테고리를 정확히 찾도록 수정
+const getFilteredData = useCallback(() => {
     if (!userInfo) return [];
     let sourceData = [];
+    
+    // 1. 현재 탭에 맞는 데이터 소스 선택
     if (tabValue === 0) sourceData = userInfo.myPosts || [];
     else if (tabValue === 1) sourceData = userInfo.applies || [];
     else if (tabValue === 2) sourceData = userInfo.acceptedProjects || [];
 
+    // 2. '전체'일 때는 필터링 없이 반환
     if (categoryFilter === '전체') return sourceData;
-    
+
+    // 3. 카테고리 필터링 실행
     return sourceData.filter(item => {
-      // 데이터가 위치할 수 있는 모든 경로 체크 후 대문자 변환
+      // 💡 다양한 경로에서 카테고리 값을 추출하고 대문자로 통일
       const rawValue = item?.category || 
                        item?.projectCategory || 
-                       item?.project?.category || "";
+                       item?.project?.category;
+                       
+      if (!rawValue) return false; // 카테고리 정보가 없으면 필터링 시 제외
+
+      const itemCategory = rawValue.toUpperCase(); // 비교를 위해 대문자 변환
       
-      const itemCategory = rawValue.toUpperCase();
-      const categoryMap = { '프로젝트': 'PROJECT', '스터디': 'STUDY' };
+      // 화면의 '프로젝트', '스터디' 글자를 API 규격인 'PROJECT', 'STUDY'로 변환
+      const categoryMap = { 
+        '프로젝트': 'PROJECT', 
+        '스터디': 'STUDY' 
+      };
       
-      return itemCategory === categoryMap[categoryFilter];
+      const targetCategory = categoryMap[categoryFilter];
+
+      // 두 값이 일치하는 것만 반환 (예: 'PROJECT' === 'PROJECT')
+      return itemCategory === targetCategory;
     });
   }, [userInfo, tabValue, categoryFilter]);
 
@@ -444,8 +462,7 @@ const MyPage = () => {
                 <Box sx={{ px: 3, pb: 4, textAlign: 'center', mt: -6 }}>
                   <Box sx={{ position: 'relative', display: 'inline-block' }}>
                     <Box onClick={handleAvatarClick} sx={{ cursor: 'pointer', transition: '0.2s', '&:hover': { opacity: 0.8, transform: 'scale(1.02)' } }}>
-                      {/* 💡 내 프로필 이미지 URL 변환 적용 */}
-                      <Avatar name={userInfo.nickname} src={getProfileImageUrl(userInfo.profileImg || userInfo.profileImageUrl)} size="xl" />
+                      <Avatar name={userInfo.nickname} src={userInfo.profileImg || userInfo.profileImageUrl} size="xl" />
                     </Box>
                     <IconButton 
                       onClick={handleAvatarClick} 
@@ -581,6 +598,7 @@ const MyPage = () => {
                   <Box><FormLabel text="포지션" /><TextField select fullWidth value={formData.position} onChange={handleInputChange('position')} sx={inputStyle}>{POSITION_OPTIONS.map((o) => ( <MenuItem key={o.value} value={o.value}>{o.label}</MenuItem> ))}</TextField></Box>
                   <Box><FormLabel text="이메일" /><TextField fullWidth value={userInfo.email || ''} InputProps={{ readOnly: true }} sx={{ ...inputStyle, '& .MuiOutlinedInput-root': { bgcolor: '#F3F4F6' } }} /></Box>
                   <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="기술 스택" /><Autocomplete multiple options={TECH_STACK_OPTIONS} value={formData.techStacks} onChange={handleTechStacksChange} freeSolo renderTags={(val, getTagProps) => val.map((opt, i) => { const { key, ...p } = getTagProps({ index: i }); return ( <Chip key={key} label={opt} {...p} variant="filled" color="primary" sx={{ borderRadius: 2, fontWeight: 700 }} /> ); })} renderInput={(p) => ( <TextField {...p} variant="outlined" placeholder="스택 선택 또는 입력" sx={inputStyle} /> )} /></Box>
+                  <Box sx={{ gridColumn: '1 / -1' }}><FormLabel text="한 줄 소개" /><TextField fullWidth multiline rows={2} value={formData.intro} onChange={handleInputChange('intro')} sx={inputStyle} /></Box>
                 </Box>
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 6 }}><Button variant="contained" onClick={handleSaveProfile} startIcon={<SaveIcon />} sx={{ px: 6, py: 1.8, borderRadius: 4, fontWeight: 900, bgcolor: '#6366F1' }}>저장하기</Button></Box>
               </Paper>
@@ -607,10 +625,7 @@ const MyPage = () => {
             <List sx={{ py: 0 }}>
               {applications.map((app) => (
                 <ListItem key={app.id || app.applyId} button onClick={() => { setSelectedApp(app); setIsAppDetailOpen(true); }} sx={{ py: 2.5, px: 4, borderBottom: '1px solid #F9FAFB', transition: '0.2s', '&:hover': { bgcolor: '#F8F9FF' } }}>
-                  <ListItemAvatar>
-                    {/* 💡 지원자 목록 모달 프로필 이미지 URL 변환 적용 */}
-                    <Avatar name={app.applicantNickname} src={getProfileImageUrl(app.profileImg || app.profileImageUrl)} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} />
-                  </ListItemAvatar>
+                  <ListItemAvatar><Avatar name={app.applicantNickname} src={app.profileImg || app.profileImageUrl} sx={{ width: 48, height: 48, border: '2px solid #EEF2FF' }} /></ListItemAvatar>
                   <ListItemText primary={<Typography sx={{ fontWeight: 900, color: '#111827', fontSize: '1.05rem' }}>{app.applicantNickname}</Typography>} secondary={<Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 600 }}>{POSITION_OPTIONS.find(p => p.value === app.applicantPosition)?.label || app.applicantPosition} · {app.createdAt?.split('T')[0]}</Typography>} />
                   <Chip label={app.status === 'PENDING' ? '대기중' : (app.status === 'ACCEPTED' ? '승인됨' : '거절됨')} size="small" sx={{ fontWeight: 900, px: 1, bgcolor: app.status === 'PENDING' ? '#FFFBEB' : (app.status === 'ACCEPTED' ? '#ECFDF5' : '#FEF2F2'), color: app.status === 'PENDING' ? '#D97706' : (app.status === 'ACCEPTED' ? '#10B981' : '#EF4444'), borderRadius: 1.5 }} />
                   <ArrowForwardIosIcon sx={{ fontSize: 14, ml: 2, color: '#D1D5DB' }} />
@@ -638,30 +653,6 @@ const MyPage = () => {
                   <Stack direction="row" spacing={1}>
                     <Chip label={POSITION_OPTIONS.find(p => p.value === selectedApp.applicantPosition)?.label || selectedApp.applicantPosition} sx={{ bgcolor: '#EEF2FF', color: '#6366F1', fontWeight: 900, borderRadius: 1.5 }} />
                     <Chip label={selectedApp.createdAt?.split('T')[0]} variant="outlined" sx={{ fontWeight: 700, borderRadius: 1.5, borderColor: '#E5E7EB' }} />
-                  </Stack>
-                </Box>
-                <Box>
-                  <Typography variant="caption" sx={{ color: '#6366F1', fontWeight: 900, display: 'block', mb: 1.5, letterSpacing: '0.05em' }}>보유 기술 스택</Typography>
-                  <Stack direction="row" spacing={1} flexWrap="wrap" gap={1}>
-                    {selectedApp.techStacks && selectedApp.techStacks.length > 0 ? (
-                      selectedApp.techStacks.map((stack) => (
-                        <Chip 
-                          key={stack} 
-                          label={stack} 
-                          size="small" 
-                          sx={{ 
-                            bgcolor: '#F3F4F6', 
-                            color: '#4B5563', 
-                            fontWeight: 700, 
-                            borderRadius: 1.5 
-                          }} 
-                        />
-                      ))
-                    ) : (
-                      <Typography variant="body2" sx={{ color: '#9CA3AF', fontStyle: 'italic', pl: 0.5 }}>
-                        등록된 기술 스택이 없습니다.
-                      </Typography>
-                    )}
                   </Stack>
                 </Box>
                 <Box>
@@ -696,10 +687,10 @@ const MyPage = () => {
 const MenuButton = ({ icon, label, count, onClick }) => ( <Button fullWidth startIcon={icon} onClick={onClick} sx={{ justifyContent: 'flex-start', px: 2.5, py: 1.8, borderRadius: 3, fontWeight: 800, color: '#6B7280', '&:hover': { bgcolor: '#F9FAFB', color: '#6366F1' } }}><Box sx={{ flexGrow: 1, textAlign: 'left' }}>{label}</Box>{count !== undefined && <Chip label={count} size="small" sx={{ height: 22, fontWeight: 900, bgcolor: '#F3F4F6' }} />}</Button> );
 const FormLabel = ({ text }) => <Typography variant="body2" sx={{ fontWeight: 800, mb: 1.5, ml: 0.5, color: '#374151' }}>{text}</Typography>;
 
-// 💡 ActivityItem에서도 데이터 추출 경로를 안전하게 수정하여 [프로젝트] 라벨이 정확히 뜨도록 함
+// 💡 ActivityItem에서도 데이터 추출 경로를 안전하게 수정
 const ActivityItem = ({ item, tabValue, onTitleClick, onManageClick, onViewAppsClick, onCancelClick }) => {
-  const rawValue = item?.category || item?.projectCategory || item?.project?.category || "";
-  const rawCategory = rawValue.toUpperCase();
+  // 💡 여기서도 똑같이 깊은 경로까지 체크해야 [프로젝트] 라벨이 제대로 뜹니다.
+  const rawCategory = item?.category || item?.projectCategory || item?.project?.category || item?.post?.category || item?.postCategory;
   const categoryLabel = rawCategory === 'PROJECT' ? '[프로젝트]' : rawCategory === 'STUDY' ? '[스터디]' : '';
     
   const title = item.projectTitle || item.title || "제목 없음";
