@@ -280,9 +280,6 @@ const PostDetailPage = () => {
                     <Typography variant="h6" sx={{ fontWeight: 900, lineHeight: 1.2, mb: 0.5 }}>
                       {post.ownerNickname}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#6B7280', fontWeight: 700, mb: 1 }}>
-                      시니어 메이트
-                    </Typography>
                     <Chip 
                       label={POSITION_OPTIONS.find(p => p.value === post.ownerPosition)?.label || post.ownerPosition || 'FE'} 
                       size="small" sx={{ bgcolor: '#F5F3FF', color: '#6C63FF', fontWeight: 900, borderRadius: 1.5 }} 
