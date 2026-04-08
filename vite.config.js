@@ -14,7 +14,7 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     allowedHosts: [
-      'superindulgent-noncommemoratively-neymar.ngrok-free.dev'
+      'principally-somnambulistic-frank.ngrok-free.dev'
     ],
     proxy: {
       '/api': {
